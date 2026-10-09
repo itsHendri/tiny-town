@@ -22,6 +22,7 @@ export const LAYERS = {
       { v: 3, id: "water", label: "Water", color: "#45bddd" },
       { v: 4, id: "soil", label: "Crops", color: "#a37a45" },
       { v: 5, id: "bridge", label: "Bridge", color: "#cfa765" },
+      { v: 6, id: "dirt", label: "Dirt", color: "#a88d5c" },
     ],
   },
   Features: { uid: 3, label: "Features", values: [{ v: 1, id: "stairs", label: "Stairs", color: "#7a5733" }] },
@@ -44,6 +45,7 @@ export const MAX_LEVEL = LAYERS.Height.values.length;
 // The ground overlays, drawn on every level in this order. Each is a dual-grid set in the tile sheet, fed by
 // the cells holding one of `ids` on that level.
 export const OVERLAYS = [
+  { name: "dirt", ids: ["dirt"] },
   { name: "water", ids: ["water", "bridge"] },
   { name: "soil", ids: ["soil"] },
   { name: "path", ids: ["path"] },

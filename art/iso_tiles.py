@@ -31,7 +31,7 @@ def build(palette):
     meta["grass"] = {f"{a},{b}": sh.add(grass_cell((a, b))) for a, b in PHASES}
     sh.newline()
     meta["sets"] = {}
-    for name in ("raised_fill", "raised_edge", "water", "soil", "path", "tallgrass"):
+    for name in ("raised_fill", "raised_edge", "dirt", "water", "soil", "path", "tallgrass"):
         frames = 3 if name in ANIMATED else 1
         tiles = {}
         for mask in range(1, 16):

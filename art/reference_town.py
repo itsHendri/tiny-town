@@ -53,7 +53,37 @@ def layout():
         m.fence[r][2] = True
     for c in range(2, 7):
         m.fence[21][c] = True
+    # trampled dirt under the market stalls and in front of the house doors
+    for (r0, c0, r1, c1) in ((17, 6, 19, 8), (20, 6, 23, 8), (24, 9, 26, 11), (22, 15, 24, 17), (10, 4, 11, 6), (6, 17, 7, 19), (14, 26, 15, 28)):
+        for r in range(r0, r1):
+            for c in range(c0, c1):
+                if m.terrain[r][c] == "grass":
+                    m.terrain[r][c] = "dirt"
     return m
+
+
+def dressing(m, taken, houses):
+    """Small things along every road edge, and trees filling the quiet corners (the same every time)."""
+    from dualgrid import h
+    road = {"path", "cobbles", "bridge"}
+    out = []
+    near_road = lambda r, c, k: any(0 <= r + dr < N and 0 <= c + dc < N and m.terrain[r + dr][c + dc] in road
+                                    for dr in range(-k, k + 1) for dc in range(-k, k + 1))
+    for r in range(N):
+        for c in range(N):
+            if (c, r) in taken or m.terrain[r][c] != "grass" or m.fence[r][c] or m.deco[r][c] or m.height[r][c]:
+                continue
+            k = h("dress", c, r)
+            if near_road(r, c, 1):
+                if k < 0.32:
+                    pick = ["detail-tuft-1", "detail-tuft-2", "detail-flowers-1", "detail-flowers-2", "detail-pebbles-1",
+                            "detail-pebbles-2", "bush-1", "bush-3", "rock-1", "detail-mushrooms"][int(h("dk", c, r) * 10)]
+                    out.append((pick, c, r))
+            elif not near_road(r, c, 2) and k < 0.10 and not any((c + dc, r + dr) in houses for dr in range(-3, 3) for dc in range(-3, 3)):
+                out.append((["tree-1", "tree-2", "tree-4", "pine-1", "pine-2", "tree-5", "pine-3"][int(h("tk", c, r) * 7)], c, r))
+            elif k > 0.93:
+                out.append((["detail-flowers-1", "detail-tuft-2", "bush-2"][int(h("dk2", c, r) * 3)], c, r))
+    return out
 
 
 OBJECTS = [
@@ -96,18 +126,30 @@ def build(palette="earthy", look="storybook"):
     iso_props.use_look(look)
     m = layout()
     spr = sprites()
+    taken, houses = set(), set()
     for name, c, r in OBJECTS:
+        foot = iso_props.HOUSES.get(name, {})
+        fw, fd = foot.get("fw", 1), foot.get("fd", 1)
+        if name.startswith("stall"):
+            fw, fd = 2, 1
+        for rr in range(r - fd + 1, r + 1):
+            for cc in range(c - fw + 1, c + 1):
+                taken.add((cc, rr))
+                if name in iso_props.HOUSES:
+                    houses.add((cc, rr))
+    objects = OBJECTS + dressing(m, taken, houses)
+    for name, c, r in objects:
         m.objects.append((spr[name], c * 16 + 8, (r + 1) * 16))
     # the map file
     p = ldtk.Project(N, N)
-    T_ = {"grass": 0, "path": 1, "cobbles": 2, "water": 3, "soil": 4, "bridge": 5}
+    T_ = {"grass": 0, "path": 1, "cobbles": 2, "water": 3, "soil": 4, "bridge": 5, "dirt": 6}
     D_ = {"flowers": 2, "tallgrass": 3, "gate": 4}
     flat = lambda g: [v for row in g for v in row]
     p.set_intgrid("Height", flat(m.height))
     p.set_intgrid("Terrain", [T_[t] for t in flat(m.terrain)])
     p.set_intgrid("Features", [1 if f == "stairs" else 0 for f in flat(m.feature)])
     p.set_intgrid("Deco", [1 if f else D_.get(d, 0) for f, d in zip(flat(m.fence), flat(m.deco))])
-    for name, c, r in OBJECTS:
+    for name, c, r in objects:
         p.add_entity("Prop", c * 16 + 8, (r + 1) * 16, {"sprite": name})
     p.add_entity("Region", 8 * 16, 27 * 16, {"name": "start"}, w=16, h=16)
     p.save(ROOT / "maps" / "market-village.ldtk")

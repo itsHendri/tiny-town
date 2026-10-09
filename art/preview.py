@@ -49,7 +49,7 @@ class Map:
 
 def to_json(m):
     """The map's cell layers as the browser's numbers (for checking the two renderers draw the same pixels)."""
-    T_ = {"grass": 0, "path": 1, "cobbles": 2, "water": 3, "soil": 4, "bridge": 5}
+    T_ = {"grass": 0, "path": 1, "cobbles": 2, "water": 3, "soil": 4, "bridge": 5, "dirt": 6}
     D_ = {"flowers": 2, "tallgrass": 3, "gate": 4}
     flat = lambda g: [v for row in g for v in row]
     return {"cols": m.cols, "rows": m.rows, "H": flat(m.height), "T": [T_[t] for t in flat(m.terrain)],

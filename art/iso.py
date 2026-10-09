@@ -164,6 +164,22 @@ def cobble_px(sh, x, y, gx, gy):
     return "cb2" if h("cbs", *sid) < 0.22 else "cb1"
 
 
+def dirt_px(sh, x, y, gx, gy):
+    """Trampled earth: warm dirt with pebbles, thinning raggedly into the grass."""
+    if not sh.inside(x, y):
+        return None
+    gx, gy = gx % 64, gy % 32
+    d = sh.dist(x, y, 3)
+    if d <= 1.0 and h("dthin", gx, gy) < 0.55:
+        return None
+    if d <= 2.0 and h("dtuft", gx, gy) < 0.2:
+        return "g3"
+    k = h("dirt", gx // 2, gy, 1)
+    if h("peb", gx, gy) < 0.02:
+        return "s0"
+    return "d2" if k < 0.55 else "k0" if k < 0.8 else "d1"
+
+
 def water_px(sh, x, y, gx, gy, f):
     if not sh.inside(x, y):
         d = sh.dist(x, y, 4)
@@ -223,6 +239,7 @@ SETS = {
     "raised_fill": lambda sh, x, y, gx, gy, f: raised_fill_px(sh, x, y, gx, gy),
     "raised_edge": lambda sh, x, y, gx, gy, f: raised_edge_px(sh, x, y, gx, gy),
     "water": water_px,
+    "dirt": lambda sh, x, y, gx, gy, f: dirt_px(sh, x, y, gx, gy),
     "soil": lambda sh, x, y, gx, gy, f: soil_px(sh, x, y, gx, gy),
     "path": lambda sh, x, y, gx, gy, f: cobble_px(sh, x, y, gx, gy),
     "cobbles": lambda sh, x, y, gx, gy, f: cobble_px(sh, x, y, gx, gy),
@@ -305,7 +322,7 @@ def render(m, frame=0, objects=True):
     FL, UP = _cached(flats), _cached(uprights)
 
     def overlays(layer, level):
-        for name in ("water", "soil", "path", "cobbles"):
+        for name in ("dirt", "water", "soil", "path", "cobbles"):
             dual(layer, name, m.cells(name, level), level)
         dual(layer, "tallgrass", m.cells("tallgrass", level), level)
         for r in range(rows):                                # flat things on single cells: flowers, crops, bridge decks

@@ -114,6 +114,60 @@ def mossy_rock(seed):
     return tight(s).outline()
 
 
+def pebbles(seed):
+    r = rng("peb", seed)
+    s = Sprite(14, 7)
+    for _ in range(4):
+        x, y, rr = r.uniform(2, 11), r.uniform(2.5, 4.5), r.uniform(1.3, 2.2)
+        s.disc(x, y, rr, "s1", squash=0.7)
+        s.put(int(x - 0.5), int(y - 0.8), "s0")
+    return tight(s).outline()
+
+
+def tuft(seed):
+    r = rng("tuft", seed)
+    s = Sprite(12, 9)
+    for k in range(7):
+        x = 1 + k * 1.5 + r.uniform(-0.4, 0.4)
+        hgt = r.randint(4, 8)
+        for j in range(hgt):
+            s.put(int(x + (j / hgt) * r.uniform(-1.5, 1.5)), 8 - j, "t0" if j > hgt - 2 else "t1" if j > 1 else "t3")
+    return tight(s)
+
+
+def mushrooms(seed):
+    r = rng("mush", seed)
+    s = Sprite(12, 9)
+    for k in range(r.randint(2, 3)):
+        x = 2 + k * 4 + r.randint(0, 1)
+        s.rect(x, 5, 1, 3, "c0")
+        s.rect(x - 2, 3, 5, 2, "r1"); s.rect(x - 1, 2, 3, 1, "r1"); s.put(x - 1, 3, "fl_w"); s.put(x + 1, 2, "fl_w")
+    return tight(s).outline()
+
+
+def flower_clump(seed):
+    r = rng("fclump", seed)
+    s = Sprite(12, 10)
+    col = r.choice(["fl_p", "fl_w", "fl_y", "fl_o", "jf1"])
+    for k in range(5):
+        x, y = r.randint(2, 9), r.randint(2, 6)
+        s.put(x, y + 2, "t2"); s.put(x, y + 3, "t3")
+        for dx, dy in ((0, -1), (-1, 0), (1, 0), (0, 1)):
+            s.put(x + dx, y + dy, col)
+        s.put(x, y, "fl_y" if col != "fl_y" else "fl_o")
+    return tight(s).outline()
+
+
+def details():
+    out = {}
+    for k in range(2):
+        out[f"detail-pebbles-{k + 1}"] = pebbles(k)
+        out[f"detail-tuft-{k + 1}"] = tuft(k)
+        out[f"detail-flowers-{k + 1}"] = flower_clump(k)
+    out["detail-mushrooms"] = mushrooms(0)
+    return out
+
+
 def nature():
     """The isometric versions of the nature props, by their catalog names."""
     out = {}
@@ -126,4 +180,5 @@ def nature():
         out[f"bush-{k + 1}"] = flower_bush(f"b{k}")
     for k in range(2):
         out[f"rock-{k + 1}"] = mossy_rock(f"r{k}")
+    out.update(details())
     return out

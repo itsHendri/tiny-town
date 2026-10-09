@@ -253,7 +253,7 @@
    "ay": 13
   },
   "bench": {
-   "x": 0,
+   "x": 60,
    "y": 423,
    "w": 32,
    "h": 10,
@@ -366,6 +366,55 @@
    "shadow": true,
    "ax": 16,
    "ay": 27
+  },
+  "detail-flowers-1": {
+   "x": 455,
+   "y": 386,
+   "w": 14,
+   "h": 12,
+   "shadow": true
+  },
+  "detail-flowers-2": {
+   "x": 470,
+   "y": 386,
+   "w": 14,
+   "h": 12,
+   "shadow": true
+  },
+  "detail-mushrooms": {
+   "x": 45,
+   "y": 423,
+   "w": 14,
+   "h": 11,
+   "shadow": true
+  },
+  "detail-pebbles-1": {
+   "x": 93,
+   "y": 423,
+   "w": 16,
+   "h": 9,
+   "shadow": true
+  },
+  "detail-pebbles-2": {
+   "x": 110,
+   "y": 423,
+   "w": 16,
+   "h": 9,
+   "shadow": true
+  },
+  "detail-tuft-1": {
+   "x": 15,
+   "y": 423,
+   "w": 14,
+   "h": 11,
+   "shadow": true
+  },
+  "detail-tuft-2": {
+   "x": 30,
+   "y": 423,
+   "w": 14,
+   "h": 11,
+   "shadow": true
   },
   "flower-cart": {
    "x": 86,
@@ -569,15 +618,15 @@
    "shadow": true
   },
   "rock-1": {
-   "x": 455,
+   "x": 485,
    "y": 386,
    "w": 14,
    "h": 11,
    "shadow": false
   },
   "rock-2": {
-   "x": 470,
-   "y": 386,
+   "x": 0,
+   "y": 423,
    "w": 14,
    "h": 11,
    "shadow": false

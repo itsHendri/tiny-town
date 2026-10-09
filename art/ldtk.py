@@ -16,7 +16,7 @@ VERSION = 1
 OBJECTS_UID = 1
 LAYERS = {   # name: (uid, [(value, id, colour)])
     "Height": (5, [(1, "raised", "#8a9a3c")]),
-    "Terrain": (4, [(1, "path", "#e2c96a"), (2, "cobbles", "#7a8399"), (3, "water", "#45bddd"), (4, "soil", "#a37a45"), (5, "bridge", "#cfa765")]),
+    "Terrain": (4, [(1, "path", "#e2c96a"), (2, "cobbles", "#7a8399"), (3, "water", "#45bddd"), (4, "soil", "#a37a45"), (5, "bridge", "#cfa765"), (6, "dirt", "#a88d5c")]),
     "Features": (3, [(1, "stairs", "#7a5733")]),
     "Deco": (2, [(1, "fence", "#5a3a32"), (2, "flowers", "#f28fb0"), (3, "tallgrass", "#2f7448"), (4, "gate", "#cfa765")]),
 }
