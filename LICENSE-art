@@ -1,0 +1,15 @@
+Art license
+
+The pixel art in this repository (the generated and hand-edited PNG files in
+tiles/, and the art the code in art/ draws) is licensed under the
+Creative Commons Attribution 4.0 International License (CC BY 4.0).
+
+Copyright (c) 2026 itsHendri
+
+You may share and adapt it for any purpose, including commercially, as long as
+you give credit ("art by itsHendri, tiny-town") and say if you changed it.
+
+Full license text: https://creativecommons.org/licenses/by/4.0/legalcode
+Summary: https://creativecommons.org/licenses/by/4.0/
+
+The code itself (Python and JavaScript) is MIT licensed: see LICENSE.

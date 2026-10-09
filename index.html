@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Tiny Town Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a workbench. Tools on the left, the map in the middle on its own grass, the inspector on the right.
+   On a phone the map comes first and the panels follow underneath. */
+:root {
+  --bg: #efe9dc;          /* parchment desk */
+  --panel: #fffaf1;
+  --fg: #26303f;          /* the tiles' navy outline */
+  --muted: #5f6672;
+  --line: #ddd2bd;
+  --accent: #c4482c;      /* roof red */
+  --on: #2f7448;          /* forest green: the active tool */
+  --on-bg: #e3f1d2;
+  --stage: #8fae5a;       /* behind the map */
+  --display: "Pixelify Sans", ui-monospace, "SF Mono", Menlo, monospace;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #191d24; --panel: #222731; --fg: #eef0f4; --muted: #a9b0bc; --line: #353c4a; --accent: #f08a62;
+  --on: #9ad86f; --on-bg: #29371f; --stage: #2d3a28; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #191d24; --panel: #222731; --fg: #eef0f4; --muted: #a9b0bc; --line: #353c4a; --accent: #f08a62;
+  --on: #9ad86f; --on-bg: #29371f; --stage: #2d3a28; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.45 var(--body); display: grid; grid-template-rows: auto minmax(0, 1fr);
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+button, input, select, textarea { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding-inline: 16px; padding-block: 10px;
+  border-bottom: 1px solid var(--line); background: var(--panel); }
+.brand { font: 700 22px/1 var(--display); letter-spacing: .01em; }
+.file-name { font: 13px var(--mono); color: var(--muted); max-width: 30ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.state { margin-left: auto; font: 12px var(--mono); color: var(--muted); }
+
+.btn { border: 1.5px solid var(--fg); background: transparent; border-radius: 7px; padding: 5px 10px; min-height: 32px; cursor: pointer; font-weight: 600; font-size: 13px; }
+.btn:hover { background: var(--on-bg); }
+.btn:disabled { opacity: .4; cursor: default; background: transparent; }
+.btn.quiet { border-color: var(--line); font-weight: 500; }
+.btn.danger { border-color: var(--accent); color: var(--accent); }
+kbd { font: 11px var(--mono); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; color: var(--muted); }
+
+.app { display: grid; grid-template-columns: 252px minmax(0, 1fr) 276px; min-height: 0; }
+.panel { overflow: auto; padding-inline: 14px; padding-block: 14px 24px; display: grid; gap: 18px; align-content: start; grid-auto-rows: max-content; background: var(--panel); }
+.tools { border-right: 1px solid var(--line); }
+.side { border-left: 1px solid var(--line); }
+.panel h2 { font: 12px/1.3 var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--accent); margin: 0 0 8px; font-weight: 500; }
+.panel h3 { font: 600 12px var(--body); color: var(--muted); margin: 10px 0 6px; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 6px 0 0; }
+
+.tabs { display: grid; grid-template-columns: 1fr 1fr; border: 1.5px solid var(--fg); border-radius: 8px; overflow: hidden;
+  position: sticky; top: -14px; z-index: 2; background: var(--panel); box-shadow: 0 -14px 0 var(--panel); }
+.tabs button { border: 0; background: transparent; padding: 7px; cursor: pointer; font-weight: 600; }
+.tabs button[aria-pressed="true"] { background: var(--fg); color: var(--panel); }
+
+.toolrow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.tool { display: grid; justify-items: center; gap: 2px; border: 1.5px solid var(--line); background: transparent; border-radius: 8px; padding: 6px 2px; cursor: pointer; font-size: 12px; font-weight: 600; }
+.tool[aria-pressed="true"] { border-color: var(--on); background: var(--on-bg); }
+.sizes { display: flex; gap: 6px; align-items: center; font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+.sizes button { display: grid; justify-items: center; gap: 2px; padding: 4px 6px; border: 1.5px solid var(--line); border-radius: 6px; background: transparent; cursor: pointer; font-weight: 600; font-size: 11px; }
+.sizes svg { width: 24px; height: 24px; display: block; }
+.sizes svg rect { fill: var(--line); }
+.sizes svg rect.on { fill: var(--fg); }
+.sizes button[aria-pressed="true"] { border-color: var(--on); background: var(--on-bg); }
+
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; }
+.swatch { display: grid; justify-items: center; gap: 3px; border: 1.5px solid var(--line); border-radius: 8px; background: transparent; padding: 5px 2px; cursor: pointer; font-size: 11.5px; line-height: 1.2; text-align: center; min-width: 0; }
+.swatch canvas, .swatch img { width: 32px; height: 32px; image-rendering: pixelated; object-fit: contain; }
+.swatch[aria-pressed="true"] { border-color: var(--on); background: var(--on-bg); box-shadow: 0 0 0 1px var(--on) inset; }
+.swatch span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.catalog .swatch canvas { width: 40px; height: 40px; }
+.scatter { display: grid; gap: 6px; margin-top: 10px; padding: 8px; border: 1px dashed var(--line); border-radius: 8px; font-size: 12.5px; }
+.scatter label { display: flex; gap: 8px; align-items: flex-start; }
+.density { display: flex; gap: 6px; }
+.stamp { position: relative; display: grid; }
+.stamp .remove { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; border: 0; border-radius: 50%; background: var(--panel); color: var(--muted); cursor: pointer; font-size: 14px; line-height: 1; }
+.stamp .remove:hover { color: var(--accent); }
+.density button { flex: 1; border: 1.5px solid var(--line); border-radius: 6px; background: transparent; padding: 3px; cursor: pointer; font-weight: 600; font-size: 12px; }
+.density button[aria-pressed="true"] { border-color: var(--on); background: var(--on-bg); }
+.catalog { max-height: none; }
+
+.stage { position: relative; overflow: hidden; background: var(--stage); touch-action: none; min-width: 0; }
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; cursor: crosshair; }
+.stage.pan canvas { cursor: grab; }
+.hud { position: absolute; left: 10px; bottom: 10px; font: 12px var(--mono); background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; pointer-events: none; font-variant-numeric: tabular-nums; }
+.zoom { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 4px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 3px; font: 12px var(--mono); }
+.zoom button { width: 28px; height: 28px; border: 0; background: transparent; cursor: pointer; font-size: 16px; border-radius: 6px; }
+.zoom button:hover { background: var(--on-bg); }
+.zoom span { min-width: 3.2ch; text-align: center; font-variant-numeric: tabular-nums; }
+.toast { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); background: var(--fg); color: var(--panel); padding: 6px 12px; border-radius: 8px; font-size: 13px; pointer-events: none; max-width: calc(100% - 32px); }
+
+.field { display: grid; gap: 3px; margin-bottom: 8px; }
+.field label { font: 12px var(--mono); color: var(--muted); }
+.field input, .field select, .field textarea { width: 100%; border: 1px solid var(--line); background: var(--bg); border-radius: 6px; padding: 5px 8px; font: 13px var(--mono); }
+.field textarea { resize: vertical; min-height: 48px; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.empty { color: var(--muted); font-size: 13px; }
+.checks { display: grid; gap: 4px; }
+.checks label { display: flex; gap: 8px; align-items: center; font-size: 13.5px; }
+.keys { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: 12.5px; color: var(--muted); align-items: baseline; }
+.inspect-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.inspect-head canvas { width: 40px; height: 40px; image-rendering: pixelated; background: var(--stage); border-radius: 6px; }
+.inspect-head b { font-size: 14px; }
+.inspect-head small { display: block; font: 12px var(--mono); color: var(--muted); }
+
+dialog { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--fg); padding: 0; width: min(520px, calc(100vw - 32px)); }
+dialog::backdrop { background: rgba(20, 24, 32, 0.5); }
+.share-box { display: grid; gap: 8px; padding: 18px; }
+.share-box h2 { font: 700 20px var(--display); margin: 0; }
+.share-box textarea { width: 100%; border: 1px solid var(--line); background: var(--bg); border-radius: 6px; padding: 6px 8px; font: 12px var(--mono); word-break: break-all; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+@media (max-width: 1000px) {
+  html, body { height: auto; }
+  body { display: block; }
+  .app { grid-template-columns: 1fr 1fr; }
+  .stage { grid-column: 1 / -1; order: -1; height: 62vh; min-height: 340px; }
+  .tools, .side { border: 0; border-top: 1px solid var(--line); }
+}
+@media (max-width: 620px) {
+  .app { grid-template-columns: 1fr; }
+  .state { margin-left: 0; flex-basis: 100%; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="brand">tiny-town</span>
+  <span class="file-name" id="file-name">Loading…</span>
+  <span class="actions">
+    <button class="btn quiet" type="button" id="new">New</button>
+    <button class="btn quiet" type="button" id="example">Example</button>
+    <button class="btn quiet" type="button" id="open">Open…</button>
+    <button class="btn" type="button" id="save">Save</button>
+    <button class="btn quiet" type="button" id="export">Export PNG</button>
+    <button class="btn quiet" type="button" id="share">Share code</button>
+  </span>
+  <span class="actions">
+    <button class="btn quiet" type="button" id="undo" title="Undo (Ctrl+Z)">Undo</button>
+    <button class="btn quiet" type="button" id="redo" title="Redo (Ctrl+Shift+Z)">Redo</button>
+  </span>
+  <span class="state" id="state"></span>
+</header>
+
+<main class="app">
+  <aside class="panel tools" aria-label="Tools">
+    <div class="tabs" role="group" aria-label="Mode">
+      <button type="button" id="mode-paint" aria-pressed="true">Paint</button>
+      <button type="button" id="mode-objects" aria-pressed="false">Objects</button>
+    </div>
+
+    <section id="paint-panel">
+      <h2>Tool</h2>
+      <div class="toolrow" id="toolrow"></div>
+      <div class="sizes" id="sizes">Brush</div>
+      <div id="palette"></div>
+      <h3>Stamps</h3>
+      <div id="stamps"></div>
+      <p class="hint">Right-click erases (or lowers). Alt-click picks what's under the cursor. Shift-click draws a straight line.</p>
+    </section>
+
+    <section id="objects-panel" hidden>
+      <h2>Place</h2>
+      <p class="hint" style="margin:0 0 8px">Pick something, then click the map. Click an object to select it; drag to move. Hold Shift to place off the grid. With Scatter on, drag to sprinkle; right-drag clears.</p>
+      <div id="catalog" class="catalog"></div>
+    </section>
+  </aside>
+
+  <div class="stage" id="stage">
+    <canvas id="view" aria-label="Map"></canvas>
+    <div class="hud" id="hud">–</div>
+    <div class="zoom"><button type="button" id="zoom-out" aria-label="Zoom out">−</button><span id="zoom-level">2×</span><button type="button" id="zoom-in" aria-label="Zoom in">+</button><button type="button" id="zoom-fit" aria-label="Fit the map" style="width:auto;padding:0 6px;font-size:12px">Fit</button></div>
+    <div class="toast" id="toast" hidden></div>
+  </div>
+
+  <aside class="panel side" aria-label="Inspector">
+    <section>
+      <h2>Selected</h2>
+      <div id="inspector"><p class="empty">Nothing selected. In Objects mode, click a tree, a house or a character.</p></div>
+    </section>
+    <section>
+      <h2>Show</h2>
+      <div class="checks" id="show"></div>
+    </section>
+    <section>
+      <h2>Map size</h2>
+      <div class="pair">
+        <div class="field"><label for="cols">Columns</label><input id="cols" type="number" min="4" max="200"></div>
+        <div class="field"><label for="rows">Rows</label><input id="rows" type="number" min="4" max="200"></div>
+      </div>
+      <button class="btn quiet" type="button" id="resize">Resize</button>
+      <p class="hint">Cells are 16 px. Shrinking cuts from the right and bottom.</p>
+    </section>
+    <section>
+      <h2>Keys</h2>
+      <div class="keys">
+        <kbd>B R F I S</kbd><span>brush, box, fill, pick, select</span>
+        <kbd>T</kbd><span>plot: drag a fenced yard with a gate</span>
+        <kbd>1–9</kbd><span>swatches, in order</span>
+        <kbd>[ ]</kbd><span>brush size</span>
+        <kbd>Shift click</kbd><span>straight line from the last stroke</span>
+        <kbd>S</kbd><span>select an area, then Ctrl C / X / V</span>
+        <kbd>P</kbd><span>paint / objects</span>
+        <kbd>Space</kbd><span>hold and drag to pan</span>
+        <kbd>+ −</kbd><span>zoom (or pinch, Ctrl+wheel)</span>
+        <kbd>Shift R</kbd><span>raw grid on/off</span>
+        <kbd>Del</kbd><span>delete the selected object</span>
+        <kbd>Ctrl Z</kbd><span>undo (Shift for redo)</span>
+        <kbd>Ctrl S</kbd><span>save</span>
+      </div>
+    </section>
+  </aside>
+</main>
+
+<dialog id="share-dialog" aria-labelledby="share-title">
+  <form method="dialog" class="share-box">
+    <h2 id="share-title">Share code</h2>
+    <p class="hint">The whole map as one line of text. Send it to someone; they paste it here and press Open code. It only works with the same tiles and sprites.</p>
+    <div class="field"><label for="share-out">This map</label><textarea id="share-out" rows="4" readonly></textarea></div>
+    <button class="btn" type="button" id="share-copy">Copy</button>
+    <div class="field" style="margin-top:14px"><label for="share-in">Open a code</label><textarea id="share-in" rows="3" placeholder="tinytown1:…"></textarea></div>
+    <div class="actions"><button class="btn" type="button" id="share-open">Open code</button><button class="btn quiet" value="close">Close</button></div>
+  </form>
+</dialog>
+
+<script type="module" src="js/editor.js"></script>
+</body>
+</html>
