@@ -38,8 +38,13 @@ LAYER_DEF_COMMON = dict(
     tilePivotX=0, tilePivotY=0)
 
 
+_IDS = {"n": 0}
+
+
 def _uuid():
-    return str(uuid.uuid4())
+    """Stable ids (the same map built twice gives the same file, so git only shows real changes)."""
+    _IDS["n"] += 1
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, f"tiny-town/{_IDS['n']}"))
 
 
 def _layer_defs():
@@ -131,6 +136,7 @@ def _project_json(cols, rows, grids, entities):
 
 class Project:
     def __init__(self, cols, rows):
+        _IDS["n"] = 0
         self.cols, self.rows = cols, rows
         self.grids = {name: [0] * (cols * rows) for name in LAYERS}
         self.entities = []
