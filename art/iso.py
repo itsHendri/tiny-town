@@ -107,12 +107,17 @@ def sx(x, y, ox, oy):
 # ---------- colours for each terrain, in screen space (gx, gy = map-wide screen pixel) ----------
 
 def grass_px(gx, gy, variant=0):
-    k = h("gt", (gx % 64) // 2, (gy % 32) // 2, variant)
-    if k < 0.06:
+    """Meadow grass: blades in small strokes, darker clumps, lighter sunny patches, the odd tiny flower."""
+    gx, gy = gx % 64, gy % 32
+    patch = h("gp", gx // 8, gy // 4, variant)                # sunny or shaded patches, 8x4 px
+    k = h("gt", gx // 2, gy // 2, variant)
+    if h("gf", gx, gy, variant) < 0.006:
+        return "fl_w" if h("gfc", gx, gy) < 0.6 else "fl_y"
+    if k < 0.07 or (patch < 0.18 and k < 0.3):
         return "g3"
-    if k < 0.16:
+    if k < 0.18:
         return "g2"
-    if k > 0.985:
+    if patch > 0.82 and k > 0.6:
         return "g0"
     return "g1"
 
@@ -137,11 +142,18 @@ def _stone(gx, gy):
 
 
 def cobble_px(sh, x, y, gx, gy):
-    """Cobblestones: irregular rounded stones lit from the top-left, dark mortar between, a kerb at the edge."""
+    """Cobblestones: irregular rounded stones lit from the top-left, dark mortar between; at the edge grass tufts
+    creep in and a few loose stones lie out on the grass."""
     if not sh.inside(x, y):
+        d = sh.dist(x, y, 3)
+        if d <= 2.5 and h("loose", gx % 64, gy % 32) < 0.08:
+            return "cb2"
         return None
-    if sh.dist(x, y, 3) <= 1.0:
-        return "cb3"
+    d = sh.dist(x, y, 3)
+    if d <= 1.0:
+        return "g3" if h("tuft", gx % 64, gy % 32) < 0.45 else "cb3"
+    if d <= 2.0 and h("tuft2", gx % 64, gy % 32) < 0.15:
+        return "g2"
     sid, (ox, oy), gap = _stone(gx, gy)
     if gap < 1.0:
         return "cb3"

@@ -1,0 +1,3475 @@
+{
+ "__header__": {
+  "fileType": "LDtk Project JSON",
+  "app": "LDtk",
+  "doc": "https://ldtk.io/json",
+  "schema": "https://ldtk.io/files/JSON_SCHEMA.json",
+  "appAuthor": "Sebastien 'deepnight' Benard",
+  "appVersion": "1.5.3",
+  "url": "https://ldtk.io"
+ },
+ "tinyTownVersion": 1,
+ "iid": "9d82c17d-36a8-4b45-bc35-52e01ccc0fcc",
+ "jsonVersion": "1.5.3",
+ "appBuildId": 473702,
+ "nextUid": 100,
+ "identifierStyle": "Capitalize",
+ "toc": [],
+ "worldLayout": "Free",
+ "worldGridWidth": 256,
+ "worldGridHeight": 256,
+ "defaultLevelWidth": 448,
+ "defaultLevelHeight": 448,
+ "defaultPivotX": 0.5,
+ "defaultPivotY": 1,
+ "defaultGridSize": 16,
+ "defaultEntityWidth": 16,
+ "defaultEntityHeight": 16,
+ "bgColor": "#40465B",
+ "defaultLevelBgColor": "#b4d566",
+ "minifyJson": false,
+ "externalLevels": false,
+ "exportTiled": false,
+ "simplifiedExport": false,
+ "imageExportMode": "None",
+ "exportLevelBg": true,
+ "pngFilePattern": null,
+ "backupOnSave": false,
+ "backupLimit": 10,
+ "backupRelPath": null,
+ "levelNamePattern": "%world_Level_%idx",
+ "customCommands": [],
+ "flags": [],
+ "defs": {
+  "layers": [
+   {
+    "doc": null,
+    "uiColor": null,
+    "gridSize": 16,
+    "guideGridWid": 0,
+    "guideGridHei": 0,
+    "displayOpacity": 1,
+    "inactiveOpacity": 0.6,
+    "hideInList": false,
+    "hideFieldsWhenInactive": true,
+    "canSelectWhenInactive": true,
+    "renderInWorldView": true,
+    "pxOffsetX": 0,
+    "pxOffsetY": 0,
+    "parallaxFactorX": 0,
+    "parallaxFactorY": 0,
+    "parallaxScaling": true,
+    "requiredTags": [],
+    "excludedTags": [],
+    "uiFilterTags": [],
+    "useAsyncRender": false,
+    "autoTilesKilledByOtherLayerUid": null,
+    "biomeFieldUid": null,
+    "intGridValuesGroups": [],
+    "autoRuleGroups": [],
+    "autoSourceLayerDefUid": null,
+    "tilesetDefUid": null,
+    "tilePivotX": 0,
+    "tilePivotY": 0,
+    "__type": "Entities",
+    "type": "Entities",
+    "identifier": "Objects",
+    "uid": 1,
+    "intGridValues": []
+   },
+   {
+    "doc": null,
+    "uiColor": null,
+    "gridSize": 16,
+    "guideGridWid": 0,
+    "guideGridHei": 0,
+    "displayOpacity": 1,
+    "inactiveOpacity": 1,
+    "hideInList": false,
+    "hideFieldsWhenInactive": true,
+    "canSelectWhenInactive": true,
+    "renderInWorldView": true,
+    "pxOffsetX": 0,
+    "pxOffsetY": 0,
+    "parallaxFactorX": 0,
+    "parallaxFactorY": 0,
+    "parallaxScaling": true,
+    "requiredTags": [],
+    "excludedTags": [],
+    "uiFilterTags": [],
+    "useAsyncRender": false,
+    "autoTilesKilledByOtherLayerUid": null,
+    "biomeFieldUid": null,
+    "intGridValuesGroups": [],
+    "autoRuleGroups": [],
+    "autoSourceLayerDefUid": null,
+    "tilesetDefUid": null,
+    "tilePivotX": 0,
+    "tilePivotY": 0,
+    "__type": "IntGrid",
+    "type": "IntGrid",
+    "identifier": "Deco",
+    "uid": 2,
+    "intGridValues": [
+     {
+      "value": 1,
+      "identifier": "fence",
+      "color": "#5a3a32",
+      "tile": null,
+      "groupUid": 0
+     },
+     {
+      "value": 2,
+      "identifier": "flowers",
+      "color": "#f28fb0",
+      "tile": null,
+      "groupUid": 0
+     },
+     {
+      "value": 3,
+      "identifier": "tallgrass",
+      "color": "#2f7448",
+      "tile": null,
+      "groupUid": 0
+     },
+     {
+      "value": 4,
+      "identifier": "gate",
+      "color": "#cfa765",
+      "tile": null,
+      "groupUid": 0
+     }
+    ]
+   },
+   {
+    "doc": null,
+    "uiColor": null,
+    "gridSize": 16,
+    "guideGridWid": 0,
+    "guideGridHei": 0,
+    "displayOpacity": 1,
+    "inactiveOpacity": 1,
+    "hideInList": false,
+    "hideFieldsWhenInactive": true,
+    "canSelectWhenInactive": true,
+    "renderInWorldView": true,
+    "pxOffsetX": 0,
+    "pxOffsetY": 0,
+    "parallaxFactorX": 0,
+    "parallaxFactorY": 0,
+    "parallaxScaling": true,
+    "requiredTags": [],
+    "excludedTags": [],
+    "uiFilterTags": [],
+    "useAsyncRender": false,
+    "autoTilesKilledByOtherLayerUid": null,
+    "biomeFieldUid": null,
+    "intGridValuesGroups": [],
+    "autoRuleGroups": [],
+    "autoSourceLayerDefUid": null,
+    "tilesetDefUid": null,
+    "tilePivotX": 0,
+    "tilePivotY": 0,
+    "__type": "IntGrid",
+    "type": "IntGrid",
+    "identifier": "Features",
+    "uid": 3,
+    "intGridValues": [
+     {
+      "value": 1,
+      "identifier": "stairs",
+      "color": "#7a5733",
+      "tile": null,
+      "groupUid": 0
+     }
+    ]
+   },
+   {
+    "doc": null,
+    "uiColor": null,
+    "gridSize": 16,
+    "guideGridWid": 0,
+    "guideGridHei": 0,
+    "displayOpacity": 1,
+    "inactiveOpacity": 1,
+    "hideInList": false,
+    "hideFieldsWhenInactive": true,
+    "canSelectWhenInactive": true,
+    "renderInWorldView": true,
+    "pxOffsetX": 0,
+    "pxOffsetY": 0,
+    "parallaxFactorX": 0,
+    "parallaxFactorY": 0,
+    "parallaxScaling": true,
+    "requiredTags": [],
+    "excludedTags": [],
+    "uiFilterTags": [],
+    "useAsyncRender": false,
+    "autoTilesKilledByOtherLayerUid": null,
+    "biomeFieldUid": null,
+    "intGridValuesGroups": [],
+    "autoRuleGroups": [],
+    "autoSourceLayerDefUid": null,
+    "tilesetDefUid": null,
+    "tilePivotX": 0,
+    "tilePivotY": 0,
+    "__type": "IntGrid",
+    "type": "IntGrid",
+    "identifier": "Terrain",
+    "uid": 4,
+    "intGridValues": [
+     {
+      "value": 1,
+      "identifier": "path",
+      "color": "#e2c96a",
+      "tile": null,
+      "groupUid": 0
+     },
+     {
+      "value": 2,
+      "identifier": "cobbles",
+      "color": "#7a8399",
+      "tile": null,
+      "groupUid": 0
+     },
+     {
+      "value": 3,
+      "identifier": "water",
+      "color": "#45bddd",
+      "tile": null,
+      "groupUid": 0
+     },
+     {
+      "value": 4,
+      "identifier": "soil",
+      "color": "#a37a45",
+      "tile": null,
+      "groupUid": 0
+     },
+     {
+      "value": 5,
+      "identifier": "bridge",
+      "color": "#cfa765",
+      "tile": null,
+      "groupUid": 0
+     }
+    ]
+   },
+   {
+    "doc": null,
+    "uiColor": null,
+    "gridSize": 16,
+    "guideGridWid": 0,
+    "guideGridHei": 0,
+    "displayOpacity": 1,
+    "inactiveOpacity": 1,
+    "hideInList": false,
+    "hideFieldsWhenInactive": true,
+    "canSelectWhenInactive": true,
+    "renderInWorldView": true,
+    "pxOffsetX": 0,
+    "pxOffsetY": 0,
+    "parallaxFactorX": 0,
+    "parallaxFactorY": 0,
+    "parallaxScaling": true,
+    "requiredTags": [],
+    "excludedTags": [],
+    "uiFilterTags": [],
+    "useAsyncRender": false,
+    "autoTilesKilledByOtherLayerUid": null,
+    "biomeFieldUid": null,
+    "intGridValuesGroups": [],
+    "autoRuleGroups": [],
+    "autoSourceLayerDefUid": null,
+    "tilesetDefUid": null,
+    "tilePivotX": 0,
+    "tilePivotY": 0,
+    "__type": "IntGrid",
+    "type": "IntGrid",
+    "identifier": "Height",
+    "uid": 5,
+    "intGridValues": [
+     {
+      "value": 1,
+      "identifier": "raised",
+      "color": "#8a9a3c",
+      "tile": null,
+      "groupUid": 0
+     }
+    ]
+   }
+  ],
+  "entities": [
+   {
+    "identifier": "Prop",
+    "uid": 10,
+    "tags": [],
+    "exportToToc": false,
+    "allowOutOfBounds": false,
+    "doc": null,
+    "width": 16,
+    "height": 16,
+    "resizableX": false,
+    "resizableY": false,
+    "minWidth": null,
+    "maxWidth": null,
+    "minHeight": null,
+    "maxHeight": null,
+    "keepAspectRatio": false,
+    "tileOpacity": 1,
+    "fillOpacity": 0.08,
+    "lineOpacity": 0,
+    "hollow": false,
+    "color": "#4f9a48",
+    "renderMode": "Rectangle",
+    "showName": true,
+    "tilesetId": null,
+    "tileRenderMode": "FitInside",
+    "tileRect": null,
+    "uiTileRect": null,
+    "nineSliceBorders": [],
+    "maxCount": 0,
+    "limitScope": "PerLevel",
+    "limitBehavior": "MoveLastOne",
+    "pivotX": 0.5,
+    "pivotY": 1,
+    "fieldDefs": [
+     {
+      "identifier": "sprite",
+      "doc": null,
+      "__type": "String",
+      "uid": 11,
+      "type": "F_String",
+      "isArray": false,
+      "canBeNull": true,
+      "arrayMinLength": null,
+      "arrayMaxLength": null,
+      "editorDisplayMode": "ValueOnly",
+      "editorDisplayScale": 1,
+      "editorDisplayPos": "Above",
+      "editorLinkStyle": "StraightArrow",
+      "editorDisplayColor": null,
+      "editorAlwaysShow": false,
+      "editorShowInWorld": true,
+      "editorCutLongValues": true,
+      "editorTextSuffix": null,
+      "editorTextPrefix": null,
+      "useForSmartColor": false,
+      "exportToToc": false,
+      "searchable": false,
+      "min": null,
+      "max": null,
+      "regex": null,
+      "acceptFileTypes": null,
+      "defaultOverride": null,
+      "textLanguageMode": null,
+      "symmetricalRef": false,
+      "autoChainRef": true,
+      "allowOutOfLevelRef": true,
+      "allowedRefs": "OnlySame",
+      "allowedRefsEntityUid": null,
+      "allowedRefTags": [],
+      "tilesetUid": null
+     }
+    ]
+   },
+   {
+    "identifier": "Character",
+    "uid": 20,
+    "tags": [],
+    "exportToToc": false,
+    "allowOutOfBounds": false,
+    "doc": null,
+    "width": 16,
+    "height": 16,
+    "resizableX": false,
+    "resizableY": false,
+    "minWidth": null,
+    "maxWidth": null,
+    "minHeight": null,
+    "maxHeight": null,
+    "keepAspectRatio": false,
+    "tileOpacity": 1,
+    "fillOpacity": 0.08,
+    "lineOpacity": 0,
+    "hollow": false,
+    "color": "#e8673a",
+    "renderMode": "Rectangle",
+    "showName": true,
+    "tilesetId": null,
+    "tileRenderMode": "FitInside",
+    "tileRect": null,
+    "uiTileRect": null,
+    "nineSliceBorders": [],
+    "maxCount": 0,
+    "limitScope": "PerLevel",
+    "limitBehavior": "MoveLastOne",
+    "pivotX": 0.5,
+    "pivotY": 1,
+    "fieldDefs": [
+     {
+      "identifier": "id",
+      "doc": null,
+      "__type": "String",
+      "uid": 21,
+      "type": "F_String",
+      "isArray": false,
+      "canBeNull": true,
+      "arrayMinLength": null,
+      "arrayMaxLength": null,
+      "editorDisplayMode": "ValueOnly",
+      "editorDisplayScale": 1,
+      "editorDisplayPos": "Above",
+      "editorLinkStyle": "StraightArrow",
+      "editorDisplayColor": null,
+      "editorAlwaysShow": false,
+      "editorShowInWorld": true,
+      "editorCutLongValues": true,
+      "editorTextSuffix": null,
+      "editorTextPrefix": null,
+      "useForSmartColor": false,
+      "exportToToc": false,
+      "searchable": false,
+      "min": null,
+      "max": null,
+      "regex": null,
+      "acceptFileTypes": null,
+      "defaultOverride": null,
+      "textLanguageMode": null,
+      "symmetricalRef": false,
+      "autoChainRef": true,
+      "allowOutOfLevelRef": true,
+      "allowedRefs": "OnlySame",
+      "allowedRefsEntityUid": null,
+      "allowedRefTags": [],
+      "tilesetUid": null
+     },
+     {
+      "identifier": "sprite",
+      "doc": null,
+      "__type": "String",
+      "uid": 22,
+      "type": "F_String",
+      "isArray": false,
+      "canBeNull": true,
+      "arrayMinLength": null,
+      "arrayMaxLength": null,
+      "editorDisplayMode": "ValueOnly",
+      "editorDisplayScale": 1,
+      "editorDisplayPos": "Above",
+      "editorLinkStyle": "StraightArrow",
+      "editorDisplayColor": null,
+      "editorAlwaysShow": false,
+      "editorShowInWorld": true,
+      "editorCutLongValues": true,
+      "editorTextSuffix": null,
+      "editorTextPrefix": null,
+      "useForSmartColor": false,
+      "exportToToc": false,
+      "searchable": false,
+      "min": null,
+      "max": null,
+      "regex": null,
+      "acceptFileTypes": null,
+      "defaultOverride": null,
+      "textLanguageMode": null,
+      "symmetricalRef": false,
+      "autoChainRef": true,
+      "allowOutOfLevelRef": true,
+      "allowedRefs": "OnlySame",
+      "allowedRefsEntityUid": null,
+      "allowedRefTags": [],
+      "tilesetUid": null
+     },
+     {
+      "identifier": "perch",
+      "doc": null,
+      "__type": "Point",
+      "uid": 23,
+      "type": "F_Point",
+      "isArray": false,
+      "canBeNull": true,
+      "arrayMinLength": null,
+      "arrayMaxLength": null,
+      "editorDisplayMode": "PointStar",
+      "editorDisplayScale": 1,
+      "editorDisplayPos": "Above",
+      "editorLinkStyle": "StraightArrow",
+      "editorDisplayColor": null,
+      "editorAlwaysShow": false,
+      "editorShowInWorld": true,
+      "editorCutLongValues": true,
+      "editorTextSuffix": null,
+      "editorTextPrefix": null,
+      "useForSmartColor": false,
+      "exportToToc": false,
+      "searchable": false,
+      "min": null,
+      "max": null,
+      "regex": null,
+      "acceptFileTypes": null,
+      "defaultOverride": null,
+      "textLanguageMode": null,
+      "symmetricalRef": false,
+      "autoChainRef": true,
+      "allowOutOfLevelRef": true,
+      "allowedRefs": "OnlySame",
+      "allowedRefsEntityUid": null,
+      "allowedRefTags": [],
+      "tilesetUid": null
+     },
+     {
+      "identifier": "flyTo",
+      "doc": null,
+      "__type": "Point",
+      "uid": 24,
+      "type": "F_Point",
+      "isArray": false,
+      "canBeNull": true,
+      "arrayMinLength": null,
+      "arrayMaxLength": null,
+      "editorDisplayMode": "PointStar",
+      "editorDisplayScale": 1,
+      "editorDisplayPos": "Above",
+      "editorLinkStyle": "StraightArrow",
+      "editorDisplayColor": null,
+      "editorAlwaysShow": false,
+      "editorShowInWorld": true,
+      "editorCutLongValues": true,
+      "editorTextSuffix": null,
+      "editorTextPrefix": null,
+      "useForSmartColor": false,
+      "exportToToc": false,
+      "searchable": false,
+      "min": null,
+      "max": null,
+      "regex": null,
+      "acceptFileTypes": null,
+      "defaultOverride": null,
+      "textLanguageMode": null,
+      "symmetricalRef": false,
+      "autoChainRef": true,
+      "allowOutOfLevelRef": true,
+      "allowedRefs": "OnlySame",
+      "allowedRefsEntityUid": null,
+      "allowedRefTags": [],
+      "tilesetUid": null
+     },
+     {
+      "identifier": "path",
+      "doc": null,
+      "__type": "Array<Point>",
+      "uid": 25,
+      "type": "F_Point",
+      "isArray": true,
+      "canBeNull": false,
+      "arrayMinLength": null,
+      "arrayMaxLength": null,
+      "editorDisplayMode": "PointPath",
+      "editorDisplayScale": 1,
+      "editorDisplayPos": "Above",
+      "editorLinkStyle": "ArrowsLine",
+      "editorDisplayColor": null,
+      "editorAlwaysShow": false,
+      "editorShowInWorld": true,
+      "editorCutLongValues": true,
+      "editorTextSuffix": null,
+      "editorTextPrefix": null,
+      "useForSmartColor": false,
+      "exportToToc": false,
+      "searchable": false,
+      "min": null,
+      "max": null,
+      "regex": null,
+      "acceptFileTypes": null,
+      "defaultOverride": null,
+      "textLanguageMode": null,
+      "symmetricalRef": false,
+      "autoChainRef": true,
+      "allowOutOfLevelRef": true,
+      "allowedRefs": "OnlySame",
+      "allowedRefsEntityUid": null,
+      "allowedRefTags": [],
+      "tilesetUid": null
+     }
+    ]
+   },
+   {
+    "identifier": "Path",
+    "uid": 30,
+    "tags": [],
+    "exportToToc": false,
+    "allowOutOfBounds": false,
+    "doc": null,
+    "width": 16,
+    "height": 16,
+    "resizableX": false,
+    "resizableY": false,
+    "minWidth": null,
+    "maxWidth": null,
+    "minHeight": null,
+    "maxHeight": null,
+    "keepAspectRatio": false,
+    "tileOpacity": 1,
+    "fillOpacity": 0.08,
+    "lineOpacity": 0,
+    "hollow": false,
+    "color": "#f2c94c",
+    "renderMode": "Rectangle",
+    "showName": true,
+    "tilesetId": null,
+    "tileRenderMode": "FitInside",
+    "tileRect": null,
+    "uiTileRect": null,
+    "nineSliceBorders": [],
+    "maxCount": 0,
+    "limitScope": "PerLevel",
+    "limitBehavior": "MoveLastOne",
+    "pivotX": 0,
+    "pivotY": 0,
+    "fieldDefs": [
+     {
+      "identifier": "name",
+      "doc": null,
+      "__type": "String",
+      "uid": 31,
+      "type": "F_String",
+      "isArray": false,
+      "canBeNull": true,
+      "arrayMinLength": null,
+      "arrayMaxLength": null,
+      "editorDisplayMode": "ValueOnly",
+      "editorDisplayScale": 1,
+      "editorDisplayPos": "Above",
+      "editorLinkStyle": "StraightArrow",
+      "editorDisplayColor": null,
+      "editorAlwaysShow": false,
+      "editorShowInWorld": true,
+      "editorCutLongValues": true,
+      "editorTextSuffix": null,
+      "editorTextPrefix": null,
+      "useForSmartColor": false,
+      "exportToToc": false,
+      "searchable": false,
+      "min": null,
+      "max": null,
+      "regex": null,
+      "acceptFileTypes": null,
+      "defaultOverride": null,
+      "textLanguageMode": null,
+      "symmetricalRef": false,
+      "autoChainRef": true,
+      "allowOutOfLevelRef": true,
+      "allowedRefs": "OnlySame",
+      "allowedRefsEntityUid": null,
+      "allowedRefTags": [],
+      "tilesetUid": null
+     },
+     {
+      "identifier": "points",
+      "doc": null,
+      "__type": "Array<Point>",
+      "uid": 32,
+      "type": "F_Point",
+      "isArray": true,
+      "canBeNull": false,
+      "arrayMinLength": null,
+      "arrayMaxLength": null,
+      "editorDisplayMode": "PointPath",
+      "editorDisplayScale": 1,
+      "editorDisplayPos": "Above",
+      "editorLinkStyle": "ArrowsLine",
+      "editorDisplayColor": null,
+      "editorAlwaysShow": false,
+      "editorShowInWorld": true,
+      "editorCutLongValues": true,
+      "editorTextSuffix": null,
+      "editorTextPrefix": null,
+      "useForSmartColor": false,
+      "exportToToc": false,
+      "searchable": false,
+      "min": null,
+      "max": null,
+      "regex": null,
+      "acceptFileTypes": null,
+      "defaultOverride": null,
+      "textLanguageMode": null,
+      "symmetricalRef": false,
+      "autoChainRef": true,
+      "allowOutOfLevelRef": true,
+      "allowedRefs": "OnlySame",
+      "allowedRefsEntityUid": null,
+      "allowedRefTags": [],
+      "tilesetUid": null
+     }
+    ]
+   },
+   {
+    "identifier": "Region",
+    "uid": 40,
+    "tags": [],
+    "exportToToc": false,
+    "allowOutOfBounds": false,
+    "doc": null,
+    "width": 16,
+    "height": 16,
+    "resizableX": true,
+    "resizableY": true,
+    "minWidth": null,
+    "maxWidth": null,
+    "minHeight": null,
+    "maxHeight": null,
+    "keepAspectRatio": false,
+    "tileOpacity": 1,
+    "fillOpacity": 0.08,
+    "lineOpacity": 0,
+    "hollow": true,
+    "color": "#3a76f0",
+    "renderMode": "Rectangle",
+    "showName": true,
+    "tilesetId": null,
+    "tileRenderMode": "FitInside",
+    "tileRect": null,
+    "uiTileRect": null,
+    "nineSliceBorders": [],
+    "maxCount": 0,
+    "limitScope": "PerLevel",
+    "limitBehavior": "MoveLastOne",
+    "pivotX": 0,
+    "pivotY": 0,
+    "fieldDefs": [
+     {
+      "identifier": "name",
+      "doc": null,
+      "__type": "String",
+      "uid": 41,
+      "type": "F_String",
+      "isArray": false,
+      "canBeNull": true,
+      "arrayMinLength": null,
+      "arrayMaxLength": null,
+      "editorDisplayMode": "ValueOnly",
+      "editorDisplayScale": 1,
+      "editorDisplayPos": "Above",
+      "editorLinkStyle": "StraightArrow",
+      "editorDisplayColor": null,
+      "editorAlwaysShow": false,
+      "editorShowInWorld": true,
+      "editorCutLongValues": true,
+      "editorTextSuffix": null,
+      "editorTextPrefix": null,
+      "useForSmartColor": false,
+      "exportToToc": false,
+      "searchable": false,
+      "min": null,
+      "max": null,
+      "regex": null,
+      "acceptFileTypes": null,
+      "defaultOverride": null,
+      "textLanguageMode": null,
+      "symmetricalRef": false,
+      "autoChainRef": true,
+      "allowOutOfLevelRef": true,
+      "allowedRefs": "OnlySame",
+      "allowedRefsEntityUid": null,
+      "allowedRefTags": [],
+      "tilesetUid": null
+     }
+    ]
+   }
+  ],
+  "tilesets": [],
+  "enums": [],
+  "externalEnums": [],
+  "levelFields": []
+ },
+ "levels": [
+  {
+   "identifier": "Town",
+   "iid": "dd1378b7-7949-4126-9240-f33609d29295",
+   "uid": 0,
+   "worldX": 0,
+   "worldY": 0,
+   "worldDepth": 0,
+   "pxWid": 448,
+   "pxHei": 448,
+   "__bgColor": "#b4d566",
+   "bgColor": null,
+   "useAutoIdentifier": false,
+   "bgRelPath": null,
+   "bgPos": null,
+   "bgPivotX": 0.5,
+   "bgPivotY": 0.5,
+   "__smartColor": "#ADADB5",
+   "__bgPos": null,
+   "externalRelPath": null,
+   "fieldInstances": [],
+   "layerInstances": [
+    {
+     "__identifier": "Objects",
+     "__type": "Entities",
+     "__cWid": 28,
+     "__cHei": 28,
+     "__gridSize": 16,
+     "__opacity": 1,
+     "__pxTotalOffsetX": 0,
+     "__pxTotalOffsetY": 0,
+     "__tilesetDefUid": null,
+     "__tilesetRelPath": null,
+     "iid": "e997a4dc-6a96-480f-94e9-1130ba7640a7",
+     "levelId": 0,
+     "layerDefUid": 1,
+     "pxOffsetX": 0,
+     "pxOffsetY": 0,
+     "visible": true,
+     "optionalRules": [],
+     "intGridCsv": [],
+     "autoLayerTiles": [],
+     "seed": 1234567,
+     "overrideTilesetUid": null,
+     "gridTiles": [],
+     "entityInstances": [
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        5,
+        10
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "5c154420-066d-4f86-8994-9138f9a8bd62",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        88,
+        160
+       ],
+       "__worldX": 88,
+       "__worldY": 160,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "townhouse",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "townhouse"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        3,
+        16
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "e531e72c-cde9-4590-a909-8b74699fe152",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        56,
+        256
+       ],
+       "__worldX": 56,
+       "__worldY": 256,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "cottage-red",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "cottage-red"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        18,
+        4
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "f5b2a6d0-1ba6-4859-afec-78cb8d55db68",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        296,
+        64
+       ],
+       "__worldX": 296,
+       "__worldY": 64,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "thatch-house",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "thatch-house"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        27,
+        14
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "bbddb65a-7753-4e95-9673-9714545b3765",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        440,
+        224
+       ],
+       "__worldX": 440,
+       "__worldY": 224,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "townhouse",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "townhouse"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        23,
+        7
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "ca51a3e7-184f-48ad-9624-0660e0804098",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        376,
+        112
+       ],
+       "__worldX": 376,
+       "__worldY": 112,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "cottage-brown",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "cottage-brown"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        12,
+        19
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "932140e1-5bba-417d-a927-ea4580483592",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        200,
+        304
+       ],
+       "__worldX": 200,
+       "__worldY": 304,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "stall-red",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "stall-red"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        12,
+        22
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "55cbe334-f5d4-4a12-9855-7fdf624eda5f",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        200,
+        352
+       ],
+       "__worldX": 200,
+       "__worldY": 352,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "stall-green",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "stall-green"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        7,
+        23
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "45d46aa1-c963-49f4-8cf8-33f7234297e5",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        120,
+        368
+       ],
+       "__worldX": 120,
+       "__worldY": 368,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "stall-purple",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "stall-purple"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        10,
+        26
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "b1bab627-cbdc-459d-af5a-f4ec8c5768ef",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        168,
+        416
+       ],
+       "__worldX": 168,
+       "__worldY": 416,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "stall-orange",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "stall-orange"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        16,
+        24
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "934104ca-7d57-4de1-b2d2-e640ff37af12",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        264,
+        384
+       ],
+       "__worldX": 264,
+       "__worldY": 384,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "stall-red",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "stall-red"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        13,
+        20
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "a5351b9c-25ce-4686-a7c0-914b95117a70",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        216,
+        320
+       ],
+       "__worldX": 216,
+       "__worldY": 320,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "crates",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "crates"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        13,
+        23
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "fbe45234-322e-45e6-9014-e3673ae88c88",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        216,
+        368
+       ],
+       "__worldX": 216,
+       "__worldY": 368,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "crate-tomatoes",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "crate-tomatoes"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        6,
+        24
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "5d0da512-6854-4bf6-aac1-2de864517444",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        104,
+        384
+       ],
+       "__worldX": 104,
+       "__worldY": 384,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "crate-cabbages",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "crate-cabbages"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        5,
+        25
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "98a26082-674e-42c4-94cf-75dbb1ed7bd8",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        88,
+        400
+       ],
+       "__worldX": 88,
+       "__worldY": 400,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "barrel-iso",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "barrel-iso"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        17,
+        25
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "c91b47dc-5723-4e53-afc3-66a5b768e12b",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        280,
+        400
+       ],
+       "__worldX": 280,
+       "__worldY": 400,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "barrel-iso",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "barrel-iso"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        11,
+        17
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "b8dfe12a-b190-4a61-8275-102612695faa",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        184,
+        272
+       ],
+       "__worldX": 184,
+       "__worldY": 272,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "chalkboard",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "chalkboard"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        26,
+        16
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "e2686abd-ae7a-4b48-8c2d-cbc2d5b143b2",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        424,
+        256
+       ],
+       "__worldX": 424,
+       "__worldY": 256,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "flower-cart",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "flower-cart"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        15,
+        15
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "44417ddb-45f7-4ea1-893c-6e51c9459a72",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        248,
+        240
+       ],
+       "__worldX": 248,
+       "__worldY": 240,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "bench-iso",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "bench-iso"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        7,
+        18
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "b6ad3004-3789-42b4-ae4e-680df4692444",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        120,
+        288
+       ],
+       "__worldX": 120,
+       "__worldY": 288,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "lamp-sign",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "lamp-sign"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        11,
+        15
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "ae975b9b-5e06-4186-82f5-acba4de241ce",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        184,
+        240
+       ],
+       "__worldX": 184,
+       "__worldY": 240,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "lamp-sign",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "lamp-sign"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        18,
+        15
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "ffd369a8-f286-4680-b8a5-c6a4736b4192",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        296,
+        240
+       ],
+       "__worldX": 296,
+       "__worldY": 240,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "lamp-iso",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "lamp-iso"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        13,
+        25
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "9d02f499-da82-4e09-8a8c-78657c112376",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        216,
+        400
+       ],
+       "__worldX": 216,
+       "__worldY": 400,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "lamp-iso",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "lamp-iso"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        21,
+        9
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "e5cf9432-1228-4206-be85-e28c1e6a9b8d",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        344,
+        144
+       ],
+       "__worldX": 344,
+       "__worldY": 144,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "lamp-sign",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "lamp-sign"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        7,
+        12
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "9cd6564d-1ef8-45b8-8458-34a27cc6c9d9",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        120,
+        192
+       ],
+       "__worldX": 120,
+       "__worldY": 192,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "lamp-iso",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "lamp-iso"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        1,
+        2
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "1b0af140-c764-4b30-8005-c28aaa9330a5",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        24,
+        32
+       ],
+       "__worldX": 24,
+       "__worldY": 32,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "pine-1",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "pine-1"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        4,
+        2
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "499b4996-36aa-4675-9476-fd0c076d71ba",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        72,
+        32
+       ],
+       "__worldX": 72,
+       "__worldY": 32,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "tree-2",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "tree-2"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        7,
+        1
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "18a033a5-8f66-4fad-bc38-28931cc1cde4",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        120,
+        16
+       ],
+       "__worldX": 120,
+       "__worldY": 16,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "pine-3",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "pine-3"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        16,
+        1
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "03043812-dbee-4325-9052-4c6b2c4a0860",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        264,
+        16
+       ],
+       "__worldX": 264,
+       "__worldY": 16,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "tree-5",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "tree-5"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        22,
+        2
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "b6d704f4-72ab-4bce-961b-66974261f841",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        360,
+        32
+       ],
+       "__worldX": 360,
+       "__worldY": 32,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "pine-2",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "pine-2"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        26,
+        3
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "7b0308d3-964d-44a0-8814-41266047c5c3",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        424,
+        48
+       ],
+       "__worldX": 424,
+       "__worldY": 48,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "tree-1",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "tree-1"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        27,
+        8
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "954ed200-0bc8-4252-a73d-fe3f3ec3c22d",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        440,
+        128
+       ],
+       "__worldX": 440,
+       "__worldY": 128,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "pine-4",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "pine-4"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        1,
+        8
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "49f0ee6d-5408-48b7-9640-d0934684719f",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        24,
+        128
+       ],
+       "__worldX": 24,
+       "__worldY": 128,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "tree-4",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "tree-4"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        0,
+        13
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "9cedc391-b4c7-48b9-998a-01f4c44cec6e",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        8,
+        208
+       ],
+       "__worldX": 8,
+       "__worldY": 208,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "pine-1",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "pine-1"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        1,
+        20
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "d6cffa21-abd1-4e87-a180-5fe6ed859cf6",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        24,
+        320
+       ],
+       "__worldX": 24,
+       "__worldY": 320,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "tree-6",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "tree-6"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        0,
+        25
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "817a7deb-f943-4d84-b254-4dae8727db37",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        8,
+        400
+       ],
+       "__worldX": 8,
+       "__worldY": 400,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "pine-2",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "pine-2"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        3,
+        28
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "71e4ebde-8b23-4738-8425-578280c5823c",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        56,
+        448
+       ],
+       "__worldX": 56,
+       "__worldY": 448,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "tree-3",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "tree-3"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        8,
+        28
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "e1555190-d943-4954-adb8-4e78ced56a1e",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        136,
+        448
+       ],
+       "__worldX": 136,
+       "__worldY": 448,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "pine-3",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "pine-3"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        12,
+        28
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "50944021-d325-408d-85eb-df6cd0791b8f",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        200,
+        448
+       ],
+       "__worldX": 200,
+       "__worldY": 448,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "tree-1",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "tree-1"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        18,
+        28
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "4696253e-2ffc-48a8-84cf-98e003bb5819",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        296,
+        448
+       ],
+       "__worldX": 296,
+       "__worldY": 448,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "pine-1",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "pine-1"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        21,
+        27
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "51aed874-6feb-4490-bd2c-5d54a66eb0f8",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        344,
+        432
+       ],
+       "__worldX": 344,
+       "__worldY": 432,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "tree-5",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "tree-5"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        27,
+        22
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "edd65ec3-2df9-4b48-ba9c-579911c23767",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        440,
+        352
+       ],
+       "__worldX": 440,
+       "__worldY": 352,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "pine-4",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "pine-4"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        26,
+        26
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "27a235e7-b618-424b-b5f4-96090af9849b",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        424,
+        416
+       ],
+       "__worldX": 424,
+       "__worldY": 416,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "tree-2",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "tree-2"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        17,
+        10
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "434e59b9-15eb-4c38-97d5-327df769c86d",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        280,
+        160
+       ],
+       "__worldX": 280,
+       "__worldY": 160,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "tree-4",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "tree-4"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        13,
+        10
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "707c0ee5-9dc7-407a-8e82-02b8bb0a4f00",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        216,
+        160
+       ],
+       "__worldX": 216,
+       "__worldY": 160,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "tree-1",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "tree-1"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        10,
+        7
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "8ff32788-48a6-4b8d-8477-6564cf1f7808",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        168,
+        112
+       ],
+       "__worldX": 168,
+       "__worldY": 112,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "tree-3",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "tree-3"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        16,
+        7
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "e20617f7-a0d4-44de-b8bb-b4a36e9a9b8e",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        264,
+        112
+       ],
+       "__worldX": 264,
+       "__worldY": 112,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "pine-2",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "pine-2"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        9,
+        5
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "87f7c84c-8252-4981-820d-3d8a67924f7e",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        152,
+        80
+       ],
+       "__worldX": 152,
+       "__worldY": 80,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "bush-1",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "bush-1"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        14,
+        8
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "ac140c93-5871-439a-a1be-027559d1965d",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        232,
+        128
+       ],
+       "__worldX": 232,
+       "__worldY": 128,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "bush-2",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "bush-2"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        6,
+        15
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "4b157caa-0fa0-44cf-ab5a-99667368d83e",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        104,
+        240
+       ],
+       "__worldX": 104,
+       "__worldY": 240,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "bush-3",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "bush-3"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        20,
+        13
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "38e3e974-5823-4851-95f7-e7694727c640",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        328,
+        208
+       ],
+       "__worldX": 328,
+       "__worldY": 208,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "bush-1",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "bush-1"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        4,
+        21
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "d111fea5-2f4e-4853-b0bb-156a6bc2b523",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        72,
+        336
+       ],
+       "__worldX": 72,
+       "__worldY": 336,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "bush-2",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "bush-2"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        8,
+        3
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "564111a5-7857-47fb-b11c-582e07b1290e",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        136,
+        48
+       ],
+       "__worldX": 136,
+       "__worldY": 48,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "rock-1",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "rock-1"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        15,
+        3
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "dfa913df-b638-4e1d-9eac-ce8d5cd88efb",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        248,
+        48
+       ],
+       "__worldX": 248,
+       "__worldY": 48,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "rock-2",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "rock-2"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        20,
+        22
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "f09be097-a466-4724-b6b0-9642cb952e31",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        328,
+        352
+       ],
+       "__worldX": 328,
+       "__worldY": 352,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "rock-1",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "rock-1"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        24,
+        21
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "437e00ef-b3aa-4328-904b-5f0a0c2edbd7",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        392,
+        336
+       ],
+       "__worldX": 392,
+       "__worldY": 336,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "rock-2",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "rock-2"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        25,
+        10
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "9877d227-531b-44bb-9f14-820ab4eb8885",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        408,
+        160
+       ],
+       "__worldX": 408,
+       "__worldY": 160,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "bush-3",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "bush-3"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        21,
+        18
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "33c67e53-e6f1-49d4-a15d-b8d325516c38",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        344,
+        288
+       ],
+       "__worldX": 344,
+       "__worldY": 288,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "tree-6",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "tree-6"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Prop",
+       "__grid": [
+        19,
+        26
+       ],
+       "__pivot": [
+        0.5,
+        1
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#4f9a48",
+       "iid": "102a5072-fefd-4d98-a1d2-0f82c399cde0",
+       "width": 16,
+       "height": 16,
+       "defUid": 10,
+       "px": [
+        312,
+        416
+       ],
+       "__worldX": 312,
+       "__worldY": 416,
+       "fieldInstances": [
+        {
+         "__identifier": "sprite",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 11,
+         "__value": "pine-3",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "pine-3"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "__identifier": "Region",
+       "__grid": [
+        8,
+        27
+       ],
+       "__pivot": [
+        0,
+        0
+       ],
+       "__tags": [],
+       "__tile": null,
+       "__smartColor": "#3a76f0",
+       "iid": "2a39b432-12d5-46c1-8a2d-d5536ee8f277",
+       "width": 16,
+       "height": 16,
+       "defUid": 40,
+       "px": [
+        128,
+        432
+       ],
+       "__worldX": 128,
+       "__worldY": 432,
+       "fieldInstances": [
+        {
+         "__identifier": "name",
+         "__type": "String",
+         "__tile": null,
+         "defUid": 41,
+         "__value": "start",
+         "realEditorValues": [
+          {
+           "id": "V_String",
+           "params": [
+            "start"
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "__identifier": "Deco",
+     "__type": "IntGrid",
+     "__cWid": 28,
+     "__cHei": 28,
+     "__gridSize": 16,
+     "__opacity": 1,
+     "__pxTotalOffsetX": 0,
+     "__pxTotalOffsetY": 0,
+     "__tilesetDefUid": null,
+     "__tilesetRelPath": null,
+     "iid": "dfde134d-67ff-4e96-a77f-d3a8d9473892",
+     "levelId": 0,
+     "layerDefUid": 2,
+     "pxOffsetX": 0,
+     "pxOffsetY": 0,
+     "visible": true,
+     "optionalRules": [],
+     "intGridCsv": [
+3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3,
+3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3,
+3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3,
+3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,2,2,2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,
+0,0,0,2,2,2,2,0,0,0,0,0,2,2,2,2,2,0,0,0,0,0,0,0,0,1,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,2,2,0,0,0,0,0,0,0,0,1,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,
+0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,2,0,0,0,0,0,1,0,0,
+0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,2,0,0,0,0,0,0,0,0,
+0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,2,2,0,0,0,0,0,0,0,0,
+0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,2,0,0,0,0,0,0,0,0,
+0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,2,2,2,2,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,2,2,2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+3,3,3,3,3,3,2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+],
+     "autoLayerTiles": [],
+     "seed": 1234567,
+     "overrideTilesetUid": null,
+     "gridTiles": [],
+     "entityInstances": []
+    },
+    {
+     "__identifier": "Features",
+     "__type": "IntGrid",
+     "__cWid": 28,
+     "__cHei": 28,
+     "__gridSize": 16,
+     "__opacity": 1,
+     "__pxTotalOffsetX": 0,
+     "__pxTotalOffsetY": 0,
+     "__tilesetDefUid": null,
+     "__tilesetRelPath": null,
+     "iid": "55eb88d6-d59a-468c-802c-7ac10db4d547",
+     "levelId": 0,
+     "layerDefUid": 3,
+     "pxOffsetX": 0,
+     "pxOffsetY": 0,
+     "visible": true,
+     "optionalRules": [],
+     "intGridCsv": [
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+],
+     "autoLayerTiles": [],
+     "seed": 1234567,
+     "overrideTilesetUid": null,
+     "gridTiles": [],
+     "entityInstances": []
+    },
+    {
+     "__identifier": "Terrain",
+     "__type": "IntGrid",
+     "__cWid": 28,
+     "__cHei": 28,
+     "__gridSize": 16,
+     "__opacity": 1,
+     "__pxTotalOffsetX": 0,
+     "__pxTotalOffsetY": 0,
+     "__tilesetDefUid": null,
+     "__tilesetRelPath": null,
+     "iid": "5e787aee-8f98-406b-a790-73898f0e3b3c",
+     "levelId": 0,
+     "layerDefUid": 4,
+     "pxOffsetX": 0,
+     "pxOffsetY": 0,
+     "visible": true,
+     "optionalRules": [],
+     "intGridCsv": [
+0,0,0,0,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,3,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,3,3,3,3,3,1,1,1,1,1,1,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,3,3,3,3,3,1,1,1,1,1,1,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,3,3,3,3,3,0,0,0,0,1,1,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,
+0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,
+0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,1,0,3,3,0,0,0,0,
+0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,1,0,3,3,0,0,0,0,
+0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,1,0,3,3,0,0,0,0,
+0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,1,0,3,3,0,0,0,0,
+0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,1,0,3,3,1,1,0,0,
+0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,3,3,0,0,0,0,
+0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,3,3,0,0,0,0,
+0,0,0,0,0,0,0,0,1,1,2,2,2,2,1,1,0,0,0,0,0,0,3,3,0,0,0,0,
+0,0,0,0,0,0,0,0,1,1,2,2,2,2,1,1,0,0,0,0,0,0,3,3,0,0,0,0,
+0,0,0,0,0,0,0,0,1,1,2,2,2,2,1,1,0,3,0,0,0,0,3,3,0,0,0,0,
+0,0,0,0,0,0,0,0,1,1,2,2,2,2,1,1,0,0,0,0,0,0,3,3,0,0,0,0,
+0,0,0,0,0,0,0,0,1,1,2,2,2,2,1,1,0,0,0,0,0,0,3,3,0,0,0,0,
+0,0,0,0,0,0,0,0,1,1,2,2,2,2,1,1,0,0,0,0,0,0,3,3,0,0,0,0,
+0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,5,5,1,1,1,0,
+0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,5,5,1,1,1,0,
+0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,3,3,0,0,0,0,
+0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,3,3,0,0,0,0,
+0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,3,3,0,0,0,0
+],
+     "autoLayerTiles": [],
+     "seed": 1234567,
+     "overrideTilesetUid": null,
+     "gridTiles": [],
+     "entityInstances": []
+    },
+    {
+     "__identifier": "Height",
+     "__type": "IntGrid",
+     "__cWid": 28,
+     "__cHei": 28,
+     "__gridSize": 16,
+     "__opacity": 1,
+     "__pxTotalOffsetX": 0,
+     "__pxTotalOffsetY": 0,
+     "__tilesetDefUid": null,
+     "__tilesetRelPath": null,
+     "iid": "4bd2b756-e251-4b99-99f1-872ace64ee8f",
+     "levelId": 0,
+     "layerDefUid": 5,
+     "pxOffsetX": 0,
+     "pxOffsetY": 0,
+     "visible": true,
+     "optionalRules": [],
+     "intGridCsv": [
+0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+],
+     "autoLayerTiles": [],
+     "seed": 1234567,
+     "overrideTilesetUid": null,
+     "gridTiles": [],
+     "entityInstances": []
+    }
+   ],
+   "__neighbours": []
+  }
+ ],
+ "worlds": [],
+ "dummyWorldIid": "384e4d65-1af5-4347-a953-b25df371dd59"
+}

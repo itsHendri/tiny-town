@@ -11,7 +11,7 @@ import { codeToMap, mapToCode } from "./share.js";
 import { Walker } from "./walk.js";
 
 const T = 16;
-const EXAMPLE = "maps/town-v5.ldtk";
+const EXAMPLE = "maps/market-village.ldtk";
 const ZOOMS = [0.5, 1, 2, 3, 4, 5, 6, 8];
 const $ = (id) => document.getElementById(id);
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -1056,11 +1056,14 @@ $("new").addEventListener("click", () => {
   changed(true);
 });
 
-$("example").addEventListener("click", async () => {
+$("example").addEventListener("change", async (ev) => {
+  const url = ev.target.value;
+  ev.target.value = "";
+  if (!url) return;
   try {
-    const m = parseMap(await (await fetch(EXAMPLE)).json());
+    const m = parseMap(await (await fetch(url)).json());
     history.push(S.map);
-    useMap(m, "town-v5.ldtk", "Opened the example town. Undo brings your map back.");
+    useMap(m, url.split("/").pop(), "Opened the example. Undo brings your map back.");
     changed(true);
   } catch (e) { toast(`Couldn't load the example: ${e.message}`); }
 });
@@ -1183,7 +1186,7 @@ async function start() {
   S.stamps = [...await loadBuiltinStamps("tiles/"), ...loadStamps()];
   buildPaintPanel(); buildCatalog(); buildShow(); buildStamps();
   const saved = loadAutosave();
-  let m = null, name = "town-v5.ldtk", note = null;
+  let m = null, name = EXAMPLE.split("/").pop(), note = null;
   if (saved) {
     try { m = parseMap(JSON.parse(saved.text)); name = saved.name || "town.ldtk"; note = "Picked up where you left off"; } catch { m = null; }
   }

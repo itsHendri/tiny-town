@@ -163,7 +163,11 @@ dialog::backdrop { background: rgba(20, 24, 32, 0.5); }
   <span class="file-name" id="file-name">Loading…</span>
   <span class="actions">
     <button class="btn quiet" type="button" id="new">New</button>
-    <button class="btn quiet" type="button" id="example">Example</button>
+    <select class="btn quiet" id="example" aria-label="Open an example map">
+      <option value="">Examples…</option>
+      <option value="maps/market-village.ldtk">Market village</option>
+      <option value="maps/town-v5.ldtk">CuriousCat town</option>
+    </select>
     <button class="btn quiet" type="button" id="open">Open…</button>
     <button class="btn" type="button" id="save">Save</button>
     <button class="btn quiet" type="button" id="export">Export PNG</button>

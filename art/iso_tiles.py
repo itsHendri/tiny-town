@@ -61,7 +61,10 @@ def build_iso_props():
     front cell's centre is in the picture) and a footprint in cells."""
     from iso_props import HOUSES, house
     from props import catalog
+    from iso_nature import nature
     items = {name: (spr, shadow, {}) for name, (spr, shadow) in catalog().items() if not name.startswith("house-")}
+    for name, spr in nature().items():
+        items[name] = (spr, not name.startswith("rock"), {})
     for name, kw in HOUSES.items():
         spr, (ax, ay), foot = house(**kw)
         items[name] = (spr, False, {"ax": ax, "ay": ay, "foot": list(foot)})
