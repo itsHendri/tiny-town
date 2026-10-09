@@ -10,7 +10,7 @@ from dualgrid import T, cell_mask
 from sprites import Sprite, bush, house, pine, place, rock, tree
 from styles import ANIMATED, FENCE, bridge_tile, cliff_piece, crop_tile, flower_tile, gate_tile, grass_tile, side_stairs, terrain_tile
 
-DEFAULT = {"radius": 7, "path": "worn", "water": "foam", "cliff": "earth", "fence": "rail", "side": "wood"}   # picked 2026-10-09 (tiles round 1)
+DEFAULT = {"radius": 7, "path": "worn", "water": "foam", "cliff": "earth", "fence": "rail", "side": "earth"}   # picked 2026-10-09 (tiles round 1)
 # The dual-grid sets in the tile sheet: (name, which style key picks its look; None = its only style)
 SETS = [("raised_shadow", None), ("raised_fill", None), ("raised_edge", None), ("water", "water"), ("soil", None), ("path", "path"), ("cobbles", None),
         ("tallgrass", None)]
