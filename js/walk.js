@@ -15,6 +15,11 @@ function propCells(m, props) {
     const p = props[e.fields.sprite];
     if (!p || e.fields.sprite.startsWith("bush") || e.fields.sprite.startsWith("rock")) continue;
     const r = Math.floor((e.y - 1) / T);
+    if (p.foot) {                                            // a building: its whole footprint, ending at its front cell
+      const c = Math.floor(e.x / T);
+      for (let rr = r - p.foot[1] + 1; rr <= r; rr++) for (let cc = c - p.foot[0] + 1; cc <= c; cc++) blocked.add(rr * m.cols + cc);
+      continue;
+    }
     const half = Math.max(0, p.w / 2 - 6);
     const c0 = Math.floor((e.x - half) / T), c1 = Math.floor((e.x + half) / T);
     const rows = e.fields.sprite.startsWith("house") ? 2 : 1;

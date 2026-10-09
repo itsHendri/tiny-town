@@ -431,7 +431,11 @@ def walls(lay, fill, m, L, X0, Y0, frame):
 
 
 def place(canvas, spr, X, Y):
-    """A sprite with its feet at screen (X, Y), with a soft shadow."""
+    """A sprite with its feet at screen (X, Y), with a soft shadow. A building (a sprite with an `anchor`) is placed
+    so its anchor (its front cell's centre) lands on (X, Y), without a shadow."""
+    if getattr(spr, "anchor", None):
+        canvas.alpha_composite(spr.im, (int(round(X - spr.anchor[0])), int(round(Y - spr.anchor[1]))))
+        return
     sh = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
     ImageDraw.Draw(sh).ellipse((X - spr.w * 0.42, Y - 3, X + spr.w * 0.46, Y + 2), fill=(30, 22, 16, 70))
     canvas.alpha_composite(sh)

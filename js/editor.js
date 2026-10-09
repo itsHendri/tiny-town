@@ -167,9 +167,11 @@ function thumb(draw, w, h, box = 40) {
   draw(g, (box - w * s) / 2, (box - h * s) / 2, w * s, h * s);
   return c;
 }
+// The props of the current view (the isometric set has its own buildings).
+const propSet = () => (S.projection === "iso" && S.isoTs ? S.isoTs : S.ts);
 const propThumb = (name, box) => {
-  const p = S.ts.props[name];
-  return p ? thumb((g, x, y, w, h) => g.drawImage(S.ts.propsImg, p.x, p.y, p.w, p.h, x, y, w, h), p.w, p.h, box) : el("canvas", { width: box, height: box });
+  const ts = propSet(), p = ts.props[name];
+  return p ? thumb((g, x, y, w, h) => g.drawImage(ts.propsImg, p.x, p.y, p.w, p.h, x, y, w, h), p.w, p.h, box) : el("canvas", { width: box, height: box });
 };
 const charThumb = (name, box) => {
   const im = S.sprites[name];
@@ -178,9 +180,11 @@ const charThumb = (name, box) => {
 
 function propGroups() {
   const groups = { Trees: [], Pines: [], Bushes: [], Rocks: [], Houses: [], Things: [] };
-  for (const name of Object.keys(S.ts.props)) {
+  const props = propSet().props;
+  for (const name of Object.keys(props)) {
+    if (props[name].alias) continue;                         // old names kept so old maps still open
     const g = name.startsWith("tree") ? "Trees" : name.startsWith("pine") ? "Pines" : name.startsWith("bush") ? "Bushes"
-      : name.startsWith("rock") ? "Rocks" : name.startsWith("house") ? "Houses" : "Things";
+      : name.startsWith("rock") ? "Rocks" : name.startsWith("house") || props[name].foot ? "Houses" : "Things";
     groups[g].push(name);
   }
   return groups;
@@ -255,7 +259,11 @@ function makeView() {
 function poly(g, pts) { g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); }
 
 function bounds(e) {
-  if (e.type === "Prop") { const p = S.ts.props[e.fields.sprite] || { w: T, h: T }; const [x, y] = S.V.feet(e); return [x - p.w / 2, y - p.h, p.w, p.h]; }
+  if (e.type === "Prop") {
+    const p = (S.V.iso ? S.isoTs : S.ts).props[e.fields.sprite] || { w: T, h: T };
+    const [x, y] = S.V.feet(e);
+    return p.ax !== undefined ? [x - p.ax, y - p.ay, p.w, p.h] : [x - p.w / 2, y - p.h, p.w, p.h];
+  }
   if (e.type === "Character") { const im = S.sprites[e.fields.sprite]; const w = im?.width || T, h = im?.height || T; const [x, y] = S.V.feet(e); return [x - w / 2, y - h, w, h]; }
   if (e.type === "Region") return [e.x, e.y, e.w || T, e.h || T];
   const pts = (e.fields.points || []).map(cellCentre);
@@ -316,7 +324,7 @@ function family(name) {
   const m = name.match(/^(.*?)-\d+(-d\d)?$/);
   if (!m) return [name];
   const re = new RegExp(`^${m[1]}-\\d+${m[2] || ""}$`);
-  return Object.keys(S.ts.props).filter((n) => re.test(n));
+  return Object.keys(propSet().props).filter((n) => re.test(n) && !propSet().props[n].alias);
 }
 
 function freeCell(c, r) {
@@ -416,7 +424,7 @@ function buildInspector() {
     field("f-x", "x (px)", el("input", { id: "f-x", type: "number", value: e.x, onchange: edit((v) => { e.x = Math.round(+v); }) })),
     field("f-y", "y (px)", el("input", { id: "f-y", type: "number", value: e.y, onchange: edit((v) => { e.y = Math.round(+v); }) })));
   if (e.type === "Prop") {
-    const sel = el("select", { id: "f-sprite", onchange: edit((v) => { e.fields.sprite = v; }) }, ...Object.keys(S.ts.props).map((n) => el("option", { value: n, text: n, selected: n === e.fields.sprite })));
+    const sel = el("select", { id: "f-sprite", onchange: edit((v) => { e.fields.sprite = v; }) }, ...Object.keys(propSet().props).map((n) => el("option", { value: n, text: n, selected: n === e.fields.sprite })));
     rows.push(field("f-sprite", "sprite", sel), xy);
   } else if (e.type === "Character") {
     const sel = el("select", { id: "f-sprite", onchange: edit((v) => { e.fields.sprite = v; }) }, ...S.spriteNames.map((n) => el("option", { value: n, text: n, selected: n === e.fields.sprite })));
@@ -1090,7 +1098,7 @@ $("projection").addEventListener("click", () => {
   try { localStorage.setItem("tiny-town/projection", S.projection); } catch { /* fine */ }
   syncProjection();
   S.V = null; S.terrainDirty = true;
-  if (S.map) fit();
+  if (S.map) { fit(); buildCatalog(); buildInspector(); }
 });
 
 // ---------- walk mode ----------
@@ -1103,7 +1111,7 @@ function walkStart() {
   const cat = m.entities.find((e) => e.type === "Character" && e.fields.id === "cat");
   const at = startRegion ? [Math.floor(startRegion.x / T), Math.floor(startRegion.y / T)]
     : cat ? [Math.floor(cat.x / T), Math.floor((cat.y - 1) / T)] : [Math.floor(m.cols / 2), Math.floor(m.rows / 2)];
-  S.walk = new Walker(m, S.ts.props, at);
+  S.walk = new Walker(m, (S.V?.iso ? S.isoTs : S.ts).props, at);
   S.walkView = { zoom: S.zoom, ox: S.ox, oy: S.oy };
   S.zoom = 3; $("zoom-level").textContent = "3×";
   S.pasting = null; S.sel = null; select(null);

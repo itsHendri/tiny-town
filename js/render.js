@@ -133,6 +133,10 @@ export function drawTerrain(ctx, m, ts, frame = 0) {
 export function drawProp(ctx, ts, name, x, y) {
   const p = ts.props[name];
   if (!p) return false;
+  if (p.ax !== undefined) {                                  // a building: its anchor is its front cell's centre
+    ctx.drawImage(ts.propsImg, p.x, p.y, p.w, p.h, Math.round(x - p.ax), Math.round(y - p.ay), p.w, p.h);
+    return true;
+  }
   if (p.shadow) {
     ctx.fillStyle = "rgba(38, 48, 63, 0.28)";
     ctx.beginPath();

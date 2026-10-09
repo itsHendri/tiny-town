@@ -3,288 +3,416 @@
  "image": "props.png",
  "props": {
   "barrel": {
-   "x": 78,
-   "y": 154,
+   "x": 419,
+   "y": 156,
    "w": 12,
    "h": 13,
    "shadow": false
   },
   "bench": {
-   "x": 104,
-   "y": 154,
+   "x": 445,
+   "y": 156,
    "w": 32,
    "h": 10,
    "shadow": false
   },
   "bush-1": {
-   "x": 21,
-   "y": 154,
+   "x": 362,
+   "y": 156,
    "w": 18,
    "h": 14,
    "shadow": true
   },
   "bush-2": {
-   "x": 40,
-   "y": 154,
+   "x": 381,
+   "y": 156,
    "w": 18,
    "h": 14,
    "shadow": true
   },
   "bush-3": {
-   "x": 59,
-   "y": 154,
+   "x": 400,
+   "y": 156,
    "w": 18,
    "h": 14,
    "shadow": true
   },
+  "cottage-brown": {
+   "x": 356,
+   "y": 0,
+   "w": 80,
+   "h": 90,
+   "shadow": false,
+   "ax": 40,
+   "ay": 75,
+   "foot": [
+    2,
+    2
+   ]
+  },
+  "cottage-red": {
+   "x": 275,
+   "y": 0,
+   "w": 80,
+   "h": 90,
+   "shadow": false,
+   "ax": 40,
+   "ay": 75,
+   "foot": [
+    2,
+    2
+   ]
+  },
   "crate": {
-   "x": 91,
-   "y": 154,
+   "x": 432,
+   "y": 156,
    "w": 12,
    "h": 13,
    "shadow": false
   },
   "house-blue-l": {
-   "x": 130,
+   "x": 178,
    "y": 0,
-   "w": 64,
-   "h": 53,
-   "shadow": true
+   "w": 96,
+   "h": 98,
+   "shadow": false,
+   "ax": 56,
+   "ay": 83,
+   "foot": [
+    3,
+    2
+   ],
+   "alias": "longhouse"
   },
   "house-blue-m": {
-   "x": 0,
-   "y": 54,
-   "w": 60,
-   "h": 51,
-   "shadow": true
+   "x": 178,
+   "y": 0,
+   "w": 96,
+   "h": 98,
+   "shadow": false,
+   "ax": 56,
+   "ay": 83,
+   "foot": [
+    3,
+    2
+   ],
+   "alias": "longhouse"
   },
   "house-blue-s": {
-   "x": 340,
-   "y": 54,
-   "w": 56,
-   "h": 48,
-   "shadow": true
+   "x": 178,
+   "y": 0,
+   "w": 96,
+   "h": 98,
+   "shadow": false,
+   "ax": 56,
+   "ay": 83,
+   "foot": [
+    3,
+    2
+   ],
+   "alias": "longhouse"
   },
   "house-red-l": {
-   "x": 0,
+   "x": 275,
    "y": 0,
-   "w": 64,
-   "h": 53,
-   "shadow": true
+   "w": 80,
+   "h": 90,
+   "shadow": false,
+   "ax": 40,
+   "ay": 75,
+   "foot": [
+    2,
+    2
+   ],
+   "alias": "cottage-red"
   },
   "house-red-m": {
-   "x": 336,
+   "x": 275,
    "y": 0,
-   "w": 60,
-   "h": 51,
-   "shadow": true
+   "w": 80,
+   "h": 90,
+   "shadow": false,
+   "ax": 40,
+   "ay": 75,
+   "foot": [
+    2,
+    2
+   ],
+   "alias": "cottage-red"
   },
   "house-red-s": {
-   "x": 226,
-   "y": 54,
-   "w": 56,
-   "h": 48,
-   "shadow": true
+   "x": 275,
+   "y": 0,
+   "w": 80,
+   "h": 90,
+   "shadow": false,
+   "ax": 40,
+   "ay": 75,
+   "foot": [
+    2,
+    2
+   ],
+   "alias": "cottage-red"
   },
   "house-yellow-l": {
-   "x": 65,
+   "x": 81,
    "y": 0,
-   "w": 64,
-   "h": 53,
-   "shadow": true
+   "w": 96,
+   "h": 101,
+   "shadow": false,
+   "ax": 56,
+   "ay": 86,
+   "foot": [
+    3,
+    2
+   ],
+   "alias": "thatch-house"
   },
   "house-yellow-m": {
-   "x": 397,
+   "x": 81,
    "y": 0,
-   "w": 60,
-   "h": 51,
-   "shadow": true
+   "w": 96,
+   "h": 101,
+   "shadow": false,
+   "ax": 56,
+   "ay": 86,
+   "foot": [
+    3,
+    2
+   ],
+   "alias": "thatch-house"
   },
   "house-yellow-s": {
-   "x": 283,
-   "y": 54,
-   "w": 56,
-   "h": 48,
-   "shadow": true
+   "x": 81,
+   "y": 0,
+   "w": 96,
+   "h": 101,
+   "shadow": false,
+   "ax": 56,
+   "ay": 86,
+   "foot": [
+    3,
+    2
+   ],
+   "alias": "thatch-house"
   },
   "lamp": {
-   "x": 485,
-   "y": 106,
+   "x": 332,
+   "y": 156,
    "w": 8,
    "h": 24,
    "shadow": false
   },
+  "longhouse": {
+   "x": 178,
+   "y": 0,
+   "w": 96,
+   "h": 98,
+   "shadow": false,
+   "ax": 56,
+   "ay": 83,
+   "foot": [
+    3,
+    2
+   ]
+  },
   "pine-1": {
-   "x": 460,
-   "y": 106,
+   "x": 307,
+   "y": 156,
    "w": 24,
    "h": 40,
    "shadow": true
   },
   "pine-2": {
-   "x": 434,
-   "y": 106,
+   "x": 281,
+   "y": 156,
    "w": 25,
    "h": 41,
    "shadow": true
   },
   "pine-3": {
-   "x": 42,
-   "y": 106,
+   "x": 385,
+   "y": 103,
    "w": 28,
    "h": 47,
    "shadow": true
   },
   "pine-4": {
-   "x": 196,
-   "y": 54,
+   "x": 229,
+   "y": 103,
    "w": 29,
    "h": 49,
    "shadow": true
   },
   "rock-1": {
-   "x": 137,
-   "y": 154,
+   "x": 478,
+   "y": 156,
    "w": 10,
    "h": 9,
    "shadow": false
   },
   "rock-2": {
-   "x": 148,
-   "y": 154,
+   "x": 489,
+   "y": 156,
    "w": 10,
    "h": 9,
    "shadow": false
   },
+  "thatch-house": {
+   "x": 81,
+   "y": 0,
+   "w": 96,
+   "h": 101,
+   "shadow": false,
+   "ax": 56,
+   "ay": 86,
+   "foot": [
+    3,
+    2
+   ]
+  },
+  "townhouse": {
+   "x": 0,
+   "y": 0,
+   "w": 80,
+   "h": 102,
+   "shadow": false,
+   "ax": 40,
+   "ay": 87,
+   "foot": [
+    2,
+    2
+   ]
+  },
   "tree-1": {
-   "x": 317,
-   "y": 106,
+   "x": 164,
+   "y": 156,
    "w": 38,
    "h": 44,
    "shadow": true
   },
   "tree-1-d1": {
-   "x": 356,
-   "y": 106,
+   "x": 203,
+   "y": 156,
    "w": 38,
    "h": 44,
    "shadow": true
   },
   "tree-1-d2": {
-   "x": 395,
-   "y": 106,
+   "x": 242,
+   "y": 156,
    "w": 38,
    "h": 44,
    "shadow": true
   },
   "tree-2": {
-   "x": 71,
-   "y": 106,
+   "x": 414,
+   "y": 103,
    "w": 40,
    "h": 46,
    "shadow": true
   },
   "tree-2-d1": {
-   "x": 153,
-   "y": 106,
+   "x": 0,
+   "y": 156,
    "w": 40,
    "h": 46,
    "shadow": true
   },
   "tree-2-d2": {
-   "x": 235,
-   "y": 106,
+   "x": 82,
+   "y": 156,
    "w": 40,
    "h": 46,
    "shadow": true
   },
   "tree-3": {
-   "x": 112,
-   "y": 106,
+   "x": 455,
+   "y": 103,
    "w": 40,
    "h": 46,
    "shadow": true
   },
   "tree-3-d1": {
-   "x": 194,
-   "y": 106,
+   "x": 41,
+   "y": 156,
    "w": 40,
    "h": 46,
    "shadow": true
   },
   "tree-3-d2": {
-   "x": 276,
-   "y": 106,
+   "x": 123,
+   "y": 156,
    "w": 40,
    "h": 46,
    "shadow": true
   },
   "tree-4": {
-   "x": 397,
-   "y": 54,
+   "x": 259,
+   "y": 103,
    "w": 41,
    "h": 47,
    "shadow": true
   },
   "tree-4-d1": {
-   "x": 439,
-   "y": 54,
+   "x": 301,
+   "y": 103,
    "w": 41,
    "h": 47,
    "shadow": true
   },
   "tree-4-d2": {
-   "x": 0,
-   "y": 106,
+   "x": 343,
+   "y": 103,
    "w": 41,
    "h": 47,
    "shadow": true
   },
   "tree-5": {
-   "x": 61,
-   "y": 54,
+   "x": 94,
+   "y": 103,
    "w": 44,
    "h": 50,
    "shadow": true
   },
   "tree-5-d1": {
-   "x": 106,
-   "y": 54,
+   "x": 139,
+   "y": 103,
    "w": 44,
    "h": 50,
    "shadow": true
   },
   "tree-5-d2": {
-   "x": 151,
-   "y": 54,
+   "x": 184,
+   "y": 103,
    "w": 44,
    "h": 50,
    "shadow": true
   },
   "tree-6": {
-   "x": 195,
+   "x": 437,
    "y": 0,
    "w": 46,
    "h": 52,
    "shadow": true
   },
   "tree-6-d1": {
-   "x": 242,
-   "y": 0,
+   "x": 0,
+   "y": 103,
    "w": 46,
    "h": 52,
    "shadow": true
   },
   "tree-6-d2": {
-   "x": 289,
-   "y": 0,
+   "x": 47,
+   "y": 103,
    "w": 46,
    "h": 52,
    "shadow": true
   },
   "well": {
-   "x": 0,
-   "y": 154,
+   "x": 341,
+   "y": 156,
    "w": 20,
    "h": 22,
    "shadow": true
