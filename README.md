@@ -1,6 +1,6 @@
 # tiny-town
 
-A small map builder for top-down pixel towns (GBA / Stardew style, 16 px tiles), made for drawing your own little world.
+A small map builder for pixel towns, isometric or top-down (16 px cells), made for drawing your own little world.
 It runs in the browser with no install and no build step. The art is drawn in code and can be repainted by hand.
 
 Status: early but usable. Paint ground, up to four levels of height with stairs and waterfalls, fences, gates,
@@ -80,15 +80,17 @@ fully transparent replaces the generated one when the page loads, so regeneratin
 
 ## Ideas, next up
 
-Done so far from the research (LDtk, Tiled, porymap, RPG Maker, CrossCode, OpenTTD, Mindustry, Mario Maker): height
-levels, Shift-lines, scatter, stamps (six built in), plots with gates, share codes, walk mode, a phone tool bar with
-Erase and long-press pick, a little landing squash and dust puff, and stairs up the east and west sides of hills.
+The builder draws isometric (32x16 diamonds, levels 16 px high) or top-down; the Market village example rebuilds a
+storybook reference picture from these parts. Done from research and that reference: height levels, Shift-lines,
+scatter, stamps, plots, share codes, walk mode, a phone tool bar, isometric houses (storybook look), market stalls,
+lamps, fences, bridges, stairs, flower beds, dirt, details, a forest margin, chimney smoke.
 
 Still open:
 
-* **Per-terrain cliff lips** (a cobbled edge on a cobbled square) and a slight tint per level.
-* **Sounds** (off by default): a soft click when placing, a puff when removing.
-* **More built-in stamps** and more prop kinds (signs, carts, market stalls, a windmill).
+* Isometric versions of the top-down-only bits: stamp thumbnails and paste previews, palette swatches.
+* More houses and buildings (a mill, a tavern, a chapel), more stall goods, carts.
+* Sounds (off by default), per-terrain cliff lips, a darker roof option.
+* Characters drawn for the isometric angle (the cast sprites are still straight-on).
 
 ## License
 
