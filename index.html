@@ -99,6 +99,16 @@ kbd { font: 11px var(--mono); border: 1px solid var(--line); border-bottom-width
 .zoom button { width: 28px; height: 28px; border: 0; background: transparent; cursor: pointer; font-size: 16px; border-radius: 6px; }
 .zoom button:hover { background: var(--on-bg); }
 .zoom span { min-width: 3.2ch; text-align: center; font-variant-numeric: tabular-nums; }
+.pad { position: absolute; left: 12px; bottom: 48px; display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(3, 44px); gap: 4px; touch-action: none; }
+.pad button { border: 1.5px solid var(--fg); background: var(--panel); color: var(--fg); border-radius: 10px; font-size: 16px; cursor: pointer; opacity: .9; }
+.pad button:active { background: var(--on-bg); }
+.pad [data-dir="up"] { grid-column: 2; grid-row: 1; }
+.pad [data-dir="left"] { grid-column: 1; grid-row: 2; }
+.pad [data-dir="right"] { grid-column: 3; grid-row: 2; }
+.pad [data-dir="down"] { grid-column: 2; grid-row: 3; }
+.walking { position: absolute; top: 12px; right: 12px; background: var(--on); color: var(--panel); font: 600 12px var(--mono); padding: 5px 10px; border-radius: 8px; pointer-events: none; }
+#walk[aria-pressed="true"] { background: var(--on); border-color: var(--on); color: var(--panel); }
+@media (hover: hover) and (pointer: fine) { .pad { display: none; } }
 .toast { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); background: var(--fg); color: var(--panel); padding: 6px 12px; border-radius: 8px; font-size: 13px; pointer-events: none; max-width: calc(100% - 32px); }
 
 .field { display: grid; gap: 3px; margin-bottom: 8px; }
@@ -146,6 +156,7 @@ dialog::backdrop { background: rgba(20, 24, 32, 0.5); }
     <button class="btn" type="button" id="save">Save</button>
     <button class="btn quiet" type="button" id="export">Export PNG</button>
     <button class="btn quiet" type="button" id="share">Share code</button>
+    <button class="btn" type="button" id="walk" aria-pressed="false" title="Walk around your town (Enter)">Walk</button>
   </span>
   <span class="actions">
     <button class="btn quiet" type="button" id="undo" title="Undo (Ctrl+Z)">Undo</button>
@@ -183,6 +194,13 @@ dialog::backdrop { background: rgba(20, 24, 32, 0.5); }
     <div class="hud" id="hud">–</div>
     <div class="zoom"><button type="button" id="zoom-out" aria-label="Zoom out">−</button><span id="zoom-level">2×</span><button type="button" id="zoom-in" aria-label="Zoom in">+</button><button type="button" id="zoom-fit" aria-label="Fit the map" style="width:auto;padding:0 6px;font-size:12px">Fit</button></div>
     <div class="toast" id="toast" hidden></div>
+    <div class="pad" id="pad" hidden aria-label="Walk controls">
+      <button type="button" data-dir="up" aria-label="Up">▲</button>
+      <button type="button" data-dir="left" aria-label="Left">◀</button>
+      <button type="button" data-dir="right" aria-label="Right">▶</button>
+      <button type="button" data-dir="down" aria-label="Down">▼</button>
+    </div>
+    <div class="walking" id="walking" hidden>Walking · arrows or WASD · Esc to stop</div>
   </div>
 
   <aside class="panel side" aria-label="Inspector">
@@ -213,6 +231,7 @@ dialog::backdrop { background: rgba(20, 24, 32, 0.5); }
         <kbd>Shift click</kbd><span>straight line from the last stroke</span>
         <kbd>S</kbd><span>select an area, then Ctrl C / X / V</span>
         <kbd>P</kbd><span>paint / objects</span>
+        <kbd>Enter</kbd><span>walk around (arrows or WASD, Esc stops)</span>
         <kbd>Space</kbd><span>hold and drag to pan</span>
         <kbd>+ −</kbd><span>zoom (or pinch, Ctrl+wheel)</span>
         <kbd>Shift R</kbd><span>raw grid on/off</span>

@@ -236,7 +236,8 @@ def tallgrass(sh, x, y, f, v):
         return None
     gx, gy = gxy(x, y)
     row = gy // 4
-    ch = TUFT[gy % 4][(gx + (row % 2) * 2) % 4]
+    sway = (0, 1, 0)[f % 3] if gy % 4 < 2 else 0          # the tips lean over and back
+    ch = TUFT[gy % 4][(gx + (row % 2) * 2 - sway) % 4]
     if sh.dist(x, y) <= 1.0 and ch in ".3":
         return None
     return {"0": "t0", "1": "t1", "2": "t2", "3": "t3", ".": "t2"}[ch]
@@ -274,11 +275,12 @@ def gate_tile(horizontal):
             s.rect(x0, 1, 3, 13, "k1"); s.rect(x0, 1, 3, 1, "k0"); s.rect(x0 + 2, 2, 1, 12, "k2")
         s.rect(0, 5, 1, 2, "k1"); s.rect(15, 5, 1, 2, "k1"); s.rect(0, 9, 1, 2, "k1"); s.rect(15, 9, 1, 2, "k1")
     else:
-        s.rect(6, 0, 4, 16, "k1"); s.rect(6, 0, 1, 16, "k0"); s.rect(9, 0, 1, 16, "k2")
-        for y in (4, 11):
-            s.rect(5, y, 6, 1, "k3")
-        for y0 in (0, 13):
-            s.rect(5, y0, 6, 3, "k1"); s.rect(5, y0, 6, 1, "k0")
+        for y0 in (0, 12):                                # the posts above and below the opening
+            s.rect(6, y0, 4, 4, "k1"); s.rect(6, y0, 4, 1, "k0"); s.rect(9, y0 + 1, 1, 3, "k2")
+        s.rect(7, 4, 2, 8, "k3")                          # the hinge post's shadow
+        s.rect(9, 4, 6, 7, "k1"); s.rect(9, 4, 6, 1, "k0"); s.rect(9, 10, 6, 1, "k2")      # the gate, swung open
+        for i in range(5):
+            s.put(10 + i, 9 - i, "k3")
     return outline_in_tile(s)
 
 
@@ -292,7 +294,7 @@ TERRAIN = {
     "soil": {"tilled": soil},
     "tallgrass": {"meadow": tallgrass},
 }
-ANIMATED = {"water"}
+ANIMATED = {"water", "tallgrass"}
 
 
 @lru_cache(maxsize=None)

@@ -5,8 +5,9 @@ import { drawProp, drawTerrain, loadTileset } from "./render.js";
 import { ENTITIES, LAYERS, MAX_LEVEL, value } from "./registry.js";
 import { History, brushCells, floodCells, inside, lineCells, paint, plotCells, rectCells, resize, shapeHeight } from "./tools.js";
 import { loadAutosave, openFile, saveFile, writeAutosave } from "./files.js";
-import { area, clearArea, copyArea, drawClip, loadStamps, pasteArea, saveStamps } from "./stamps.js";
+import { area, clearArea, copyArea, drawClip, loadBuiltinStamps, loadStamps, pasteArea, saveStamps } from "./stamps.js";
 import { codeToMap, mapToCode } from "./share.js";
+import { Walker } from "./walk.js";
 
 const T = 16;
 const EXAMPLE = "maps/town-v5.ldtk";
@@ -31,7 +32,7 @@ const S = {
   map: null, ts: null, sprites: {}, spriteNames: [], fileName: "town.ldtk",
   mode: "paint", tool: "brush", size: 1, brush: { layer: "Terrain", v: 1 },
   place: null, selected: null, scatter: { on: false, density: 0.35 }, scatterStroke: null,
-  sel: null, selFrom: null, clip: null, pasting: null, stamps: [],
+  sel: null, selFrom: null, clip: null, pasting: null, stamps: [], walk: null, walkView: null,
   zoom: 2, ox: 0, oy: 0,
   show: { terrain: true, props: true, characters: true, data: true, raw: false, grid: false },
   frames: [], frame: 0, terrainDirty: true, needsDraw: true,
@@ -107,13 +108,13 @@ function sizeIcon(n) {
 
 function buildStamps() {
   const box = $("stamps");
-  if (!S.stamps.length) { box.replaceChildren(el("p", { class: "hint", text: "None yet. Select an area (S), then Save as stamp. Stamps are kept in this browser." })); return; }
+  if (!S.stamps.length) { box.replaceChildren(el("p", { class: "hint", text: "None yet. Select an area (S), then Save as stamp. Your stamps are kept in this browser." })); return; }
   box.replaceChildren(el("div", { class: "swatches" }, ...S.stamps.map((st, i) => {
     const c = drawClip(st.clip, S.ts, S.sprites);
     const t = thumb((g, x, y, w, h) => g.drawImage(c, x, y, w, h), c.width, c.height, 40);
     return el("div", { class: "stamp" },
       el("button", { class: "swatch", type: "button", title: `Place ${st.name}`, "aria-pressed": String(S.pasting?.name === st.name), onclick: () => startPaste(st.clip, st.name) }, t, el("span", { text: st.name })),
-      el("button", { class: "remove", type: "button", title: `Remove ${st.name}`, "aria-label": `Remove ${st.name}`, onclick: () => { S.stamps.splice(i, 1); saveStamps(S.stamps); buildStamps(); } }, "×"));
+      st.builtin ? "" : el("button", { class: "remove", type: "button", title: `Remove ${st.name}`, "aria-label": `Remove ${st.name}`, onclick: () => { S.stamps.splice(i, 1); saveStamps(S.stamps); buildStamps(); } }, "×"));
   })));
 }
 
@@ -450,10 +451,13 @@ function draw() {
   }
 
   const sprites = S.map.entities.filter((e) => (e.type === "Prop" && S.show.props) || (e.type === "Character" && S.show.characters)).sort((a, b) => a.y - b.y);
-  drawSprites(ctx, sprites);
+  if (S.walk) {
+    const wy = S.walk.feet()[1];
+    drawSprites(ctx, sprites.filter((e) => e.y <= wy)); drawWalker(ctx); drawSprites(ctx, sprites.filter((e) => e.y > wy));
+  } else drawSprites(ctx, sprites);
 
   const line = (w) => { ctx.lineWidth = w / S.zoom; };
-  if (S.show.data) {
+  if (S.show.data && !S.walk) {
     for (const e of S.map.entities) {
       if (e.type === "Region") {
         ctx.strokeStyle = ENTITIES.Region.color; line(1.5); ctx.setLineDash([4 / S.zoom, 3 / S.zoom]);
@@ -485,7 +489,7 @@ function draw() {
 
   // what the next click will do
   const hv = S.hover;
-  if (hv && !S.panning && !S.pinch && !S.pasting) {
+  if (hv && !S.panning && !S.pinch && !S.pasting && !S.walk) {
     if (S.mode === "paint" && S.tool !== "select") {
       if (S.stroke?.plot) {
         const { fence, gate } = plotCells(S.map, S.stroke.rectFrom[0], S.stroke.rectFrom[1], hv.c, hv.r, value("Terrain", "path"));
@@ -542,6 +546,7 @@ let lastTick = 0;
 function loop(now) {
   if (S.map && S.ts) {
     if (S.terrainDirty) { bake(); S.needsDraw = true; }
+    if (S.walk) walkFrame();
     if (S.show.terrain && !reduceMotion && now - lastTick > S.ts.frameMs) { lastTick = now; S.frame = (S.frame + 1) % S.ts.frames; S.needsDraw = true; }
     if (S.needsDraw) draw();
   }
@@ -653,6 +658,7 @@ canvas.addEventListener("pointerdown", (ev) => {
     return;
   }
   if (S.pointers.size > 2) return;
+  if (S.walk) return;
   const p = toMap(ev);
   if (ev.button === 1 || S.spaceDown) { S.panning = { x: ev.clientX, y: ev.clientY, ox: S.ox, oy: S.oy }; $("stage").classList.add("pan"); return; }
   if (S.pasting) {
@@ -761,6 +767,13 @@ window.addEventListener("keydown", (ev) => {
   const mod = ev.ctrlKey || ev.metaKey;
   if (mod && ev.key.toLowerCase() === "s") { ev.preventDefault(); save(); return; }
   if (typing()) return;
+  if (S.walk) {
+    const dir = WALK_KEYS[ev.key.toLowerCase()];
+    if (dir) { ev.preventDefault(); S.walk.press(dir); }
+    if (ev.key === "Escape" || ev.key === "Enter") walkStop();
+    return;
+  }
+  if (ev.key === "Enter" && !mod && document.activeElement?.tagName !== "BUTTON") { ev.preventDefault(); walkStart(); return; }
   if (mod && ev.key.toLowerCase() === "z") { ev.preventDefault(); ev.shiftKey ? redo() : undo(); return; }
   if (mod && ev.key.toLowerCase() === "y") { ev.preventDefault(); redo(); return; }
   if (mod && ev.key.toLowerCase() === "c" && S.sel) { ev.preventDefault(); copySel(false); return; }
@@ -788,6 +801,7 @@ window.addEventListener("keydown", (ev) => {
   if (k === "escape") { if (S.pasting) { stopPaste(); return; } S.place = null; S.sel = null; select(null); buildCatalog(); }
 });
 window.addEventListener("keyup", (ev) => {
+  if (S.walk) { const dir = WALK_KEYS[ev.key.toLowerCase()]; if (dir) S.walk.release(dir); }
   if (ev.key === " ") { S.spaceDown = false; if (!S.panning) $("stage").classList.remove("pan"); }
   if (ev.key === "Shift" && S.hover) { S.hover.free = false; S.needsDraw = true; }
 });
@@ -883,6 +897,7 @@ $("export").addEventListener("click", async () => {
 });
 
 function useMap(m, name, note) {
+  walkStop();
   S.map = m; S.fileName = name; S.selected = null; S.sel = null;
   $("file-name").textContent = name;
   $("cols").value = m.cols; $("rows").value = m.rows;
@@ -941,6 +956,60 @@ $("share-open").addEventListener("click", async () => {
   } catch (e) { toast(e.message); }
 });
 
+// ---------- walk mode ----------
+
+const WALK_KEYS = { arrowup: "up", w: "up", arrowdown: "down", s: "down", arrowleft: "left", a: "left", arrowright: "right", d: "right" };
+
+function walkStart() {
+  const m = S.map;
+  const startRegion = m.entities.find((e) => e.type === "Region" && e.fields.name === "start");
+  const cat = m.entities.find((e) => e.type === "Character" && e.fields.id === "cat");
+  const at = startRegion ? [Math.floor(startRegion.x / T), Math.floor(startRegion.y / T)]
+    : cat ? [Math.floor(cat.x / T), Math.floor((cat.y - 1) / T)] : [Math.floor(m.cols / 2), Math.floor(m.rows / 2)];
+  S.walk = new Walker(m, S.ts.props, at);
+  S.walkView = { zoom: S.zoom, ox: S.ox, oy: S.oy };
+  S.zoom = 3; $("zoom-level").textContent = "3×";
+  S.pasting = null; S.sel = null; select(null);
+  $("walk").setAttribute("aria-pressed", "true"); $("pad").hidden = false; $("walking").hidden = false;
+  S.needsDraw = true;
+}
+
+function walkStop() {
+  if (!S.walk) return;
+  S.walk = null;
+  Object.assign(S, S.walkView); $("zoom-level").textContent = `${+S.zoom.toFixed(2)}×`;
+  $("walk").setAttribute("aria-pressed", "false"); $("pad").hidden = true; $("walking").hidden = true;
+  S.needsDraw = true;
+}
+
+$("walk").addEventListener("click", () => (S.walk ? walkStop() : walkStart()));
+for (const b of $("pad").querySelectorAll("button")) {
+  b.addEventListener("pointerdown", (ev) => { ev.preventDefault(); S.walk?.press(b.dataset.dir); });
+  for (const t of ["pointerup", "pointerleave", "pointercancel"]) b.addEventListener(t, () => S.walk?.release(b.dataset.dir));
+}
+
+function walkFrame() {
+  const w = S.walk;
+  w.update();
+  const [x, y] = w.feet(), r = canvas.getBoundingClientRect();
+  const tx = r.width / 2 - x * S.zoom, ty = r.height / 2 - (y - 12) * S.zoom;
+  S.ox += (tx - S.ox) * 0.2; S.oy += (ty - S.oy) * 0.2;
+  S.needsDraw = true;
+}
+
+function drawWalker(g) {
+  const w = S.walk, im = S.sprites["cat-walk"] || S.sprites["cat-sit"] || S.sprites[S.spriteNames[0]];
+  const [x, y] = w.feet();
+  g.fillStyle = "rgba(38, 48, 63, 0.28)";
+  g.beginPath(); g.ellipse(x, y - 1, 6, 2.2, 0, 0, Math.PI * 2); g.fill();
+  if (!im) { g.fillStyle = "#e8673a"; g.fillRect(x - 5, y - 12, 10, 12); return; }
+  g.save();
+  g.translate(Math.round(x), Math.round(y));
+  if (w.facing === "left") g.scale(-1, 1);
+  g.drawImage(im, -Math.round(im.width / 2), -im.height);
+  g.restore();
+}
+
 // ---------- start ----------
 
 async function start() {
@@ -961,7 +1030,7 @@ async function start() {
     S.spriteNames = idx.sprites.filter((n) => S.sprites[n]);
   } catch { S.spriteNames = []; }
 
-  S.stamps = loadStamps();
+  S.stamps = [...await loadBuiltinStamps("tiles/"), ...loadStamps()];
   buildPaintPanel(); buildCatalog(); buildShow(); buildStamps();
   const saved = loadAutosave();
   let m = null, name = "town-v5.ldtk", note = null;

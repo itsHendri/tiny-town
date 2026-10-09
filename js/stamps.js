@@ -72,6 +72,14 @@ export function drawClip(clip, ts, sprites) {
   return c;
 }
 
+// The ready-made stamps that ship with the tiles (tiles/stamps.json, from art/builtin_stamps.py).
+export async function loadBuiltinStamps(base) {
+  try {
+    const json = await (await fetch(base + "stamps.json")).json();
+    return json.stamps.map((s) => ({ name: s.name, builtin: true, clip: { ...s.clip, layers: Object.fromEntries(Object.entries(s.clip.layers).map(([k, v]) => [k, Uint8Array.from(v)])) } }));
+  } catch { return []; }
+}
+
 export function loadStamps() {
   try {
     return (JSON.parse(localStorage.getItem(KEY)) || []).map((s) => ({
@@ -82,7 +90,7 @@ export function loadStamps() {
 
 export function saveStamps(list) {
   try {
-    localStorage.setItem(KEY, JSON.stringify(list.map((s) => ({
+    localStorage.setItem(KEY, JSON.stringify(list.filter((s) => !s.builtin).map((s) => ({
       name: s.name, clip: { ...s.clip, layers: Object.fromEntries(Object.entries(s.clip.layers).map(([k, v]) => [k, Array.from(v)])) },
     }))));
     return true;
