@@ -553,7 +553,17 @@ def place(canvas, spr, X, Y):
     """A sprite with its feet at screen (X, Y), with a soft shadow. A building (a sprite with an `anchor`) is placed
     so its anchor (its front cell's centre) lands on (X, Y), without a shadow."""
     if getattr(spr, "anchor", None):
-        canvas.alpha_composite(spr.im, (int(round(X - spr.anchor[0])), int(round(Y - spr.anchor[1]))))
+        left, top = int(round(X - spr.anchor[0])), int(round(Y - spr.anchor[1]))
+        canvas.alpha_composite(spr.im, (left, top))
+        if getattr(spr, "smoke", None):
+            sm = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+            d = ImageDraw.Draw(sm)
+            for k in range(3):
+                rise = k * 6
+                r = 2 + rise * 0.12
+                cx, cy = left + spr.smoke[0] + rise * 0.35, top + spr.smoke[1] - 3 - rise
+                d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=(236, 232, 222, int(255 * (0.7 - rise / 26))))
+            canvas.alpha_composite(sm)
         return
     sh = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
     ImageDraw.Draw(sh).ellipse((X - spr.w * 0.42, Y - 3, X + spr.w * 0.46, Y + 2), fill=(30, 22, 16, 70))

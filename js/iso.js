@@ -56,6 +56,15 @@ export function isoView(m, { margin = 0 } = {}) {
   };
 }
 
+// Chimney smoke: three puffs rising and drifting right, moving up 2 px a frame (the 3 frames loop seamlessly).
+function smoke(g, x, y, frame) {
+  for (let k = 0; k < 3; k++) {
+    const rise = k * 6 + frame * 2, r = 2 + rise * 0.12;
+    g.fillStyle = `rgba(236, 232, 222, ${(0.7 - rise / 26).toFixed(2)})`;
+    g.beginPath(); g.arc(Math.round(x + rise * 0.35), Math.round(y - 3 - rise), r, 0, Math.PI * 2); g.fill();
+  }
+}
+
 function canvas(W, H) { const c = document.createElement("canvas"); c.width = W; c.height = H; return c; }
 
 // Keep only what lies over the map: a pixel stays if its centre traces back inside the grid (same rule in Python).
@@ -271,6 +280,8 @@ export function bakeIso(m, ts, view, { objects = true, frames: only = null } = {
         const L = H[idx(r, c)];
         const [x, y] = view.feet(e, L);
         drawProp(g, ts, e.fields.sprite, x, y);
+        const p = ts.props[e.fields.sprite];
+        if (p?.smoke) smoke(g, Math.round(x - p.ax) + p.smoke[0], Math.round(y - p.ay) + p.smoke[1], frame);
       }
     }
     return out;

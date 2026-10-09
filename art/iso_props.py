@@ -219,6 +219,10 @@ def house(fw=2, fd=2, wall=22, roof="shingle", ridge="x", colour="r", chimney=Tr
         cv.face((cx + cw, cy + cw, cz0), (0, -cw, 0), (0, 0, cz1 - cz0), stone_block(False))
         cv.face((cx, cy, cz1), (cw, 0, 0), (0, cw, 0), lambda s, t, su, tu: "out" if 0.2 < s < 0.8 and 0.2 < t < 0.8 else "s2")
 
+    smoke = None
+    if chimney:
+        tx, ty = proj(cx + cw / 2, cy + cw / 2, cz1)
+        smoke = (tx + cv.ox + 2, ty + cv.oy + 2)
     spr = cv.s
     spr.outline()
     # where the footprint's front (south) corner lands in the sprite; props stand at their front cell's centre
@@ -229,6 +233,7 @@ def house(fw=2, fd=2, wall=22, roof="shingle", ridge="x", colour="r", chimney=Tr
     out.px = out.im.load()
     out.outline()
     out.anchor = (round(ax), round(ay))
+    out.smoke = (round(smoke[0]), round(smoke[1])) if smoke else None
     return out, out.anchor, (fw, fd)
 
 

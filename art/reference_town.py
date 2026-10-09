@@ -29,7 +29,10 @@ def layout():
     # water: a pond at the top fed by a little waterfall, a stream on the right with a bridge
     m.fill("height", 0, 9, 3, 15, 1)
     P(0, 11, 3, 13, "water")
-    P(3, 10, 7, 15, "water")
+    for r in range(3, 8):                                     # a round pond under the waterfall
+        for c in range(8, 16):
+            if ((c - 12) / 3.6) ** 2 + ((r - 5) / 2.4) ** 2 <= 1.05:
+                m.terrain[r][c] = "water"
     P(10, 22, 28, 24, "water")
     P(23, 22, 25, 24, "bridge")
     P(19, 17, 20, 18, "water")       # a little round pool in the flower garden
@@ -101,6 +104,7 @@ OBJECTS = [
     ("tree-3", 10, 6), ("pine-2", 16, 6), ("bush-1", 9, 4), ("bush-2", 14, 7), ("bush-3", 6, 14), ("bush-1", 20, 12),
     ("bush-2", 4, 20), ("rock-1", 8, 2), ("rock-2", 15, 2), ("rock-1", 20, 21), ("rock-2", 24, 20), ("bush-3", 25, 9),
     ("tree-6", 21, 17), ("pine-3", 19, 25),
+    ("rock-1", 8, 4), ("rock-2", 9, 7), ("rock-1", 15, 6), ("rock-2", 14, 8), ("detail-pebbles-1", 11, 8),
 ]
 
 

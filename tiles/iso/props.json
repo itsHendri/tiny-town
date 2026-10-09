@@ -322,6 +322,10 @@
    "foot": [
     2,
     2
+   ],
+   "smoke": [
+    53,
+    23
    ]
   },
   "crate": {
@@ -437,6 +441,10 @@
     3,
     2
    ],
+   "smoke": [
+    64,
+    29
+   ],
    "alias": "longhouse"
   },
   "house-blue-m": {
@@ -450,6 +458,10 @@
    "foot": [
     3,
     2
+   ],
+   "smoke": [
+    64,
+    29
    ],
    "alias": "longhouse"
   },
@@ -465,6 +477,10 @@
     3,
     2
    ],
+   "smoke": [
+    64,
+    29
+   ],
    "alias": "longhouse"
   },
   "house-red-l": {
@@ -478,6 +494,10 @@
    "foot": [
     2,
     2
+   ],
+   "smoke": [
+    53,
+    23
    ],
    "alias": "cottage-red"
   },
@@ -493,6 +513,10 @@
     2,
     2
    ],
+   "smoke": [
+    53,
+    23
+   ],
    "alias": "cottage-red"
   },
   "house-red-s": {
@@ -506,6 +530,10 @@
    "foot": [
     2,
     2
+   ],
+   "smoke": [
+    53,
+    23
    ],
    "alias": "cottage-red"
   },
@@ -521,6 +549,10 @@
     3,
     2
    ],
+   "smoke": [
+    64,
+    29
+   ],
    "alias": "thatch-house"
   },
   "house-yellow-m": {
@@ -535,6 +567,10 @@
     3,
     2
    ],
+   "smoke": [
+    64,
+    29
+   ],
    "alias": "thatch-house"
   },
   "house-yellow-s": {
@@ -548,6 +584,10 @@
    "foot": [
     3,
     2
+   ],
+   "smoke": [
+    64,
+    29
    ],
    "alias": "thatch-house"
   },
@@ -587,6 +627,10 @@
    "foot": [
     3,
     2
+   ],
+   "smoke": [
+    64,
+    29
    ]
   },
   "pine-1": {
@@ -694,6 +738,10 @@
    "foot": [
     3,
     2
+   ],
+   "smoke": [
+    64,
+    29
    ]
   },
   "townhouse": {
@@ -707,6 +755,10 @@
    "foot": [
     2,
     2
+   ],
+   "smoke": [
+    29,
+    23
    ]
   },
   "tree-1": {

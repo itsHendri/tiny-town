@@ -69,7 +69,7 @@ def build_iso_props():
         items[name] = (spr, not name.startswith("rock"), {})
     for name, kw in HOUSES.items():
         spr, (ax, ay), foot = house(**kw)
-        items[name] = (spr, False, {"ax": ax, "ay": ay, "foot": list(foot)})
+        items[name] = (spr, False, {"ax": ax, "ay": ay, "foot": list(foot), **({"smoke": list(spr.smoke)} if spr.smoke else {})})
     from iso_ground import uprights
     for name, spr in uprights().items():
         items[name] = (spr, False, {"ax": spr.anchor[0], "ay": spr.anchor[1]})
