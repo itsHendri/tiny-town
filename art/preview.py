@@ -8,9 +8,9 @@ from pathlib import Path
 
 from dualgrid import T, cell_mask
 from sprites import Sprite, bush, house, pine, place, rock, tree
-from styles import ANIMATED, FENCE, bridge_tile, cliff_piece, crop_tile, flower_tile, gate_tile, grass_tile, terrain_tile
+from styles import ANIMATED, FENCE, bridge_tile, cliff_piece, crop_tile, flower_tile, gate_tile, grass_tile, side_stairs, terrain_tile
 
-DEFAULT = {"radius": 7, "path": "worn", "water": "foam", "cliff": "earth", "fence": "rail"}   # picked 2026-10-09 (tiles round 1)
+DEFAULT = {"radius": 7, "path": "worn", "water": "foam", "cliff": "earth", "fence": "rail", "side": "wood"}   # picked 2026-10-09 (tiles round 1)
 # The dual-grid sets in the tile sheet: (name, which style key picks its look; None = its only style)
 SETS = [("raised_shadow", None), ("raised_fill", None), ("raised_edge", None), ("water", "water"), ("soil", None), ("path", "path"), ("cobbles", None),
         ("tallgrass", None)]
@@ -108,6 +108,14 @@ def render(m, style, frame=0):
                     else:
                         ends.append("outer")
                 put(cliff_piece(style["cliff"], kind, ends[0], ends[1], style["radius"], frame).im, c * T, (r - 1) * T)
+        for r in range(m.rows):                                   # stairs up the east or west side of a hill
+            for c in range(m.cols):
+                if m.feature[r][c] != "stairs" or m.height[r][c] != level - 1 or is_face(m, r, c, level):
+                    continue
+                if c > 0 and m.height[r][c - 1] == level:
+                    put(side_stairs(style["side"], "w").im, c * T, r * T)
+                elif c + 1 < m.cols and m.height[r][c + 1] == level:
+                    put(side_stairs(style["side"], "e").im, c * T, r * T)
 
     for r in range(m.rows):
         for c in range(m.cols):

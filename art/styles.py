@@ -10,6 +10,8 @@ Colours are palette names from sprites.PAL, or RGBA tuples (for soft shadows).
 import math
 from functools import lru_cache
 
+from PIL import Image
+
 from dualgrid import T, Shape, h, shape_canvas
 from sprites import RGB, Sprite
 
@@ -372,6 +374,48 @@ def steps(material):
         r = (k + 64) % 4
         return top if r == 0 else dark if r == 3 else mid
     return fn
+
+
+# ---------- side stairs: climbing onto a hill from its east or west side ----------
+
+def _side_depth(x, y):
+    """How far (x, y) is below the tread of its step (high ground to the west, going down eastwards); <0 = above."""
+    return y - (2 + (x // 4) * 3)
+
+
+@lru_cache(maxsize=None)
+def side_stairs(style, side):
+    """A 16x16 flight of four steps on the low cell beside a hill. side 'w': the hill is to the west; 'e': to the east."""
+    s = Sprite(T, T)
+    for y in range(T):
+        for x in range(T):
+            d = _side_depth(x, y)
+            if d < 0:
+                continue
+            if y == T - 1:
+                c = "out"
+            elif style == "earth":
+                band = (y + int(2 * math.sin(x * 0.8)) + 64) % 5
+                c = "d0" if d < 1 else "d1" if d < 2 else "g3" if d < 3 and x % 4 < 2 else "k3" if band == 0 else "k1" if d < 5 else "k2"
+            elif d < 1:
+                c = "k0" if style == "wood" else "s0"
+            elif d < 2:
+                c = "k1" if style == "wood" else "s1"
+            elif style == "wood":
+                c = "k3" if x % 4 == 3 or d < 3 else "k2"
+            else:
+                row = (y + 64) // 4
+                bx = (x + (row % 2) * 2) % 4
+                c = "s3" if bx == 0 or y % 4 == 3 else "s2" if d < 3 else "s1"
+            s.put(x, y, c)
+    s = outline_in_tile(s)
+    if side == "e":
+        s.im = s.im.transpose(Image.FLIP_LEFT_RIGHT)
+        s.px = s.im.load()
+    return s
+
+
+SIDE_STAIRS = ("wood", "stone", "earth")
 
 
 CLIFF = {

@@ -13,7 +13,7 @@ from PIL import Image
 from dualgrid import T
 from preview import DEFAULT, FRAMES, SETS, STYLE_OF
 from props import catalog
-from styles import ANIMATED, FENCE, bridge_tile, cliff_piece, crop_tile, flower_tile, gate_tile, grass_tile, terrain_tile
+from styles import ANIMATED, FENCE, bridge_tile, cliff_piece, crop_tile, flower_tile, gate_tile, grass_tile, side_stairs, terrain_tile
 
 ROOT = Path(__file__).resolve().parent.parent
 COLS = 16                                                     # sheet width in tiles
@@ -75,6 +75,7 @@ def build_tileset(style):
     meta["fence"] = [sh.add(FENCE[style["fence"]](conn).im) for conn in range(16)]
     meta["gate"] = {"h": sh.add(gate_tile(True).im), "v": sh.add(gate_tile(False).im)}
     meta["flowers"] = [sh.add(flower_tile(v).im) for v in range(4)]
+    meta["side"] = {side: sh.add(side_stairs(style["side"], side).im) for side in ("w", "e")}
     sh.newline()
     pieces = {}
     for kind in ("face", "stairs", "waterfall"):

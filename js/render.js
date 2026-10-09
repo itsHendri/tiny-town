@@ -105,6 +105,13 @@ export function drawTerrain(ctx, m, ts, frame = 0) {
       const frames = cliff.pieces[`${kind}/${end(c - 1)}/${end(c + 1)}`];
       tile(frames[frame % frames.length], c * T, r * T + cliff.offsetY, cliff.size[0], cliff.size[1]);
     }
+    if (!ts.json.side) return;
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {      // stairs up the east or west side of a hill
+      const i = r * cols + c;
+      if (FEAT[i] !== STAIRS || H[i] !== L - 1 || isFace(r, c, L)) continue;
+      if (c > 0 && H[i - 1] === L) tile(ts.json.side.w, c * T, r * T);
+      else if (c + 1 < cols && H[i + 1] === L) tile(ts.json.side.e, c * T, r * T);
+    }
   }
 
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) tile(ts.json.grass[Math.floor(((r * 7 + c * 13) % 11) / 11 * 4)], c * T, r * T);

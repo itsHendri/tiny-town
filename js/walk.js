@@ -59,6 +59,10 @@ export class Walker {
     const stairs = value("Features", "stairs");
     if (m.layers.Features[b] === stairs && r1 === r0 + 1 && H[a] === H[b] + 1) return true;   // onto stairs from above
     if (m.layers.Features[a] === stairs && r1 === r0 - 1 && H[b] === H[a] + 1) return true;   // up off the stairs
+    if (r1 === r0 && Math.abs(H[a] - H[b]) === 1) {                                           // side stairs, east or west
+      const low = H[a] < H[b] ? a : b;
+      if (m.layers.Features[low] === stairs) return true;
+    }
     return false;
   }
 
