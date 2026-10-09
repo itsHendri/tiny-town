@@ -20,7 +20,7 @@ then visit http://localhost:8000. Your map is kept in the browser as you work; *
 | Do | How |
 |---|---|
 | Paint | Pick a swatch (or keys 1-9). Brush, Box or Fill; `[` `]` change the brush size. Right-click erases, Alt-click picks, Shift-click draws a straight line from the last stroke. |
-| Height | Raise, Lower and Flatten. Neighbours are nudged so side-by-side cells are never more than one level apart; a cliff face appears under every south edge. Paint Stairs on a cliff face to climb it. |
+| Height | Raise, Lower and Flatten. Neighbours are nudged so side-by-side cells are never more than one level apart; a cliff face appears under every south edge. Paint Stairs on a cliff face, or on the cell beside a hill's east or west side, to climb it. |
 | Yards | The Plot tool (T): drag a rectangle to fence it, with a gate on the side facing the nearest path. |
 | Place | Objects mode: pick a prop or character, click the map. Click to select, drag to move, Shift for off-grid. Turn on Scatter and drag to sprinkle trees or bushes; right-drag clears them. |
 | Reuse | Select (S) an area, then Copy, Cut or Save as stamp. Ctrl+V or a stamp places it again; Esc stops. |
@@ -82,11 +82,10 @@ fully transparent replaces the generated one when the page loads, so regeneratin
 
 Done so far from the research (LDtk, Tiled, porymap, RPG Maker, CrossCode, OpenTTD, Mindustry, Mario Maker): height
 levels, Shift-lines, scatter, stamps (six built in), plots with gates, share codes, walk mode, a phone tool bar with
-Erase and long-press pick, and a little landing squash and dust puff.
+Erase and long-press pick, a little landing squash and dust puff, and stairs up the east and west sides of hills.
 
 Still open:
 
-* **Stairs and ramps on east and west cliff sides** (today only south faces have stairs; side faces need new art).
 * **Per-terrain cliff lips** (a cobbled edge on a cobbled square) and a slight tint per level.
 * **Sounds** (off by default): a soft click when placing, a puff when removing.
 * **More built-in stamps** and more prop kinds (signs, carts, market stalls, a windmill).
