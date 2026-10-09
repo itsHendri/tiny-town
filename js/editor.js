@@ -179,12 +179,13 @@ const charThumb = (name, box) => {
 };
 
 function propGroups() {
-  const groups = { Trees: [], Pines: [], Bushes: [], Rocks: [], Houses: [], Things: [] };
+  const groups = { Houses: [], Market: [], Trees: [], Pines: [], Bushes: [], Rocks: [], Things: [] };
   const props = propSet().props;
   for (const name of Object.keys(props)) {
     if (props[name].alias) continue;                         // old names kept so old maps still open
     const g = name.startsWith("tree") ? "Trees" : name.startsWith("pine") ? "Pines" : name.startsWith("bush") ? "Bushes"
-      : name.startsWith("rock") ? "Rocks" : name.startsWith("house") || props[name].foot ? "Houses" : "Things";
+      : name.startsWith("rock") ? "Rocks" : name.startsWith("stall") || name.startsWith("crate") || name === "flower-cart" || name === "chalkboard" ? "Market"
+      : name.startsWith("house") || props[name].foot ? "Houses" : "Things";
     groups[g].push(name);
   }
   return groups;
@@ -1111,7 +1112,7 @@ function walkStart() {
   const cat = m.entities.find((e) => e.type === "Character" && e.fields.id === "cat");
   const at = startRegion ? [Math.floor(startRegion.x / T), Math.floor(startRegion.y / T)]
     : cat ? [Math.floor(cat.x / T), Math.floor((cat.y - 1) / T)] : [Math.floor(m.cols / 2), Math.floor(m.rows / 2)];
-  S.walk = new Walker(m, (S.V?.iso ? S.isoTs : S.ts).props, at);
+  S.walk = new Walker(m, (S.V?.iso ? S.isoTs : S.ts).props, at, { faces: !S.V?.iso });
   S.walkView = { zoom: S.zoom, ox: S.ox, oy: S.oy };
   S.zoom = 3; $("zoom-level").textContent = "3×";
   S.pasting = null; S.sel = null; select(null);

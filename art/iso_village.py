@@ -20,6 +20,15 @@ def scene(palette="earthy", look="cosy"):
     m.fill("terrain", 11, 1, 14, 5, "water")                 # a pond
     m.fill("height", 0, 13, 4, 18, 1)                        # a little rise in the back corner
     m.fill("terrain", 1, 1, 4, 4, "soil")
+    for c in range(1, 6):
+        m.fence[0][c] = m.fence[4][c] = True
+    for r in range(0, 5):
+        m.fence[r][1] = m.fence[r][5] = True
+    m.fence[4][3] = False; m.deco[4][3] = "gate"; m.fill("terrain", 4, 3, 7, 4, "path")
+    for (r, c) in [(10, 6), (10, 7), (11, 6), (12, 9), (5, 10), (6, 11), (6, 12), (13, 2)]:
+        m.deco[r][c] = "flowers"
+    m.fill("terrain", 12, 0, 13, 6, "water"); m.fill("terrain", 12, 1, 13, 2, "bridge")       # a stream with a bridge
+    m.feature[4][14] = "stairs"; m.fill("terrain", 3, 14, 5, 15, "path")                     # stairs up the rise
     houses = [("cottage-red", 4, 5), ("thatch-house", 14, 5), ("townhouse", 6, 13), ("longhouse", 15, 13), ("cottage-brown", 16, 2)]
     for name, c, r in houses:
         spr, _, _ = iso_props.house(**iso_props.HOUSES[name])

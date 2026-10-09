@@ -38,6 +38,9 @@ def build(palette):
         sh.newline()
         meta["sets"][name] = tiles
     meta["sets"]["cobbles"] = meta["sets"]["path"]
+    from iso_ground import flats
+    sh.newline()
+    meta["flats"] = {name: sh.add(im) for name, im in flats().items()}
     meta["colors"] = {k: PAL[k] for k in WALL_COLOURS}
     out = ROOT / "tiles" / "iso"
     out.mkdir(parents=True, exist_ok=True)
@@ -62,6 +65,16 @@ def build_iso_props():
     for name, kw in HOUSES.items():
         spr, (ax, ay), foot = house(**kw)
         items[name] = (spr, False, {"ax": ax, "ay": ay, "foot": list(foot)})
+    from iso_ground import uprights
+    for name, spr in uprights().items():
+        items[name] = (spr, False, {"ax": spr.anchor[0], "ay": spr.anchor[1]})
+    from iso_market import FOOTPRINTS, MARKET
+    for name, make in MARKET.items():
+        spr = make()
+        extra = {"ax": spr.anchor[0], "ay": spr.anchor[1]}
+        if name in FOOTPRINTS:
+            extra["foot"] = FOOTPRINTS[name]
+        items[name] = (spr, name in ("barrel-iso", "crates", "flower-cart"), extra)
     order = sorted(items.items(), key=lambda kv: -kv[1][0].h)
     W, x, y, shelf, placed = 512, 0, 0, 0, {}
     for name, (spr, shadow, extra) in order:

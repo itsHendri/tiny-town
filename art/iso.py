@@ -289,10 +289,25 @@ def render(m, frame=0, objects=True):
                 t = iso_tile(name, mask, frame if name in ANIMATED else 0, phase_of(dx, dy))
                 put(layer, t, X, Y)
 
+    from iso_ground import flats, uprights
+    FL, UP = _cached(flats), _cached(uprights)
+
     def overlays(layer, level):
         for name in ("water", "soil", "path", "cobbles"):
             dual(layer, name, m.cells(name, level), level)
         dual(layer, "tallgrass", m.cells("tallgrass", level), level)
+        for r in range(rows):                                # flat things on single cells: flowers, crops, bridge decks
+            for c in range(cols):
+                if m.height[r][c] != level:
+                    continue
+                x, y = cell_top(c, r, level)
+                X, Y = X0 + x - 16, Y0 + y
+                if m.deco[r][c] == "flowers":
+                    put(layer, FL[f"flowers-{(r * 5 + c * 11) % 13 * 4 // 13}"], X, Y)
+                if m.terrain[r][c] == "soil":
+                    put(layer, FL["crops"], X, Y)
+                if m.terrain[r][c] == "bridge":
+                    put(layer, FL[f"deck-{bridge_axis(m, r, c)}"], X, Y)
 
     # level 0: grass, then its overlays
     base = blank()
@@ -325,6 +340,8 @@ def render(m, frame=0, objects=True):
         for c in range(cols):
             if m.height[r][c] > 0:
                 items.append((c + r, 0, "cell", (c, r)))
+    for spr, c, r in upright_items(m, UP):                     # fences, gates, bridge rails, stairs
+        items.append((c + r, 0.5, "obj", (spr, c * 16 + 8, (r + 1) * 16, m.height[r][c])))
     if objects:
         for k, (spr, u, v) in enumerate(m.objects):
             c, r = int(u // 16), int((v - 1) // 16)
@@ -349,6 +366,48 @@ def render(m, frame=0, objects=True):
             x, y = to_screen(u, v - 8, lvl)
             X, Y = X0 + x, Y0 + y
             place(out, spr, X, Y)
+    return out
+
+
+_CACHE = {}
+
+
+def _cached(fn):
+    if fn.__name__ not in _CACHE:
+        _CACHE[fn.__name__] = fn()
+    return _CACHE[fn.__name__]
+
+
+def bridge_axis(m, r, c):
+    """'x' when the bridge crosses along columns (land or bridge to its left or right), else 'y'."""
+    at = lambda rr, cc: m.terrain[min(m.rows - 1, max(0, rr))][min(m.cols - 1, max(0, cc))]
+    return "x" if at(r, c - 1) != "water" or at(r, c + 1) != "water" else "y"
+
+
+def upright_items(m, UP):
+    """(sprite, c, r) for every fence, gate, bridge rail and stairs, to be sorted with the props."""
+    out = []
+    fence = lambda rr, cc, lv: 0 <= rr < m.rows and 0 <= cc < m.cols and (m.fence[rr][cc] or m.deco[rr][cc] == "gate") and m.height[rr][cc] == lv
+    for r in range(m.rows):
+        for c in range(m.cols):
+            lv = m.height[r][c]
+            if m.deco[r][c] == "gate":
+                out.append((UP["_gate-x" if fence(r, c - 1, lv) or fence(r, c + 1, lv) else "_gate-y"], c, r))
+            elif m.fence[r][c]:
+                conn = (1 if fence(r - 1, c, lv) else 0) | (2 if fence(r, c + 1, lv) else 0) | (4 if fence(r + 1, c, lv) else 0) | (8 if fence(r, c - 1, lv) else 0)
+                out.append((UP[f"_fence-{conn}"], c, r))
+            if m.terrain[r][c] == "bridge":
+                axis = bridge_axis(m, r, c)
+                at = lambda rr, cc: m.terrain[min(m.rows - 1, max(0, rr))][min(m.cols - 1, max(0, cc))]
+                sides = ("a" if at(r - 1, c) != "bridge" else "") + ("b" if at(r + 1, c) != "bridge" else "") if axis == "x" else \
+                        ("a" if at(r, c - 1) != "bridge" else "") + ("b" if at(r, c + 1) != "bridge" else "")
+                if sides:
+                    out.append((UP[f"_rail-{axis}-{sides}"], c, r))
+            if m.feature[r][c] == "stairs":
+                if r > 0 and m.height[r - 1][c] == lv + 1:
+                    out.append((UP["_stairs-n"], c, r))
+                elif c > 0 and m.height[r][c - 1] == lv + 1:
+                    out.append((UP["_stairs-w"], c, r))
     return out
 
 

@@ -29,8 +29,11 @@ function propCells(m, props) {
 }
 
 export class Walker {
-  constructor(m, props, start) {
+  // faces: in the top-down view a cliff face stands on the cell below the high ground, so that cell is blocked;
+  // in the isometric view walls stand between cells and nothing is blocked by them.
+  constructor(m, props, start, { faces = true } = {}) {
     this.m = m;
+    this.faces = faces;
     this.blocked = propCells(m, props);
     this.c = start[0]; this.r = start[1];
     this.from = null; this.t = 0; this.facing = "down"; this.held = [];
@@ -52,7 +55,7 @@ export class Walker {
     if (deco === value("Deco", "fence")) return false;
     if (this.blocked.has(i)) return false;
     const face = r > 0 && H[i - m.cols] > H[i];
-    if (face && m.layers.Features[i] !== value("Features", "stairs")) return false;
+    if (this.faces && face && m.layers.Features[i] !== value("Features", "stairs")) return false;
     return true;
   }
 

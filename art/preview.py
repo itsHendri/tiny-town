@@ -47,6 +47,16 @@ class Map:
                 for trow, hrow, frow in zip(self.terrain, self.height, self.feature)]
 
 
+def to_json(m):
+    """The map's cell layers as the browser's numbers (for checking the two renderers draw the same pixels)."""
+    T_ = {"grass": 0, "path": 1, "cobbles": 2, "water": 3, "soil": 4, "bridge": 5}
+    D_ = {"flowers": 2, "tallgrass": 3, "gate": 4}
+    flat = lambda g: [v for row in g for v in row]
+    return {"cols": m.cols, "rows": m.rows, "H": flat(m.height), "T": [T_[t] for t in flat(m.terrain)],
+            "F": [1 if f == "stairs" else 0 for f in flat(m.feature)],
+            "D": [1 if f else D_.get(d, 0) for f, d in zip(flat(m.fence), flat(m.deco))]}
+
+
 def is_face(m, r, c, level):
     """A cliff face of `level` stands on cell (r, c): the cell above is at least that high, this one lower."""
     return 0 < r < m.rows and 0 <= c < m.cols and m.height[r - 1][c] >= level > m.height[r][c]

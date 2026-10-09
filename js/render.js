@@ -133,7 +133,11 @@ export function drawTerrain(ctx, m, ts, frame = 0) {
 export function drawProp(ctx, ts, name, x, y) {
   const p = ts.props[name];
   if (!p) return false;
-  if (p.ax !== undefined) {                                  // a building: its anchor is its front cell's centre
+  if (p.ax !== undefined) {                                  // drawn in 3D: its anchor is its front cell's centre
+    if (p.shadow) {
+      ctx.fillStyle = "rgba(38, 30, 22, 0.25)";
+      ctx.beginPath(); ctx.ellipse(Math.round(x), Math.round(y), Math.min(10, p.w * 0.4), 3, 0, 0, Math.PI * 2); ctx.fill();
+    }
     ctx.drawImage(ts.propsImg, p.x, p.y, p.w, p.h, Math.round(x - p.ax), Math.round(y - p.ay), p.w, p.h);
     return true;
   }

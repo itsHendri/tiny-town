@@ -151,12 +151,47 @@ export function bakeIso(m, ts, view, { objects = true, frames: only = null } = {
       g.drawImage(ts.sheet, xy[0], xy[1], 32, 16, x - 16, y - 8, 32, 16);
     }
   }
+  const FLOWERS = value("Deco", "flowers"), SOIL = value("Terrain", "soil"), BRIDGE = value("Terrain", "bridge"), WATER = value("Terrain", "water");
+  const FENCE = value("Deco", "fence"), GATE = value("Deco", "gate");
+  const ter = (r, c) => TER[idx(r, c)];
+  const bridgeAxis = (r, c) => (ter(r, c - 1) !== WATER || ter(r, c + 1) !== WATER ? "x" : "y");
+  const flat = (g, name, c, r, L) => { const xy = ts.json.flats?.[name]; if (!xy) return; const [x, y] = view.cellTop(c, r, L); g.drawImage(ts.sheet, xy[0], xy[1], 32, 16, x - 16, y, 32, 16); };
+
   function overlays(g, L, frame) {
     for (const o of OVERLAYS) {
       const vs = o.ids.map((id) => value("Terrain", id));
       dual(g, o.name, (i) => vs.includes(TER[i]) && onLevel(i, L), L, frame);
     }
     dual(g, "tallgrass", (i) => D[i] === TALL && H[i] === L, L, frame);
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {   // flat things on single cells
+      const i = r * cols + c;
+      if (H[i] !== L) continue;
+      if (D[i] === FLOWERS) flat(g, `flowers-${Math.floor(((r * 5 + c * 11) % 13) * 4 / 13)}`, c, r, L);
+      if (TER[i] === SOIL) flat(g, "crops", c, r, L);
+      if (TER[i] === BRIDGE) flat(g, `deck-${bridgeAxis(r, c)}`, c, r, L);
+    }
+  }
+
+  // fences, gates, bridge rails and stairs stand up, so they're sorted with the props: [sprite name, c, r]
+  function uprights() {
+    const out = [];
+    const fence = (r, c, L) => r >= 0 && r < rows && c >= 0 && c < cols && (D[r * cols + c] === FENCE || D[r * cols + c] === GATE) && H[r * cols + c] === L;
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      const i = r * cols + c, L = H[i];
+      if (D[i] === GATE) out.push([fence(r, c - 1, L) || fence(r, c + 1, L) ? "_gate-x" : "_gate-y", c, r]);
+      else if (D[i] === FENCE) out.push([`_fence-${(fence(r - 1, c, L) ? 1 : 0) | (fence(r, c + 1, L) ? 2 : 0) | (fence(r + 1, c, L) ? 4 : 0) | (fence(r, c - 1, L) ? 8 : 0)}`, c, r]);
+      if (TER[i] === BRIDGE) {
+        const axis = bridgeAxis(r, c);
+        const sides = axis === "x" ? (ter(r - 1, c) !== BRIDGE ? "a" : "") + (ter(r + 1, c) !== BRIDGE ? "b" : "")
+          : (ter(r, c - 1) !== BRIDGE ? "a" : "") + (ter(r, c + 1) !== BRIDGE ? "b" : "");
+        if (sides) out.push([`_rail-${axis}-${sides}`, c, r]);
+      }
+      if (FEAT[i] === STAIRS) {
+        if (r > 0 && H[i - cols] === L + 1) out.push(["_stairs-n", c, r]);
+        else if (c > 0 && H[i - 1] === L + 1) out.push(["_stairs-w", c, r]);
+      }
+    }
+    return out;
   }
 
   return Array.from({ length: ts.frames }, (_, frame) => {
@@ -190,6 +225,7 @@ export function bakeIso(m, ts, view, { objects = true, frames: only = null } = {
       const c = Math.floor(e.x / 16), r = Math.floor((e.y - 1) / 16);
       items.push([c + r, 1, e]);
     }
+    for (const [name, c, r] of uprights()) items.push([c + r, 0.5, { type: "Prop", x: c * 16 + 8, y: (r + 1) * 16, fields: { sprite: name } }]);
     items.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
     for (const it of items) {
       if (it[1] === 0) {
