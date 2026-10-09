@@ -5,7 +5,7 @@ It runs in the browser with no install and no build step. The art is drawn in co
 
 Status: early but usable. Paint ground, up to four levels of height with stairs and waterfalls, fences, gates,
 flowers and tall grass; fence a yard in one drag; scatter trees; place props and characters; select, copy and paste
-areas and keep them as stamps; undo; save and open `.ldtk` maps; export a PNG; share a map as a short text code.
+areas and keep them as stamps (six come built in); undo; save and open `.ldtk` maps; export a PNG; share a map as a short text code.
 
 ## Running it
 
@@ -25,6 +25,8 @@ then visit http://localhost:8000. Your map is kept in the browser as you work; *
 | Place | Objects mode: pick a prop or character, click the map. Click to select, drag to move, Shift for off-grid. Turn on Scatter and drag to sprinkle trees or bushes; right-drag clears them. |
 | Reuse | Select (S) an area, then Copy, Cut or Save as stamp. Ctrl+V or a stamp places it again; Esc stops. |
 | Share | Share code: the whole map as one line of text (a few KB). Paste one to open it. |
+| Walk | Walk (or Enter): walk the town with the arrows or WASD; stairs climb, water and fences block. Esc stops. |
+| Phone | A tool bar at the bottom of the map: tools, Erase, undo, and the current brush. Hold still to pick. |
 | Move around | Wheel or two fingers to pan, Ctrl+wheel or pinch to zoom, hold Space and drag. |
 | Check the data | Shift+R shows the raw grid, like LDtk. |
 
@@ -45,9 +47,9 @@ so they can also be opened in LDtk and read by its loaders.
 
 | Path | What |
 |---|---|
-| `art/` | Python (Pillow) that draws the art: `dualgrid.py` (tile shapes), `styles.py` (every look), `props.py`, `tiles.py` (builds the sheets), `preview.py` (style comparisons), `ldtk.py` (writes maps) |
+| `art/` | Python (Pillow) that draws the art: `dualgrid.py` (tile shapes), `styles.py` (every look), `props.py`, `tiles.py` (builds the sheets), `preview.py` (style comparisons), `ldtk.py` (writes maps), `builtin_stamps.py` (the ready-made stamps) |
 | `tiles/` | The tile sheet (`tileset.png` + `tileset.json`), the prop atlas (`props.png` + `props.json`), and `tileset.edited.png`, your hand edits (they win) |
-| `index.html`, `js/` | The editor: `editor.js` (the page), `tools.js` (painting, fill, height, plots, undo), `stamps.js` (copy, paste, stamps), `share.js` (share codes), `files.js` (open, save, autosave), `registry.js` (what can be painted and placed), `format.js` (load/save maps), `render.js` (draws a map) |
+| `index.html`, `js/` | The editor: `editor.js` (the page), `tools.js` (painting, fill, height, plots, undo), `stamps.js` (copy, paste, stamps), `share.js` (share codes), `walk.js` (walk mode), `files.js` (open, save, autosave), `registry.js` (what can be painted and placed), `format.js` (load/save maps), `render.js` (draws a map) |
 | `maps/` | Example maps |
 | `sprites/` | Example characters (one PNG each, feet at the bottom centre) |
 
@@ -78,13 +80,16 @@ fully transparent replaces the generated one when the page loads, so regeneratin
 
 ## Ideas, next up
 
-From research into LDtk, Tiled, porymap, RPG Maker, CrossCode, OpenTTD, Mindustry and Mario Maker:
+Done so far from the research (LDtk, Tiled, porymap, RPG Maker, CrossCode, OpenTTD, Mindustry, Mario Maker): height
+levels, Shift-lines, scatter, stamps (six built in), plots with gates, share codes, walk mode, a phone tool bar with
+Erase and long-press pick, and a little landing squash and dust puff.
 
-* **Walk mode:** drop a character and walk around (cliffs, water and fences block; stairs climb), then straight back to editing.
-* **Built-in stamps:** a cottage with a yard and fence, a pond, a market square, so a town starts in a few clicks.
-* **Art polish:** tall grass that sways, a nicer side gate, per-terrain cliff lips (a cobble edge on a cobbled square), slight tint per level.
-* **Phone editing:** a fixed tool bar at the bottom, long-press to pick.
-* **Cliffs facing east and west:** side ramps and stairs need extra art.
+Still open:
+
+* **Stairs and ramps on east and west cliff sides** (today only south faces have stairs; side faces need new art).
+* **Per-terrain cliff lips** (a cobbled edge on a cobbled square) and a slight tint per level.
+* **Sounds** (off by default): a soft click when placing, a puff when removing.
+* **More built-in stamps** and more prop kinds (signs, carts, market stalls, a windmill).
 
 ## License
 

@@ -92,8 +92,8 @@ kbd { font: 11px var(--mono); border: 1px solid var(--line); border-bottom-width
 .catalog { max-height: none; }
 
 .stage { position: relative; overflow: hidden; background: var(--stage); touch-action: none; min-width: 0; }
-.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; cursor: crosshair; }
-.stage.pan canvas { cursor: grab; }
+.stage > canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; cursor: crosshair; }
+.stage.pan > canvas { cursor: grab; }
 .hud { position: absolute; left: 10px; bottom: 10px; font: 12px var(--mono); background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; pointer-events: none; font-variant-numeric: tabular-nums; }
 .zoom { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 4px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 3px; font: 12px var(--mono); }
 .zoom button { width: 28px; height: 28px; border: 0; background: transparent; cursor: pointer; font-size: 16px; border-radius: 6px; }
@@ -109,6 +109,18 @@ kbd { font: 11px var(--mono); border: 1px solid var(--line); border-bottom-width
 .walking { position: absolute; top: 12px; right: 12px; background: var(--on); color: var(--panel); font: 600 12px var(--mono); padding: 5px 10px; border-radius: 8px; pointer-events: none; }
 #walk[aria-pressed="true"] { background: var(--on); border-color: var(--on); color: var(--panel); }
 @media (hover: hover) and (pointer: fine) { .pad { display: none; } }
+.mbar { position: absolute; left: 8px; right: 8px; bottom: 8px; display: none; gap: 3px; justify-content: safe center; overflow-x: auto;
+  padding: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+.mbar button { flex: 0 0 auto; min-width: 36px; min-height: 40px; border: 1.5px solid var(--line); border-radius: 8px; background: transparent; font: 600 11.5px var(--body); color: var(--fg); padding: 0 5px; }
+.mbar button[aria-pressed="true"] { border-color: var(--on); background: var(--on-bg); }
+.mbar #m-erase[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: transparent; }
+.mbar #m-brush { padding: 0; display: grid; place-items: center; }
+.mbar #m-brush canvas { width: 28px; height: 28px; image-rendering: pixelated; }
+@media (pointer: coarse), (max-width: 620px) {
+  .mbar { display: flex; }
+  .hud, .zoom { bottom: 64px; }
+  .pad { bottom: 112px; }
+}
 .toast { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); background: var(--fg); color: var(--panel); padding: 6px 12px; border-radius: 8px; font-size: 13px; pointer-events: none; max-width: calc(100% - 32px); }
 
 .field { display: grid; gap: 3px; margin-bottom: 8px; }
@@ -199,6 +211,16 @@ dialog::backdrop { background: rgba(20, 24, 32, 0.5); }
       <button type="button" data-dir="left" aria-label="Left">◀</button>
       <button type="button" data-dir="right" aria-label="Right">▶</button>
       <button type="button" data-dir="down" aria-label="Down">▼</button>
+    </div>
+    <div class="mbar" id="mbar" role="toolbar" aria-label="Quick tools">
+      <button type="button" id="m-mode">Objects</button>
+      <button type="button" data-tool="brush">Brush</button>
+      <button type="button" data-tool="rect">Box</button>
+      <button type="button" data-tool="fill">Fill</button>
+      <button type="button" id="m-erase" aria-pressed="false">Erase</button>
+      <button type="button" id="m-undo" aria-label="Undo">↶</button>
+      <button type="button" id="m-redo" aria-label="Redo">↷</button>
+      <button type="button" id="m-brush" aria-label="Choose what to paint"></button>
     </div>
     <div class="walking" id="walking" hidden>Walking · arrows or WASD · Esc to stop</div>
   </div>

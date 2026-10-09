@@ -32,7 +32,8 @@ const S = {
   map: null, ts: null, sprites: {}, spriteNames: [], fileName: "town.ldtk",
   mode: "paint", tool: "brush", size: 1, brush: { layer: "Terrain", v: 1 },
   place: null, selected: null, scatter: { on: false, density: 0.35 }, scatterStroke: null,
-  sel: null, selFrom: null, clip: null, pasting: null, stamps: [], walk: null, walkView: null,
+  sel: null, selFrom: null, clip: null, pasting: null, stamps: [], walk: null, walkView: null, eraseMode: false, longPress: null,
+  fx: [], squash: new Map(),
   zoom: 2, ox: 0, oy: 0,
   show: { terrain: true, props: true, characters: true, data: true, raw: false, grid: false },
   frames: [], frame: 0, terrainDirty: true, needsDraw: true,
@@ -88,6 +89,7 @@ function buildPaintPanel() {
         onclick: () => { S.brush = it.op ? { layer: g.layer, op: it.op } : { layer: g.layer, v: it.v }; if (S.tool === "pick") S.tool = "brush"; buildPaintPanel(); } },
       swatch(it.key, color, it.mark), el("span", { text: it.label }));
     })))));
+  if (S.ts) queueMicrotask(syncBar);
   $("sizes").replaceChildren("Brush", ...[1, 2, 3].map((n) => el("button", { type: "button", "aria-pressed": String(S.size === n),
     title: `Brush ${n}×${n} cells`, onclick: () => { S.size = n; buildPaintPanel(); } }, sizeIcon(n), el("span", { text: `${n}×${n}` }))));
 }
@@ -139,6 +141,16 @@ function copySel(cut) {
 function deleteSel() {
   if (!S.sel) return;
   history.push(S.map); clearArea(S.map, S.sel); changed(true);
+}
+
+function syncBar() {
+  for (const b of $("mbar").querySelectorAll("[data-tool]")) b.setAttribute("aria-pressed", String(S.mode === "paint" && S.tool === b.dataset.tool));
+  $("m-erase").setAttribute("aria-pressed", String(S.eraseMode));
+  $("m-mode").textContent = S.mode === "paint" ? "Objects" : "Paint";
+  const it = PALETTE.find((g) => g.layer === S.brush.layer)?.items.find((x) => (S.brush.op ? x.op === S.brush.op : x.v === S.brush.v));
+  $("m-brush").replaceChildren(it ? swatch(it.key, null, it.mark) : "");
+  $("m-brush").title = it ? `Painting: ${it.label}` : "Choose what to paint";
+  for (const b of $("mbar").querySelectorAll("[data-tool], #m-erase, #m-brush")) b.hidden = S.mode !== "paint";
 }
 
 function setTool(id) { S.tool = id; buildPaintPanel(); S.needsDraw = true; }
@@ -259,6 +271,7 @@ function placeAt(mx, my, free) {
   else e = { type: "Path", x: c * T, y: r * T, w: T, h: T, fields: { name: "path", points: [[c, r], [Math.min(S.map.cols - 1, c + 3), r]] } };
   history.push(S.map);
   S.map.entities.push(e);
+  land(e);
   select(e);
   changed(false);
 }
@@ -287,15 +300,41 @@ function scatterAt(p, erase) {
     st.done.add(key);
     if (erase) {
       const before = S.map.entities.length;
-      S.map.entities = S.map.entities.filter((e) => !(e.type === "Prop" && names.includes(e.fields.sprite) && Math.floor(e.x / T) === c && Math.floor((e.y - 1) / T) === r));
+      S.map.entities = S.map.entities.filter((e) => {
+        const gone = e.type === "Prop" && names.includes(e.fields.sprite) && Math.floor(e.x / T) === c && Math.floor((e.y - 1) / T) === r;
+        if (gone) puff(e.x, e.y);
+        return !gone;
+      });
       if (S.map.entities.length !== before) st.changed = true;
     } else if (Math.random() < S.scatter.density && freeCell(c, r)) {
       const sprite = names[Math.floor(Math.random() * names.length)];
-      S.map.entities.push({ type: "Prop", x: c * T + 4 + Math.floor(Math.random() * 9), y: (r + 1) * T - Math.floor(Math.random() * 5), w: T, h: T, fields: { sprite } });
+      const e = { type: "Prop", x: c * T + 4 + Math.floor(Math.random() * 9), y: (r + 1) * T - Math.floor(Math.random() * 5), w: T, h: T, fields: { sprite } };
+      S.map.entities.push(e);
+      land(e);
       st.changed = true;
     }
   }
   S.needsDraw = true;
+}
+
+// ---------- a little feedback: things land with a squash, removed things leave a puff ----------
+
+function land(e) { if (!reduceMotion) S.squash.set(e, performance.now()); }
+function puff(x, y) {
+  if (reduceMotion) return;
+  const t = performance.now();
+  for (let k = 0; k < 6; k++) S.fx.push({ x, y: y - 4, a: (k / 6) * Math.PI * 2 + Math.random() * 0.5, t });
+}
+
+function drawFx(g, now) {
+  S.fx = S.fx.filter((p) => now - p.t < 380);
+  for (const p of S.fx) {
+    const k = (now - p.t) / 380, d = 3 + k * 9;
+    g.globalAlpha = 0.75 * (1 - k);
+    g.fillStyle = "#f6ecd2";
+    g.beginPath(); g.arc(p.x + Math.cos(p.a) * d, p.y + Math.sin(p.a) * d * 0.6, 2.2 * (1 - k * 0.5), 0, Math.PI * 2); g.fill();
+  }
+  g.globalAlpha = 1;
 }
 
 // ---------- inspector ----------
@@ -383,6 +422,7 @@ function duplicate() {
 
 function removeSelected() {
   const e = S.selected; if (!e) return;
+  puff(e.x, e.y);
   history.push(S.map);
   S.map.entities = S.map.entities.filter((x) => x !== e);
   select(null); changed(false);
@@ -403,7 +443,20 @@ function bake() {
 }
 
 function drawSprites(g, list) {
+  const now = performance.now();
   for (const e of list) {
+    const t0 = S.squash.get(e);
+    if (t0 !== undefined) {
+      const k = (now - t0) / 220;
+      if (k >= 1) S.squash.delete(e);
+      else {                                                   // squash on landing, stretch back, settle
+        const sy = 1 - 0.22 * Math.cos(k * Math.PI * 1.5) * (1 - k), sx = 2 - sy;
+        g.save(); g.translate(e.x, e.y); g.scale(sx, sy); g.translate(-e.x, -e.y);
+        drawSprites(g, [{ ...e }]);              // a copy, so it draws plainly
+        g.restore();
+        continue;
+      }
+    }
     if (e.type === "Prop") drawProp(g, S.ts, e.fields.sprite, e.x, e.y);
     else {
       const im = S.sprites[e.fields.sprite];
@@ -455,6 +508,8 @@ function draw() {
     const wy = S.walk.feet()[1];
     drawSprites(ctx, sprites.filter((e) => e.y <= wy)); drawWalker(ctx); drawSprites(ctx, sprites.filter((e) => e.y > wy));
   } else drawSprites(ctx, sprites);
+  if (S.fx.length) drawFx(ctx, performance.now());
+  if (S.fx.length || S.squash.size) S.needsDraw = true;
 
   const line = (w) => { ctx.lineWidth = w / S.zoom; };
   if (S.show.data && !S.walk) {
@@ -649,9 +704,10 @@ canvas.addEventListener("contextmenu", (ev) => ev.preventDefault());
 
 canvas.addEventListener("pointerdown", (ev) => {
   if (!S.map) return;
-  canvas.setPointerCapture(ev.pointerId);
+  try { canvas.setPointerCapture(ev.pointerId); } catch { /* the pointer is already gone */ }
   S.pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
   if (S.pointers.size === 2) {                                          // two fingers: pinch and pan, drop the stroke
+    if (S.longPress) { clearTimeout(S.longPress.timer); S.longPress = null; }
     cancelStroke();
     const [a, b] = [...S.pointers.values()];
     S.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, zoom: S.zoom };
@@ -673,7 +729,13 @@ canvas.addEventListener("pointerdown", (ev) => {
     S.selFrom = [p.c, p.r]; S.sel = inside(S.map, p.c, p.r) ? area(S.selFrom, S.selFrom) : null; select(null);
     S.needsDraw = true; return;
   }
-  if (S.mode === "paint") beginPaint(p, ev.button === 2, ev.altKey, ev.shiftKey);
+  if (S.mode === "paint") {
+    beginPaint(p, ev.button === 2 || S.eraseMode, ev.altKey, ev.shiftKey);
+    if (ev.pointerType === "touch" && S.tool !== "pick") {           // hold still to pick instead of paint
+      const at = { x: ev.clientX, y: ev.clientY };
+      S.longPress = { at, timer: setTimeout(() => { cancelStroke(); beginPaint(p, false, true, false); toast("Picked what was there"); S.longPress = null; }, 500) };
+    }
+  }
   else if (S.place?.type === "Prop" && S.scatter.on) {
     history.push(S.map);
     S.scatterStroke = { done: new Set(), changed: false, erase: ev.button === 2 };
@@ -704,6 +766,7 @@ canvas.addEventListener("pointermove", (ev) => {
   }
   const p = toMap(ev);
   S.hover = p;
+  if (S.longPress && Math.hypot(ev.clientX - S.longPress.at.x, ev.clientY - S.longPress.at.y) > 6) { clearTimeout(S.longPress.timer); S.longPress = null; }
   if (S.panning) { S.ox = S.panning.ox + ev.clientX - S.panning.x; S.oy = S.panning.oy + ev.clientY - S.panning.y; S.needsDraw = true; return; }
   if (S.selFrom) {
     const cl = (v, n) => Math.min(n - 1, Math.max(0, v));
@@ -729,6 +792,7 @@ canvas.addEventListener("pointermove", (ev) => {
 
 function pointerEnd(ev) {
   S.pointers.delete(ev.pointerId);
+  if (S.longPress) { clearTimeout(S.longPress.timer); S.longPress = null; }
   if (S.pinch) { if (S.pointers.size < 2) S.pinch = null; return; }
   if (S.panning) { S.panning = null; $("stage").classList.remove("pan"); return; }
   const p = S.map ? toMap(ev) : null;
@@ -815,8 +879,15 @@ function setMode(mode) {
   $("mode-objects").setAttribute("aria-pressed", String(mode === "objects"));
   $("paint-panel").hidden = mode !== "paint";
   $("objects-panel").hidden = mode !== "objects";
+  syncBar();
   S.needsDraw = true;
 }
+$("m-mode").addEventListener("click", () => setMode(S.mode === "paint" ? "objects" : "paint"));
+for (const b of $("mbar").querySelectorAll("[data-tool]")) b.addEventListener("click", () => setTool(b.dataset.tool));
+$("m-erase").addEventListener("click", () => { S.eraseMode = !S.eraseMode; syncBar(); });
+$("m-undo").addEventListener("click", () => undo());
+$("m-redo").addEventListener("click", () => redo());
+$("m-brush").addEventListener("click", () => $("palette").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" }));
 $("mode-paint").addEventListener("click", () => setMode("paint"));
 $("mode-objects").addEventListener("click", () => setMode("objects"));
 
@@ -861,8 +932,8 @@ function toast(text) {
 }
 
 function updateUndo() {
-  $("undo").disabled = !history.past.length;
-  $("redo").disabled = !history.future.length;
+  $("undo").disabled = $("m-undo").disabled = !history.past.length;
+  $("redo").disabled = $("m-redo").disabled = !history.future.length;
 }
 function undo() { if (history.undo(S.map)) afterHistory(); }
 function redo() { if (history.redo(S.map)) afterHistory(); }
@@ -970,7 +1041,7 @@ function walkStart() {
   S.walkView = { zoom: S.zoom, ox: S.ox, oy: S.oy };
   S.zoom = 3; $("zoom-level").textContent = "3×";
   S.pasting = null; S.sel = null; select(null);
-  $("walk").setAttribute("aria-pressed", "true"); $("pad").hidden = false; $("walking").hidden = false;
+  $("walk").setAttribute("aria-pressed", "true"); $("pad").hidden = false; $("walking").hidden = false; $("mbar").hidden = true;
   S.needsDraw = true;
 }
 
@@ -978,7 +1049,7 @@ function walkStop() {
   if (!S.walk) return;
   S.walk = null;
   Object.assign(S, S.walkView); $("zoom-level").textContent = `${+S.zoom.toFixed(2)}×`;
-  $("walk").setAttribute("aria-pressed", "false"); $("pad").hidden = true; $("walking").hidden = true;
+  $("walk").setAttribute("aria-pressed", "false"); $("pad").hidden = true; $("walking").hidden = true; $("mbar").hidden = false;
   S.needsDraw = true;
 }
 
