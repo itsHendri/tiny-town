@@ -153,10 +153,17 @@ def build(palette="earthy", look="storybook"):
         p.add_entity("Prop", c * 16 + 8, (r + 1) * 16, {"sprite": name})
     p.add_entity("Region", 8 * 16, 27 * 16, {"name": "start"}, w=16, h=16)
     p.save(ROOT / "maps" / "market-village.ldtk")
-    return iso.render(m, 0)
+    return iso.render(m, 0, margin=6)
+
+
+def full_bleed(im):
+    """The middle of the picture: everything inside the forest's diamond, no plain background showing."""
+    W, H = im.size
+    return im.crop((int(W * 0.27), int(H * 0.25), int(W * 0.73), int(H * 0.76)))
 
 
 if __name__ == "__main__":
     im = build(sys.argv[1] if len(sys.argv) > 1 else "earthy", sys.argv[2] if len(sys.argv) > 2 else "storybook")
     im.save(ROOT / "out" / "market-village.png")
+    full_bleed(im).save(ROOT / "out" / "market-village-scene.png")
     print("wrote maps/market-village.ldtk and out/market-village.png", im.size)

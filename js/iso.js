@@ -27,14 +27,16 @@ export async function loadIsoTileset(base) {
 const ihash = (...xs) => { let v = 0; for (const x of xs) v = Math.imul((v ^ (x >>> 0)) >>> 0, 2654435761) >>> 0; return v / 4294967296; };
 const phase = (dx, dy) => `${((dx - dy) % 4 + 4) % 4},${((dx + dy) % 4 + 4) % 4}`;
 
-export function isoView(m) {
+// `margin` cells of meadow and darker forest are drawn round the map so it fills the frame.
+export function isoView(m, { margin = 0 } = {}) {
   let top = 0;
   for (const v of m.layers.Height) if (v > top) top = v;
-  const X0 = m.rows * 16 + 8, Y0 = top * HT + 24;
-  const W = (m.cols + m.rows) * 16 + 16, H = (m.cols + m.rows) * 8 + Y0 + 24;
+  const M = margin;
+  const X0 = (m.rows + 2 * M) * 16 + 8, Y0 = top * HT + 24 + 16 * M;
+  const W = (m.cols + m.rows + 4 * M) * 16 + 16, H = (m.cols + m.rows + 2 * M) * 8 + Y0 + 24;
   const cellTop = (c, r, L = 0) => [X0 + (c - r) * 16, Y0 + (c + r) * 8 - L * HT];
   return {
-    iso: true, W, H, X0, Y0, top,
+    iso: true, W, H, X0, Y0, top, margin: M,
     cellTop,
     // where map pixels (u, v) land on screen; objects stand in the middle of their cell
     toScreen: (u, v, L = 0) => [X0 + u - v, Y0 + (u + v) / 2 - L * HT],
@@ -139,10 +141,10 @@ export function bakeIso(m, ts, view, { objects = true, frames: only = null } = {
   const onLevel = (i, L) => H[i] === L || (FEAT[i] === STAIRS && H[i] === L - 1);
   const sets = ts.json.sets;
 
-  function dual(g, name, has, L, frame) {
+  function dual(g, name, has, L, frame, ext = 0) {
     const tiles = sets[name];
     if (!tiles) return;
-    for (let dy = 0; dy <= rows; dy++) for (let dx = 0; dx <= cols; dx++) {
+    for (let dy = -ext; dy <= rows + ext; dy++) for (let dx = -ext; dx <= cols + ext; dx++) {
       const mask = (has(idx(dy - 1, dx - 1)) ? 1 : 0) | (has(idx(dy - 1, dx)) ? 2 : 0) | (has(idx(dy, dx - 1)) ? 4 : 0) | (has(idx(dy, dx)) ? 8 : 0);
       if (!mask) continue;
       const frames = tiles[mask][phase(dx, dy)];
@@ -194,16 +196,35 @@ export function bakeIso(m, ts, view, { objects = true, frames: only = null } = {
     return out;
   }
 
+  const M = view.margin || 0;
   return Array.from({ length: ts.frames }, (_, frame) => {
     if (only && !only.includes(frame)) return null;
     const out = canvas(view.W, view.H), g = out.getContext("2d");
     g.imageSmoothingEnabled = false;
+    if (M) {                                               // the margin: meadow round the map, a little darker
+      const o = canvas(view.W, view.H), og = o.getContext("2d");
+      for (let r = -M; r < rows + M; r++) for (let c = -M; c < cols + M; c++) {
+        if (c >= 0 && r >= 0 && c < cols && r < rows) continue;
+        const xy = ts.json.grass[phase(c, r)], [x, y] = view.cellTop(c, r);
+        og.drawImage(ts.sheet, xy[0], xy[1], 32, 16, x - 16, y, 32, 16);
+      }
+      for (const o of OVERLAYS) {                           // roads and rivers run on out into the forest
+        if (!["water", "path", "cobbles"].includes(o.name)) continue;
+        const vs = o.ids.map((id) => value("Terrain", id));
+        dual(og, o.name, (i) => vs.includes(TER[i]) && H[i] === 0, 0, frame, M);
+      }
+      og.globalCompositeOperation = "source-atop"; og.fillStyle = "rgba(34, 40, 18, 0.275)"; og.fillRect(0, 0, view.W, view.H);
+      g.drawImage(o, 0, 0);
+    }
+    const ground = canvas(view.W, view.H), gg = ground.getContext("2d");
+    gg.imageSmoothingEnabled = false;
     for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
       const xy = ts.json.grass[phase(c, r)], [x, y] = view.cellTop(c, r);
-      g.drawImage(ts.sheet, xy[0], xy[1], 32, 16, x - 16, y, 32, 16);
+      gg.drawImage(ts.sheet, xy[0], xy[1], 32, 16, x - 16, y, 32, 16);
     }
-    overlays(g, 0, frame);
-    clipToMap(g, m, view, 0);
+    overlays(gg, 0, frame);
+    clipToMap(gg, m, view, 0);
+    g.drawImage(ground, 0, 0);
 
     const levels = [];
     for (let L = 1; L <= view.top; L++) {
@@ -224,6 +245,14 @@ export function bakeIso(m, ts, view, { objects = true, frames: only = null } = {
     if (objects) for (const e of m.entities) if (e.type === "Prop") {
       const c = Math.floor(e.x / 16), r = Math.floor((e.y - 1) / 16);
       items.push([c + r, 1, e]);
+    }
+    if (objects && M) {                                    // the forest round the edge
+      const trees = ["tree-1-d1", "tree-3-d1", "tree-5-d2", "pine-1", "pine-2", "tree-2-d2", "pine-3", "tree-4-d1"];
+      for (let r = -M; r < rows + M; r++) for (let c = -M; c < cols + M; c++) {
+        if ((c >= 0 && r >= 0 && c < cols && r < rows) || ihash(c & 0xffff, r & 0xffff, 11) >= 0.45) continue;
+        if ([value("Terrain", "path"), value("Terrain", "cobbles"), WATER, BRIDGE].includes(TER[idx(r, c)])) continue;   // keep roads and rivers clear
+        items.push([c + r, 1, { type: "Prop", x: c * 16 + 8, y: (r + 1) * 16, fields: { sprite: trees[Math.floor(ihash(c & 0xffff, r & 0xffff, 13) * trees.length)] } }]);
+      }
     }
     for (const [name, c, r] of uprights()) items.push([c + r, 0.5, { type: "Prop", x: c * 16 + 8, y: (r + 1) * 16, fields: { sprite: name } }]);
     items.sort((a, b) => a[0] - b[0] || a[1] - b[1]);

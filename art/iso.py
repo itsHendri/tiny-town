@@ -292,14 +292,19 @@ class IsoMap:
     """Same data as preview.Map (terrain names, heights, features, fence/deco, objects at map pixels)."""
 
 
-def render(m, frame=0, objects=True):
-    """Draw a preview.Map in isometric. Returns an RGBA image."""
+MARGIN_TREES = ["tree-1-d1", "tree-3-d1", "tree-5-d2", "pine-1", "pine-2", "tree-2-d2", "pine-3", "tree-4-d1"]
+
+
+def render(m, frame=0, objects=True, margin=0):
+    """Draw a preview.Map in isometric. Returns an RGBA image. `margin` cells of meadow and darker forest are
+    drawn around the map so it fills the frame (they aren't part of the map)."""
     cols, rows = m.cols, m.rows
     top = max(max(row) for row in m.height)
-    X0 = rows * 16 + 8                                       # screen x of map column/row 0's north corner
-    Y0 = top * HT + 24
-    W = (cols + rows) * 16 + 16
-    Hh = (cols + rows) * 8 + Y0 + 24
+    M = margin
+    X0 = (rows + 2 * M) * 16 + 8                             # screen x of map column/row 0's north corner
+    Y0 = top * HT + 24 + 16 * M
+    W = (cols + rows + 4 * M) * 16 + 16
+    Hh = (cols + rows + 2 * M) * 8 + Y0 + 24
 
     def blank():
         return Image.new("RGBA", (W, Hh), (0, 0, 0, 0))
@@ -307,9 +312,9 @@ def render(m, frame=0, objects=True):
     def put(layer, im, x, y):
         layer.alpha_composite(im, (int(x), int(y))) if x >= 0 and y >= 0 else layer.paste(im, (int(x), int(y)), im)
 
-    def dual(layer, name, cells, level):
-        for dy in range(rows + 1):
-            for dx in range(cols + 1):
+    def dual(layer, name, cells, level, ext=0):
+        for dy in range(-ext, rows + 1 + ext):
+            for dx in range(-ext, cols + 1 + ext):
                 mask = cell_mask(cells, dy, dx)
                 if not mask:
                     continue
@@ -338,6 +343,20 @@ def render(m, frame=0, objects=True):
                 if m.terrain[r][c] == "bridge":
                     put(layer, FL[f"deck-{bridge_axis(m, r, c)}"], X, Y)
 
+    # the margin: meadow round the map, a little darker
+    outside = blank()
+    if M:
+        for r in range(-M, rows + M):
+            for c in range(-M, cols + M):
+                if 0 <= c < cols and 0 <= r < rows:
+                    continue
+                x, y = cell_top(c, r)
+                put(outside, grass_cell(phase_of(c, r)), X0 + x - 16, Y0 + y)
+        for name in ("water", "path", "cobbles"):            # roads and rivers run on out into the forest
+            dual(outside, name, m.cells(name, 0), 0, ext=M)
+        shade = Image.new("RGBA", outside.size, (34, 40, 18, 70))
+        outside = Image.composite(Image.alpha_composite(outside, shade), outside, outside.getchannel("A"))
+
     # level 0: grass, then its overlays
     base = blank()
     for r in range(rows):
@@ -363,12 +382,24 @@ def render(m, frame=0, objects=True):
         levels[L] = lay
 
     # back to front: each raised cell's column (its level layers, clipped), then the objects standing there
-    out = base.copy()
+    out = outside
+    out.alpha_composite(base)
     items = []
     for r in range(rows):
         for c in range(cols):
             if m.height[r][c] > 0:
                 items.append((c + r, 0, "cell", (c, r)))
+    if objects and M:                                         # the forest round the edge
+        from iso_nature import nature
+        NAT = _cached(nature)
+        for r in range(-M, rows + M):
+            for c in range(-M, cols + M):
+                if (0 <= c < cols and 0 <= r < rows) or ihash(c & 0xffff, r & 0xffff, 11) >= 0.45:
+                    continue
+                if m.terrain[min(rows - 1, max(0, r))][min(cols - 1, max(0, c))] in ("path", "cobbles", "water", "bridge"):
+                    continue                                  # keep the road or river leaving the map clear
+                spr = NAT[MARGIN_TREES[int(ihash(c & 0xffff, r & 0xffff, 13) * len(MARGIN_TREES))]]
+                items.append((c + r, 1, "obj", (spr, c * 16 + 8, (r + 1) * 16, 0)))
     for spr, c, r in upright_items(m, UP):                     # fences, gates, bridge rails, stairs
         items.append((c + r, 0.5, "obj", (spr, c * 16 + 8, (r + 1) * 16, m.height[r][c])))
     if objects:

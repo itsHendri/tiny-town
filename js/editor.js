@@ -36,7 +36,7 @@ const S = {
   sel: null, selFrom: null, clip: null, pasting: null, stamps: [], walk: null, walkView: null, eraseMode: false, longPress: null,
   fx: [], squash: new Map(), isoTs: null, projection: "iso", V: null,
   zoom: 2, ox: 0, oy: 0,
-  show: { terrain: true, props: true, characters: true, data: true, raw: false, grid: false },
+  show: { terrain: true, props: true, characters: true, data: true, raw: false, grid: false, margin: true },
   frames: [], frame: 0, terrainDirty: true, needsDraw: true,
   hover: null, stroke: null, drag: null, pointers: new Map(), pinch: null, spaceDown: false, panning: null,
 };
@@ -246,7 +246,7 @@ function orthoView(m) {
 function makeView() {
   const m = S.map;
   if (S.projection !== "iso" || !S.isoTs) return orthoView(m);
-  const v = isoView(m);
+  const v = isoView(m, { margin: S.show.margin ? 6 : 0 });
   const lvl = (u, vv) => m.layers.Height[Math.min(m.rows - 1, Math.max(0, Math.floor(vv / T))) * m.cols + Math.min(m.cols - 1, Math.max(0, Math.floor(u / T)))];
   return {
     ...v,
@@ -949,10 +949,10 @@ $("m-brush").addEventListener("click", () => $("palette").scrollIntoView({ behav
 $("mode-paint").addEventListener("click", () => setMode("paint"));
 $("mode-objects").addEventListener("click", () => setMode("objects"));
 
-const SHOW = [["terrain", "Terrain"], ["props", "Props"], ["characters", "Characters"], ["data", "Paths and regions"], ["raw", "Raw grid (Shift R)"], ["grid", "Grid lines"]];
+const SHOW = [["terrain", "Terrain"], ["props", "Props"], ["characters", "Characters"], ["data", "Paths and regions"], ["raw", "Raw grid (Shift R)"], ["grid", "Grid lines"], ["margin", "Forest round the edge"]];
 function buildShow() {
   $("show").replaceChildren(...SHOW.map(([k, label]) => el("label", { for: `show-${k}` },
-    el("input", { type: "checkbox", id: `show-${k}`, checked: S.show[k], onchange: (ev) => { S.show[k] = ev.target.checked; if (k === "props") S.terrainDirty = true; S.needsDraw = true; } }), label)));
+    el("input", { type: "checkbox", id: `show-${k}`, checked: S.show[k], onchange: (ev) => { S.show[k] = ev.target.checked; if (k === "props" || k === "margin") { S.terrainDirty = true; S.V = null; } S.needsDraw = true; } }), label)));
 }
 
 $("zoom-in").addEventListener("click", () => stepZoom(1));
