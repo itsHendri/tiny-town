@@ -40,7 +40,11 @@ DEEP = {**EARTHY,
         "k0": "#b88a55", "k1": "#8a603a", "k2": "#64432a", "k3": "#432c1c"}
 COBBLE_DEEP = {"cb0": "#d6c8a8", "cb1": "#b5a584", "cb2": "#8f8062", "cb3": "#655843"}
 
-PALETTES = {"bright": {**BRIGHT, **COBBLE_BRIGHT}, "earthy": {**BRIGHT, **EARTHY, **COBBLE}, "deep": {**BRIGHT, **DEEP, **COBBLE_DEEP}}
+# Picked 2026-10-09 (tiles round 3): earthy, but with the bright road and water for contrast.
+WATER_BRIGHT = {k: BRIGHT[k] for k in ("w0", "w1", "w2", "w3")}
+
+PALETTES = {"bright": {**BRIGHT, **COBBLE_BRIGHT}, "earthy": {**BRIGHT, **EARTHY, **COBBLE_BRIGHT, **WATER_BRIGHT},
+            "earthy-muted": {**BRIGHT, **EARTHY, **COBBLE}, "deep": {**BRIGHT, **DEEP, **COBBLE_DEEP}}
 
 
 def use(name):

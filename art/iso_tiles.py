@@ -14,6 +14,7 @@ import palettes
 
 ROOT = Path(__file__).resolve().parent.parent
 PHASES = [(a, b) for a in range(4) for b in range(4) if (a + b) % 2 == 0]
+LOOK = "storybook"                                         # house look, picked 2026-10-09 (tiles round 3)
 WALL_COLOURS = ["out", "g3", "g4", "k1", "k2", "k3", "w0", "w1", "w2", "fl_w"]
 
 
@@ -59,7 +60,8 @@ HOUSE_ALIASES = {"red": "cottage-red", "yellow": "thatch-house", "blue": "longho
 def build_iso_props():
     """Every prop, with isometric buildings instead of the top-down houses. Buildings carry an anchor (where their
     front cell's centre is in the picture) and a footprint in cells."""
-    from iso_props import HOUSES, house
+    from iso_props import HOUSES, house, use_look
+    use_look(LOOK)
     from props import catalog
     from iso_nature import nature
     items = {name: (spr, shadow, {}) for name, (spr, shadow) in catalog().items() if not name.startswith("house-")}
