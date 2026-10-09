@@ -2,6 +2,7 @@
 
 import { newMap, parseMap, stringifyMap } from "./format.js";
 import { drawProp, drawTerrain, loadTileset } from "./render.js";
+import { bakeIso, isoView, loadIsoTileset } from "./iso.js";
 import { ENTITIES, LAYERS, MAX_LEVEL, value } from "./registry.js";
 import { History, brushCells, floodCells, inside, lineCells, paint, plotCells, rectCells, resize, shapeHeight } from "./tools.js";
 import { loadAutosave, openFile, saveFile, writeAutosave } from "./files.js";
@@ -33,7 +34,7 @@ const S = {
   mode: "paint", tool: "brush", size: 1, brush: { layer: "Terrain", v: 1 },
   place: null, selected: null, scatter: { on: false, density: 0.35 }, scatterStroke: null,
   sel: null, selFrom: null, clip: null, pasting: null, stamps: [], walk: null, walkView: null, eraseMode: false, longPress: null,
-  fx: [], squash: new Map(),
+  fx: [], squash: new Map(), isoTs: null, projection: "iso", V: null,
   zoom: 2, ox: 0, oy: 0,
   show: { terrain: true, props: true, characters: true, data: true, raw: false, grid: false },
   frames: [], frame: 0, terrainDirty: true, needsDraw: true,
@@ -223,9 +224,39 @@ function dataIcon(kind) {
 
 const cellCentre = ([c, r]) => [c * T + T / 2, r * T + T / 2];
 
+// The view: how map pixels (u, v), cells and objects land on the screen. Top-down is the identity; isometric is
+// js/iso.js. Everything that draws or picks goes through S.V.
+function orthoView(m) {
+  return {
+    iso: false, W: m.cols * T, H: m.rows * T,
+    pt: (u, v) => [u, v],
+    feet: (e) => [e.x, e.y],
+    cellPoly: (c, r) => [[c * T, r * T], [(c + 1) * T, r * T], [(c + 1) * T, (r + 1) * T], [c * T, (r + 1) * T]],
+    pick: (x, y) => ({ c: Math.floor(x / T), r: Math.floor(y / T), u: x, v: y }),
+    border: () => [[0, 0], [m.cols * T, 0], [m.cols * T, m.rows * T], [0, m.rows * T]],
+  };
+}
+
+function makeView() {
+  const m = S.map;
+  if (S.projection !== "iso" || !S.isoTs) return orthoView(m);
+  const v = isoView(m);
+  const lvl = (u, vv) => m.layers.Height[Math.min(m.rows - 1, Math.max(0, Math.floor(vv / T))) * m.cols + Math.min(m.cols - 1, Math.max(0, Math.floor(u / T)))];
+  return {
+    ...v,
+    pt: (u, vv) => v.toScreen(u, vv, lvl(u, vv)),
+    feet: (e) => v.feet(e, lvl(e.x, e.y - 1)),
+    cellPoly: (c, r) => v.cellPoly(c, r, m.layers.Height[r * m.cols + c] || 0),
+    pick: (x, y) => v.pick(x, y, m),
+    border: () => [v.cellTop(0, 0), v.cellTop(m.cols, 0), v.cellTop(m.cols, m.rows), v.cellTop(0, m.rows)],
+  };
+}
+
+function poly(g, pts) { g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); }
+
 function bounds(e) {
-  if (e.type === "Prop") { const p = S.ts.props[e.fields.sprite] || { w: T, h: T }; return [e.x - p.w / 2, e.y - p.h, p.w, p.h]; }
-  if (e.type === "Character") { const im = S.sprites[e.fields.sprite]; const w = im?.width || T, h = im?.height || T; return [e.x - w / 2, e.y - h, w, h]; }
+  if (e.type === "Prop") { const p = S.ts.props[e.fields.sprite] || { w: T, h: T }; const [x, y] = S.V.feet(e); return [x - p.w / 2, y - p.h, p.w, p.h]; }
+  if (e.type === "Character") { const im = S.sprites[e.fields.sprite]; const w = im?.width || T, h = im?.height || T; const [x, y] = S.V.feet(e); return [x - w / 2, y - h, w, h]; }
   if (e.type === "Region") return [e.x, e.y, e.w || T, e.h || T];
   const pts = (e.fields.points || []).map(cellCentre);
   if (!pts.length) return [e.x, e.y, T, T];
@@ -233,12 +264,14 @@ function bounds(e) {
   return [Math.min(...xs) - 4, Math.min(...ys) - 4, Math.max(...xs) - Math.min(...xs) + 8, Math.max(...ys) - Math.min(...ys) + 8];
 }
 
-function hit(mx, my) {
+// What's under the pointer: sprites by their picture on screen (wx, wy), paths and regions by map pixels (mx, my).
+function hit(p) {
+  const { mx, my, wx, wy } = p;
   const sprites = S.map.entities.filter((e) => (e.type === "Prop" && S.show.props) || (e.type === "Character" && S.show.characters))
-    .sort((a, b) => b.y - a.y);
+    .sort((a, b) => (S.V.iso ? (b.x + b.y) - (a.x + a.y) : b.y - a.y));
   for (const e of sprites) {
     const [x, y, w, h] = bounds(e);
-    if (mx >= x && mx < x + w && my >= y && my < y + h) return e;
+    if (wx >= x && wx < x + w && wy >= y && wy < y + h) return e;
   }
   if (!S.show.data) return null;
   const near = 6 / Math.max(1, S.zoom) + 3;
@@ -246,7 +279,7 @@ function hit(mx, my) {
     if ((e.fields.points || []).map(cellCentre).some(([x, y]) => Math.abs(x - mx) <= near && Math.abs(y - my) <= near)) return e;
   }
   for (const e of S.map.entities.filter((e) => e.type === "Region")) {
-    const [x, y, w, h] = bounds(e);
+    const [x, y, w, h] = [e.x, e.y, e.w || T, e.h || T];
     const inBox = mx >= x - near && mx <= x + w + near && my >= y - near && my <= y + h + near;
     const onEdge = mx <= x + near || mx >= x + w - near || my <= y + near || my >= y + h - near;
     if (inBox && onEdge) return e;
@@ -433,6 +466,17 @@ function removeSelected() {
 const canvas = $("view"), ctx = canvas.getContext("2d");
 
 function bake() {
+  S.V = makeView();
+  if (S.V.iso) {
+    // while painting, only the first frame; the other two follow once things are quiet
+    const quick = S.stroke || S.drag || S.scatterStroke;
+    if (quick) {
+      S.frames = bakeIso(S.map, S.isoTs, S.V, { objects: S.show.props, frames: [0] }).slice(0, 1);
+      S.restDirty = true;
+    } else S.frames = bakeIso(S.map, S.isoTs, S.V, { objects: S.show.props });
+    S.terrainDirty = false;
+    return;
+  }
   S.frames = Array.from({ length: S.ts.frames }, (_, f) => {
     const c = S.frames[f] && S.frames[f].width === S.map.cols * T && S.frames[f].height === S.map.rows * T ? S.frames[f] : document.createElement("canvas");
     c.width = S.map.cols * T; c.height = S.map.rows * T;
@@ -451,17 +495,19 @@ function drawSprites(g, list) {
       if (k >= 1) S.squash.delete(e);
       else {                                                   // squash on landing, stretch back, settle
         const sy = 1 - 0.22 * Math.cos(k * Math.PI * 1.5) * (1 - k), sx = 2 - sy;
-        g.save(); g.translate(e.x, e.y); g.scale(sx, sy); g.translate(-e.x, -e.y);
+        const [fx, fy] = S.V.feet(e);
+        g.save(); g.translate(fx, fy); g.scale(sx, sy); g.translate(-fx, -fy);
         drawSprites(g, [{ ...e }]);              // a copy, so it draws plainly
         g.restore();
         continue;
       }
     }
-    if (e.type === "Prop") drawProp(g, S.ts, e.fields.sprite, e.x, e.y);
+    const [fx, fy] = S.V.feet(e);
+    if (e.type === "Prop") drawProp(g, S.V.iso ? S.isoTs : S.ts, e.fields.sprite, fx, fy);
     else {
       const im = S.sprites[e.fields.sprite];
-      if (im) g.drawImage(im, Math.round(e.x - im.width / 2), Math.round(e.y - im.height));
-      else { g.fillStyle = ENTITIES.Character.color; g.fillRect(e.x - 6, e.y - 12, 12, 12); }
+      if (im) g.drawImage(im, Math.round(fx - im.width / 2), Math.round(fy - im.height));
+      else { g.fillStyle = ENTITIES.Character.color; g.fillRect(fx - 6, fy - 12, 12, 12); }
     }
   }
 }
@@ -473,11 +519,12 @@ function draw() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (!S.map) return;
-  const k = S.zoom * dpr, MW = S.map.cols * T, MH = S.map.rows * T;
+  if (!S.V) S.V = makeView();
+  const V = S.V, k = S.zoom * dpr;
   ctx.setTransform(k, 0, 0, k, Math.round(S.ox * dpr), Math.round(S.oy * dpr));
   ctx.imageSmoothingEnabled = false;
   if (S.show.terrain && S.frames.length) ctx.drawImage(S.frames[S.frame % S.frames.length], 0, 0);
-  else { ctx.fillStyle = "#b4d566"; ctx.fillRect(0, 0, MW, MH); }
+  else { ctx.fillStyle = "#b4d566"; poly(ctx, V.border()); ctx.fill(); }
 
   if (S.show.raw) {
     ctx.globalAlpha = 0.62;
@@ -488,25 +535,23 @@ function draw() {
         const v = LAYERS[name].values.find((x) => x.v === L[i]);
         ctx.fillStyle = v?.color || "#f0f";
         const c = i % S.map.cols, r = (i / S.map.cols) | 0;
-        if (name === "Height") ctx.fillRect(c * T, r * T, T, T);
-        else if (name === "Terrain") ctx.fillRect(c * T + 2, r * T + 2, T - 4, T - 4);
-        else ctx.fillRect(c * T + 5, r * T + 5, T - 10, T - 10);
+        const pts = V.cellPoly(c, r), cx = pts.reduce((a, q) => a + q[0], 0) / 4, cy = pts.reduce((a, q) => a + q[1], 0) / 4;
+        const shrink = name === "Height" ? 1 : name === "Terrain" ? 0.75 : 0.4;
+        poly(ctx, pts.map(([x, y]) => [cx + (x - cx) * shrink, cy + (y - cy) * shrink])); ctx.fill();
       }
     }
     ctx.globalAlpha = 1;
   }
   if (S.show.grid || S.show.raw) {
     ctx.strokeStyle = "rgba(38,48,63,0.18)"; ctx.lineWidth = 1 / S.zoom;
-    ctx.beginPath();
-    for (let c = 0; c <= S.map.cols; c++) { ctx.moveTo(c * T, 0); ctx.lineTo(c * T, MH); }
-    for (let r = 0; r <= S.map.rows; r++) { ctx.moveTo(0, r * T); ctx.lineTo(MW, r * T); }
-    ctx.stroke();
+    for (let r = 0; r < S.map.rows; r++) for (let c = 0; c < S.map.cols; c++) { poly(ctx, V.cellPoly(c, r)); ctx.stroke(); }
   }
 
-  const sprites = S.map.entities.filter((e) => (e.type === "Prop" && S.show.props) || (e.type === "Character" && S.show.characters)).sort((a, b) => a.y - b.y);
+  const sprites = S.map.entities.filter((e) => (e.type === "Prop" && S.show.props && !V.iso) || (e.type === "Character" && S.show.characters))
+    .sort((a, b) => (V.iso ? (a.x + a.y) - (b.x + b.y) : a.y - b.y));
   if (S.walk) {
-    const wy = S.walk.feet()[1];
-    drawSprites(ctx, sprites.filter((e) => e.y <= wy)); drawWalker(ctx); drawSprites(ctx, sprites.filter((e) => e.y > wy));
+    const [wu, wv] = S.walk.feet(), depth = (e) => (V.iso ? e.x + e.y : e.y), wd = V.iso ? wu + wv : wv;
+    drawSprites(ctx, sprites.filter((e) => depth(e) <= wd)); drawWalker(ctx); drawSprites(ctx, sprites.filter((e) => depth(e) > wd));
   } else drawSprites(ctx, sprites);
   if (S.fx.length) drawFx(ctx, performance.now());
   if (S.fx.length || S.squash.size) S.needsDraw = true;
@@ -516,10 +561,11 @@ function draw() {
     for (const e of S.map.entities) {
       if (e.type === "Region") {
         ctx.strokeStyle = ENTITIES.Region.color; line(1.5); ctx.setLineDash([4 / S.zoom, 3 / S.zoom]);
-        ctx.strokeRect(e.x, e.y, e.w, e.h); ctx.setLineDash([]);
-        label(e.fields.name, e.x + 2, e.y + 2, ENTITIES.Region.color);
+        const corners = [V.pt(e.x, e.y), V.pt(e.x + e.w, e.y), V.pt(e.x + e.w, e.y + e.h), V.pt(e.x, e.y + e.h)];
+        poly(ctx, corners); ctx.stroke(); ctx.setLineDash([]);
+        label(e.fields.name, corners[0][0] + 2, corners[0][1] + 2, ENTITIES.Region.color);
       } else if (e.type === "Path") {
-        const pts = (e.fields.points || []).map(cellCentre);
+        const pts = (e.fields.points || []).map(cellCentre).map(([u, v]) => V.pt(u, v));
         if (!pts.length) continue;
         ctx.strokeStyle = ENTITIES.Path.color; line(2);
         ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
@@ -535,9 +581,9 @@ function draw() {
     const [x, y, w, h] = bounds(sel);
     ctx.strokeStyle = "#e8673a"; line(2); ctx.strokeRect(x - 1, y - 1, w + 2, h + 2);
     if (sel.type === "Character") {
-      const mark = (p, color) => { if (!p) return; const [cx, cy] = cellCentre(p); ctx.strokeStyle = color; line(2); ctx.strokeRect(cx - 5, cy - 5, 10, 10); };
+      const mark = (p, color) => { if (!p) return; const [cx, cy] = V.pt(...cellCentre(p)); ctx.strokeStyle = color; line(2); ctx.strokeRect(cx - 5, cy - 5, 10, 10); };
       mark(sel.fields.perch, "#3a76f0"); mark(sel.fields.flyTo, "#3a76f0");
-      const pts = (sel.fields.path || []).map(cellCentre);
+      const pts = (sel.fields.path || []).map(cellCentre).map(([u, v]) => V.pt(u, v));
       if (pts.length) { ctx.strokeStyle = "#e8673a"; line(1.5); ctx.beginPath(); pts.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py))); ctx.stroke(); }
     }
   }
@@ -549,42 +595,40 @@ function draw() {
       if (S.stroke?.plot) {
         const { fence, gate } = plotCells(S.map, S.stroke.rectFrom[0], S.stroke.rectFrom[1], hv.c, hv.r, value("Terrain", "path"));
         ctx.strokeStyle = "rgba(255,255,255,0.9)"; line(1.5);
-        for (const [c, r] of fence) ctx.strokeRect(c * T + 2, r * T + 2, T - 4, T - 4);
-        if (gate) { ctx.strokeStyle = "#f2c94c"; line(2.5); ctx.strokeRect(gate[0] * T + 1, gate[1] * T + 1, T - 2, T - 2); }
+        for (const [c, r] of fence) { poly(ctx, V.cellPoly(c, r)); ctx.stroke(); }
+        if (gate) { ctx.strokeStyle = "#f2c94c"; line(2.5); poly(ctx, V.cellPoly(gate[0], gate[1])); ctx.stroke(); }
       }
       const shiftLine = !S.stroke && hv.free && S.tool === "brush" && S.lastCell;
       const cells = S.stroke?.plot ? [] : S.stroke?.rectFrom ? rectCells(S.map, S.stroke.rectFrom[0], S.stroke.rectFrom[1], hv.c, hv.r)
         : shiftLine ? lineCells(S.lastCell[0], S.lastCell[1], hv.c, hv.r).flatMap(([c, r]) => brushCells(S.map, c, r, S.size))
         : S.tool === "brush" ? brushCells(S.map, hv.c, hv.r, S.size) : inside(S.map, hv.c, hv.r) ? [[hv.c, hv.r]] : [];
       ctx.strokeStyle = "rgba(255,255,255,0.9)"; line(1.5);
-      for (const [c, r] of cells) ctx.strokeRect(c * T + 0.5 / S.zoom, r * T + 0.5 / S.zoom, T - 1 / S.zoom, T - 1 / S.zoom);
+      for (const [c, r] of cells) { poly(ctx, V.cellPoly(c, r)); ctx.stroke(); }
     } else if (S.place?.type === "Prop" && S.scatter.on) {
       ctx.strokeStyle = "rgba(255,255,255,0.9)"; line(1.5); ctx.setLineDash([3 / S.zoom, 3 / S.zoom]);
-      const cells = brushCells(S.map, hv.c, hv.r, 3);
-      if (cells.length) {
-        const cs = cells.map((q) => q[0]), rs = cells.map((q) => q[1]);
-        ctx.strokeRect(Math.min(...cs) * T, Math.min(...rs) * T, (Math.max(...cs) - Math.min(...cs) + 1) * T, (Math.max(...rs) - Math.min(...rs) + 1) * T);
-      }
+      for (const [c, r] of brushCells(S.map, hv.c, hv.r, 3)) { poly(ctx, V.cellPoly(c, r)); ctx.stroke(); }
       ctx.setLineDash([]);
-    } else if (S.place && !S.drag && (S.place.type === "Prop" || S.place.type === "Character") && !hit(hv.mx, hv.my)) {
+    } else if (S.place && !S.drag && (S.place.type === "Prop" || S.place.type === "Character") && !hit(hv)) {
       const [x, y] = snapFeet(hv.mx, hv.my, hv.free);
       ctx.globalAlpha = 0.6;
       drawSprites(ctx, [{ type: S.place.type, x, y, fields: { sprite: S.place.sprite } }]);
       ctx.globalAlpha = 1;
     }
   }
+  const footprint = (c0, r0, c1, r1) => [V.pt(c0 * T, r0 * T), V.pt((c1 + 1) * T, r0 * T), V.pt((c1 + 1) * T, (r1 + 1) * T), V.pt(c0 * T, (r1 + 1) * T)];
   if (S.sel) {
     const { c0, r0, c1, r1 } = S.sel;
-    ctx.fillStyle = "rgba(58,118,240,0.12)"; ctx.fillRect(c0 * T, r0 * T, (c1 - c0 + 1) * T, (r1 - r0 + 1) * T);
-    ctx.strokeStyle = "#3a76f0"; line(2); ctx.setLineDash([4 / S.zoom, 3 / S.zoom]);
-    ctx.strokeRect(c0 * T, r0 * T, (c1 - c0 + 1) * T, (r1 - r0 + 1) * T); ctx.setLineDash([]);
+    ctx.fillStyle = "rgba(58,118,240,0.12)"; poly(ctx, footprint(c0, r0, c1, r1)); ctx.fill();
+    ctx.strokeStyle = "#3a76f0"; line(2); ctx.setLineDash([4 / S.zoom, 3 / S.zoom]); ctx.stroke(); ctx.setLineDash([]);
   }
   if (S.pasting && hv) {
     const [c0, r0] = pasteAt(hv);
-    ctx.globalAlpha = 0.75; ctx.drawImage(S.pasting.canvas, c0 * T, r0 * T); ctx.globalAlpha = 1;
-    ctx.strokeStyle = "#3a76f0"; line(2); ctx.strokeRect(c0 * T, r0 * T, S.pasting.canvas.width, S.pasting.canvas.height);
+    if (!V.iso) { ctx.globalAlpha = 0.75; ctx.drawImage(S.pasting.canvas, c0 * T, r0 * T); ctx.globalAlpha = 1; }
+    ctx.fillStyle = "rgba(58,118,240,0.12)"; poly(ctx, footprint(c0, r0, c0 + S.pasting.clip.cols - 1, r0 + S.pasting.clip.rows - 1));
+    if (V.iso) ctx.fill();
+    ctx.strokeStyle = "#3a76f0"; line(2); ctx.stroke();
   }
-  ctx.strokeStyle = "rgba(38,48,63,0.8)"; line(1); ctx.strokeRect(0, 0, MW, MH);
+  ctx.strokeStyle = "rgba(38,48,63,0.8)"; line(1); poly(ctx, V.border()); ctx.stroke();
 }
 
 function label(text, x, y, color) {
@@ -601,6 +645,7 @@ let lastTick = 0;
 function loop(now) {
   if (S.map && S.ts) {
     if (S.terrainDirty) { bake(); S.needsDraw = true; }
+    else if (S.restDirty && !S.stroke && !S.drag && !S.scatterStroke) { S.restDirty = false; S.terrainDirty = true; }
     if (S.walk) walkFrame();
     if (S.show.terrain && !reduceMotion && now - lastTick > S.ts.frameMs) { lastTick = now; S.frame = (S.frame + 1) % S.ts.frames; S.needsDraw = true; }
     if (S.needsDraw) draw();
@@ -624,8 +669,10 @@ const stepZoom = (dir) => {
   zoomTo(dir > 0 ? ZOOMS[Math.min(ZOOMS.length - 1, (ZOOMS[i] > S.zoom + 1e-6 ? i : i + 1))] : ZOOMS[Math.max(0, i - 1)]);
 };
 function fit() {
-  const r = canvas.getBoundingClientRect(), MW = S.map.cols * T, MH = S.map.rows * T;
+  const r = canvas.getBoundingClientRect();
   if (r.width < 60 || r.height < 60) { requestAnimationFrame(fit); return; }   // not laid out yet
+  S.V = makeView();
+  const MW = S.V.W, MH = S.V.H;
   const best = Math.min((r.width - 24) / MW, (r.height - 24) / MH);
   const z = ZOOMS.filter((x) => x <= best).pop() || Math.max(0.25, best);
   S.zoom = z; S.ox = Math.round((r.width - MW * z) / 2); S.oy = Math.round((r.height - MH * z) / 2);
@@ -638,8 +685,9 @@ function fit() {
 function toMap(ev) {
   const r = canvas.getBoundingClientRect();
   const sx = ev.clientX - r.left, sy = ev.clientY - r.top;
-  const mx = (sx - S.ox) / S.zoom, my = (sy - S.oy) / S.zoom;
-  return { sx, sy, mx, my, c: Math.floor(mx / T), r: Math.floor(my / T), free: ev.shiftKey };
+  const wx = (sx - S.ox) / S.zoom, wy = (sy - S.oy) / S.zoom;
+  const k = (S.V || (S.V = makeView())).pick(wx, wy);
+  return { sx, sy, wx, wy, mx: k.u, my: k.v, c: k.c, r: k.r, free: ev.shiftKey };
 }
 
 function strokeCells(p) {
@@ -741,7 +789,7 @@ canvas.addEventListener("pointerdown", (ev) => {
     S.scatterStroke = { done: new Set(), changed: false, erase: ev.button === 2 };
     scatterAt(p, S.scatterStroke.erase);
   } else {
-    const e = hit(p.mx, p.my);
+    const e = hit(p);
     if (e) {
       select(e);
       history.push(S.map);
@@ -894,7 +942,7 @@ $("mode-objects").addEventListener("click", () => setMode("objects"));
 const SHOW = [["terrain", "Terrain"], ["props", "Props"], ["characters", "Characters"], ["data", "Paths and regions"], ["raw", "Raw grid (Shift R)"], ["grid", "Grid lines"]];
 function buildShow() {
   $("show").replaceChildren(...SHOW.map(([k, label]) => el("label", { for: `show-${k}` },
-    el("input", { type: "checkbox", id: `show-${k}`, checked: S.show[k], onchange: (ev) => { S.show[k] = ev.target.checked; S.needsDraw = true; } }), label)));
+    el("input", { type: "checkbox", id: `show-${k}`, checked: S.show[k], onchange: (ev) => { S.show[k] = ev.target.checked; if (k === "props") S.terrainDirty = true; S.needsDraw = true; } }), label)));
 }
 
 $("zoom-in").addEventListener("click", () => stepZoom(1));
@@ -914,7 +962,8 @@ $("resize").addEventListener("click", () => {
 
 let autosaveTimer = null;
 function changed(terrain) {
-  if (terrain) S.terrainDirty = true;
+  if (terrain) { S.terrainDirty = true; if (S.V?.iso) S.V = makeView(); }
+  else if (S.V?.iso) S.terrainDirty = true;                  // props are part of the isometric picture
   S.needsDraw = true;
   updateUndo();
   $("cols").value = S.map.cols; $("rows").value = S.map.rows;
@@ -956,10 +1005,10 @@ $("save").addEventListener("click", save);
 
 $("export").addEventListener("click", async () => {
   const c = document.createElement("canvas");
-  c.width = S.map.cols * T; c.height = S.map.rows * T;
+  c.width = S.V.W; c.height = S.V.H;
   const g = c.getContext("2d");
-  drawTerrain(g, S.map, S.ts, 0);
-  drawSprites(g, S.map.entities.filter((e) => e.type === "Prop" || e.type === "Character").sort((a, b) => a.y - b.y));
+  if (S.V.iso) g.drawImage(bakeIso(S.map, S.isoTs, S.V)[0], 0, 0); else drawTerrain(g, S.map, S.ts, 0);
+  drawSprites(g, S.map.entities.filter((e) => (e.type === "Prop" && !S.V.iso) || e.type === "Character").sort((a, b) => (S.V.iso ? (a.x + a.y) - (b.x + b.y) : a.y - b.y)));
   const blob = await new Promise((ok) => c.toBlob(ok, "image/png"));
   try {
     const r = await saveFile(blob, S.fileName.replace(/\.(ldtk|json)$/, "") + ".png", { types: [{ description: "PNG image", accept: { "image/png": [".png"] } }] });
@@ -969,6 +1018,7 @@ $("export").addEventListener("click", async () => {
 
 function useMap(m, name, note) {
   walkStop();
+  S.V = null;
   S.map = m; S.fileName = name; S.selected = null; S.sel = null;
   $("file-name").textContent = name;
   $("cols").value = m.cols; $("rows").value = m.rows;
@@ -1027,6 +1077,22 @@ $("share-open").addEventListener("click", async () => {
   } catch (e) { toast(e.message); }
 });
 
+// ---------- isometric or top-down ----------
+
+function syncProjection() {
+  const b = $("projection");
+  b.textContent = S.projection === "iso" ? "Isometric" : "Top-down";
+  b.title = `Showing ${S.projection === "iso" ? "isometric" : "top-down"}; click to switch`;
+  b.disabled = !S.isoTs;
+}
+$("projection").addEventListener("click", () => {
+  S.projection = S.projection === "iso" ? "ortho" : "iso";
+  try { localStorage.setItem("tiny-town/projection", S.projection); } catch { /* fine */ }
+  syncProjection();
+  S.V = null; S.terrainDirty = true;
+  if (S.map) fit();
+});
+
 // ---------- walk mode ----------
 
 const WALK_KEYS = { arrowup: "up", w: "up", arrowdown: "down", s: "down", arrowleft: "left", a: "left", arrowright: "right", d: "right" };
@@ -1062,7 +1128,7 @@ for (const b of $("pad").querySelectorAll("button")) {
 function walkFrame() {
   const w = S.walk;
   w.update();
-  const [x, y] = w.feet(), r = canvas.getBoundingClientRect();
+  const [x, y] = S.V.feet({ x: w.feet()[0], y: w.feet()[1] }), r = canvas.getBoundingClientRect();
   const tx = r.width / 2 - x * S.zoom, ty = r.height / 2 - (y - 12) * S.zoom;
   S.ox += (tx - S.ox) * 0.2; S.oy += (ty - S.oy) * 0.2;
   S.needsDraw = true;
@@ -1070,7 +1136,7 @@ function walkFrame() {
 
 function drawWalker(g) {
   const w = S.walk, im = S.sprites["cat-walk"] || S.sprites["cat-sit"] || S.sprites[S.spriteNames[0]];
-  const [x, y] = w.feet();
+  const [u, v] = w.feet(), [x, y] = S.V.feet({ x: u, y: v });
   g.fillStyle = "rgba(38, 48, 63, 0.28)";
   g.beginPath(); g.ellipse(x, y - 1, 6, 2.2, 0, 0, Math.PI * 2); g.fill();
   if (!im) { g.fillStyle = "#e8673a"; g.fillRect(x - 5, y - 12, 10, 12); return; }
@@ -1090,6 +1156,10 @@ async function start() {
     $("file-name").textContent = "Couldn't load the tiles. Open this page through a web server (see README).";
     return;
   }
+  S.isoTs = await loadIsoTileset("tiles/iso/").catch(() => null);
+  try { S.projection = localStorage.getItem("tiny-town/projection") || "iso"; } catch { /* default */ }
+  if (!S.isoTs) S.projection = "ortho";
+  syncProjection();
   try {
     const idx = await (await fetch("sprites/index.json")).json();
     await Promise.all(idx.sprites.map((n) => new Promise((ok) => {

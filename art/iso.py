@@ -18,6 +18,14 @@ from functools import lru_cache
 from PIL import Image, ImageDraw
 
 from dualgrid import Shape, cell_mask, h
+
+
+def ihash(*xs):
+    """A tiny integer hash in [0, 1), the same in js/iso.js (used for the cliff walls' grass drips and waterfall streaks)."""
+    v = 0
+    for x in xs:
+        v = ((v ^ (x & 0xffffffff)) * 2654435761) & 0xffffffff
+    return v / 2 ** 32
 from sprites import RGB, Sprite
 
 CW, CH = 32, 16          # a cell's diamond
@@ -99,7 +107,7 @@ def sx(x, y, ox, oy):
 # ---------- colours for each terrain, in screen space (gx, gy = map-wide screen pixel) ----------
 
 def grass_px(gx, gy, variant=0):
-    k = h("gt", gx // 3, gy // 2, variant)
+    k = h("gt", (gx % 64) // 2, (gy % 32) // 2, variant)
     if k < 0.06:
         return "g3"
     if k < 0.16:
@@ -112,13 +120,13 @@ def grass_px(gx, gy, variant=0):
 def _stone(gx, gy):
     """Irregular rounded cobbles (a jittered grid of stone centres, repeating every 48 px): returns the nearest
     stone's id, the offset from its centre, and how close the pixel is to the mortar line."""
-    i0, j0 = gx // 6, gy // 4
+    i0, j0 = gx // 8, gy // 4
     best = second = 99.0
     sid = off = None
     for j in range(j0 - 1, j0 + 2):
         for i in range(i0 - 1, i0 + 2):
-            key = (i % 8, j % 12)
-            px_ = i * 6 + 1 + h("cbx", *key) * 4 + (3 if j % 2 else 0)
+            key = (i % 8, j % 8)
+            px_ = i * 8 + 1.5 + h("cbx", *key) * 5 + (4 if j % 2 else 0)
             py_ = j * 4 + 0.5 + h("cby", *key) * 3
             d = math.hypot(gx + 0.5 - px_, (gy + 0.5 - py_) * 1.6)
             if d < best:
@@ -150,8 +158,8 @@ def water_px(sh, x, y, gx, gy, f):
         if d <= 1.0:
             return "out"
         if d <= 2.5:
-            return "s1" if h("bank", gx // 2, gy // 2) < 0.6 else "s2"
-        if d <= 3.5 and h("bank2", gx // 3, gy // 2) < 0.35:
+            return "s1" if h("bank", (gx % 64) // 2, (gy % 32) // 2) < 0.6 else "s2"
+        if d <= 3.5 and h("bank2", (gx % 64) // 4, (gy % 32) // 2) < 0.35:
             return "s0"
         return None
     d = sh.dist(x, y, 4)
@@ -159,9 +167,9 @@ def water_px(sh, x, y, gx, gy, f):
         return "w0" if (gx + gy + f) % 4 else "w1"
     if d <= 2.5:
         return "w2"
-    if gy % 6 == 2 and (gx + (gy // 6) * 7 + f * 5) % 24 < 4:
+    if gy % 8 == 2 and (gx + (gy // 8) * 7 + f * 5) % 32 < 4:
         return "w1"
-    return "w0" if h("spark", gx, gy, f) < 0.004 else "w2" if d > 4 else "w2"
+    return "w0" if h("spark", gx % 64, gy % 32, f) < 0.004 else "w2"
 
 
 def soil_px(sh, x, y, gx, gy):
@@ -211,12 +219,18 @@ SETS = {
 ANIMATED = {"water", "tallgrass"}
 
 
+def phase_of(dx, dy):
+    """The tile lattice repeats every 4 cells: (dx - dy) % 4 and (dx + dy) % 4 pick one of 8 pattern phases."""
+    return (dx - dy) % 4, (dx + dy) % 4
+
+
 @lru_cache(maxsize=None)
 def iso_tile(name, mask, frame, phase):
-    """A 32x16 display tile. `phase` = (screen x mod 6, screen y mod 4 ...) keeps patterns continuous: patterns use
-    map-wide screen pixels, and display tiles sit at x multiples of 16, y multiples of 8."""
+    """A 32x16 display tile for the grid corner whose lattice phase is `phase`. Patterns use world screen pixels
+    (repeating every 64 x 32), so tiles in the same phase are identical and neighbours join up."""
     sh = IsoShape(mask)
-    ox, oy = phase
+    a, b = phase
+    ox, oy = (a * 16 - 16) % 64, (b * 8 - 8) % 32
     im = Image.new("RGBA", (CW, CH), (0, 0, 0, 0))
     px = im.load()
     fn = SETS[name]
@@ -232,7 +246,8 @@ def iso_tile(name, mask, frame, phase):
 
 @lru_cache(maxsize=None)
 def grass_cell(phase):
-    ox, oy = phase
+    a, b = phase
+    ox, oy = (a * 16 - 16) % 64, (b * 8) % 32
     im = Image.new("RGBA", (CW, CH), (0, 0, 0, 0))
     px = im.load()
     for y in range(CH):
@@ -256,7 +271,6 @@ def render(m, frame=0, objects=True):
     Y0 = top * HT + 24
     W = (cols + rows) * 16 + 16
     Hh = (cols + rows) * 8 + Y0 + 24
-    phase = lambda x, y: ((x) % 48, (y) % 48)                # patterns repeat within 48 px
 
     def blank():
         return Image.new("RGBA", (W, Hh), (0, 0, 0, 0))
@@ -272,7 +286,7 @@ def render(m, frame=0, objects=True):
                     continue
                 cx, cy = cell_top(dx, dy, level)              # the grid corner (dx, dy) is the display tile's centre
                 X, Y = X0 + cx - 16, Y0 + cy - 8
-                t = iso_tile(name, mask, frame if name in ANIMATED else 0, ((X) % 48, (Y) % 48))
+                t = iso_tile(name, mask, frame if name in ANIMATED else 0, phase_of(dx, dy))
                 put(layer, t, X, Y)
 
     def overlays(layer, level):
@@ -286,7 +300,7 @@ def render(m, frame=0, objects=True):
         for c in range(cols):
             x, y = cell_top(c, r)
             X, Y = X0 + x - 16, Y0 + y
-            put(base, grass_cell((X % 48, Y % 48)), X, Y)
+            put(base, grass_cell(phase_of(c, r)), X, Y)
     overlays(base, 0)
     clip_to_map(base, cols, rows, X0, Y0, 0)
 
@@ -322,30 +336,42 @@ def render(m, frame=0, objects=True):
             for L in range(1, m.height[r][c] + 1):
                 x, y = cell_top(c, r, L)
                 X, Y = X0 + x, Y0 + y
-                bx, by = X - 18, Y - 2
-                box = (bx, by, bx + 36, by + 20 + HT + 2)
-                piece = levels[L].crop(box)
-                mask = Image.new("L", piece.size, 0)
-                poly = [(18, 1), (35, 10), (35, 10 + HT + 1), (18, 19 + HT), (1, 10 + HT + 1), (1, 10)]
-                ImageDraw.Draw(mask).polygon(poly, fill=255)
-                clipped = Image.new("RGBA", piece.size, (0, 0, 0, 0))
-                clipped.paste(piece, (0, 0), mask)
-                out.alpha_composite(clipped, (bx, by))
+                bx, by = X - 17, Y - 1
+                piece = levels[L].crop((bx, by, bx + 34, by + 18 + HT))
+                pp = piece.load()
+                for j in range(piece.height):
+                    for i in range(piece.width):
+                        if not in_column(bx + i, by + j, X, Y):
+                            pp[i, j] = (0, 0, 0, 0)
+                out.alpha_composite(piece, (bx, by))
         else:
             spr, u, v, lvl = data
-            x, y = to_screen(u, v, lvl)
+            x, y = to_screen(u, v - 8, lvl)
             X, Y = X0 + x, Y0 + y
             place(out, spr, X, Y)
     return out
 
 
 def clip_to_map(layer, cols, rows, X0, Y0, level):
-    """Keep only what lies over the map (the diamond of all its cells at this level)."""
-    pts = [cell_top(0, 0, level), cell_top(cols, 0, level), cell_top(cols, rows, level), cell_top(0, rows, level)]
-    mask = Image.new("L", layer.size, 0)
-    ImageDraw.Draw(mask).polygon([(X0 + x, Y0 + y) for x, y in pts], fill=255)
+    """Keep only what lies over the map: a pixel stays if its centre traces back inside the grid (same rule in JS)."""
+    W, Hh = layer.size
     a = layer.getchannel("A")
-    layer.putalpha(Image.composite(a, Image.new("L", layer.size, 0), mask))
+    ap = a.load()
+    for y in range(Hh):
+        for x in range(W):
+            if not ap[x, y]:
+                continue
+            dx, dy = x + 0.5 - X0, y + 0.5 - Y0 + level * HT
+            u, v = (dx + 2 * dy) / 2, (2 * dy - dx) / 2
+            if not (0 <= u < cols * 16 and 0 <= v < rows * 16):
+                ap[x, y] = 0
+    layer.putalpha(a)
+
+
+def in_column(px, py, x, y):
+    """Is pixel (px, py) in the column of the cell whose top corner is at (x, y): its diamond and the wall below?"""
+    dx, dy = abs(px + 0.5 - x), py + 0.5 - y
+    return dx <= 16 and dx / 2 <= dy <= 16 + HT - dx / 2
 
 
 def walls(lay, fill, m, L, X0, Y0, frame):
@@ -376,13 +402,13 @@ def walls(lay, fill, m, L, X0, Y0, frame):
                 if yy >= Hh or fa[x, yy]:
                     break
                 if is_water:
-                    ph = (k - 2 * frame + int(h("wf", x) * 6)) % 6
+                    ph = (k - 2 * frame + int(ihash(x, 7) * 6)) % 6
                     col = "w0" if ph == 0 or k == 1 else "w1" if ph < 3 else "w2"
                 elif k == HT:
                     col = "out"
                 elif k == 1:
                     col = "g3"
-                elif k == 2 and h("drip", x) < 0.5:
+                elif k == 2 and ihash(x, 3) < 0.5:
                     col = "g4"
                 else:
                     band = (k + int(2 * math.sin(x * 0.5)) + 64) % 6

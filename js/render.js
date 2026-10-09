@@ -20,7 +20,7 @@ function loadImage(src) {
 }
 
 // The generated sheet, with any non-empty tile of tileset.edited.png painted over it.
-function mergeEdited(img, edited) {
+export function mergeEdited(img, edited) {
   const c = document.createElement("canvas");
   c.width = img.width; c.height = img.height;
   const g = c.getContext("2d");
