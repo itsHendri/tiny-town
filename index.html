@@ -43,11 +43,12 @@ svg.i { width: 20px; height: 20px; display: block; fill: none; stroke: currentCo
 kbd { font: 11px var(--mono); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; color: var(--muted); }
 
 /* ---------- top bar ---------- */
-.top { display: flex; align-items: center; gap: 10px; padding: 0 12px 0 16px; height: 52px; border-bottom: 1px solid var(--line); background: var(--panel); position: relative; z-index: 20; }
+.top { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 10px; padding: 0 12px 0 16px; height: 52px; border-bottom: 1px solid var(--line); background: var(--panel); position: relative; z-index: 20; }
 .brand { font: 700 22px/1 var(--display); letter-spacing: .01em; white-space: nowrap; }
 .file-name { font: 13px var(--mono); color: var(--muted); max-width: 28ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .state { font: 12px var(--mono); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-.top-right { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.top-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.top-right { justify-self: end; display: flex; align-items: center; gap: 6px; }
 .ib { width: 34px; height: 34px; display: grid; place-items: center; border: 0; border-radius: 8px; background: transparent; cursor: pointer; color: var(--fg); }
 .ib:hover { background: var(--on-bg); }
 .ib:disabled { opacity: .35; cursor: default; background: transparent; }
@@ -146,15 +147,13 @@ details.sec > summary small { margin-left: auto; color: var(--muted); text-trans
 .seg button svg rect { fill: var(--line); }
 .seg button svg rect.on { fill: var(--fg); }
 
-.hud { position: absolute; left: calc(var(--lw) + 12px); top: 12px; font: 12px var(--mono); background: var(--panel); color: var(--fg); border: 1px solid var(--line);
-  border-radius: 7px; padding: 4px 9px; pointer-events: none; font-variant-numeric: tabular-nums; z-index: 3; max-width: 30ch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.zoom { position: absolute; right: calc(var(--rw) + 12px); top: 12px; display: flex; gap: 2px; align-items: center; background: var(--panel); border: 1px solid var(--line);
+.zoom { position: absolute; left: 50%; transform: translateX(-50%); top: 12px; display: flex; gap: 2px; align-items: center; background: var(--panel); border: 1px solid var(--line);
   border-radius: 10px; padding: 3px; font: 12px var(--mono); z-index: 3; box-shadow: 0 2px 8px rgba(38, 48, 63, 0.12); }
 .zoom .ib { width: 28px; height: 28px; font-size: 16px; }
 .zoom #zoom-fit { width: auto; padding: 0 7px; font: 12px var(--body); }
 .zoom span { min-width: 4.6ch; text-align: center; font-variant-numeric: tabular-nums; }
-.proj { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; margin-right: 4px; }
-.proj button { border: 0; background: transparent; padding: 4px 9px; font: 600 12px var(--body); cursor: pointer; color: var(--fg); }
+.proj { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; padding: 2px; gap: 2px; background: var(--bg); }
+.proj button { border: 0; background: transparent; padding: 0 14px; height: 28px; border-radius: 7px; font: 600 13px var(--body); cursor: pointer; color: var(--fg); }
 .proj button[aria-pressed="true"] { background: var(--fg); color: var(--panel); }
 .proj button:disabled { opacity: .4; cursor: default; }
 
@@ -192,8 +191,8 @@ details.sec > summary small { margin-left: auto; color: var(--muted); text-trans
 .pad [data-dir="down"] { grid-column: 2; grid-row: 3; }
 @media (hover: hover) and (pointer: fine) { .pad { display: none; } }
 .walking { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: var(--on); color: var(--panel); font: 600 12px var(--mono); padding: 6px 12px; border-radius: 8px; pointer-events: none; z-index: 6; }
-.stage.walk .panel, .stage.walk .tab, .stage.walk .toolbox, .stage.walk .selcard, .stage.walk .hud { display: none !important; }
-.toast { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); background: var(--fg); color: var(--panel); padding: 6px 12px; border-radius: 8px; font-size: 13px;
+.stage.walk .panel, .stage.walk .tab, .stage.walk .toolbox, .stage.walk .selcard, .stage.walk .zoom { display: none !important; }
+.toast { position: absolute; left: 50%; top: 60px; transform: translateX(-50%); background: var(--fg); color: var(--panel); padding: 6px 12px; border-radius: 8px; font-size: 13px;
   pointer-events: none; max-width: calc(100% - 32px); z-index: 40; }
 
 dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--fg); padding: 0; width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 48px); }
@@ -208,10 +207,12 @@ dialog::backdrop { background: rgba(20, 24, 32, 0.5); }
 .keys { display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; font-size: 13px; color: var(--muted); align-items: baseline; }
 .keys kbd { justify-self: start; }
 
-@media (max-width: 1180px) { .hud { display: none; } }
 /* phone: the panels become sheets above the toolbox, opened from the toolbox */
 @media (max-width: 720px) {
-  .top { padding: 0 6px 0 10px; gap: 4px; }
+  .top { display: flex; padding: 0 6px 0 8px; gap: 4px; }
+  .top-left { display: none; }
+  .top-right { margin-left: auto; }
+  .proj button { padding: 0 9px; }
   .top-right { gap: 2px; }
   .brand { font-size: 18px; }
   .top .ib { width: 30px; }
@@ -223,8 +224,7 @@ dialog::backdrop { background: rgba(20, 24, 32, 0.5); }
   .stage .panel.open { display: flex !important; }
   .tab { display: none !important; }
   .tbtn.sheet { display: grid; }
-  .zoom { top: 8px; right: 8px; }
-  .toast { top: 56px; }
+  .zoom { top: 8px; }
   .toolbox { bottom: 8px; }
   .tbtn { width: 44px; }
   .tbtn.desk { display: none; }
@@ -235,9 +235,12 @@ dialog::backdrop { background: rgba(20, 24, 32, 0.5); }
 </head>
 <body>
 <header class="top">
-  <span class="brand">tiny-town</span>
-  <span class="file-name" id="file-name">Loading…</span>
-  <span class="state" id="state"></span>
+  <span class="top-left">
+    <span class="brand">tiny-town</span>
+    <span class="file-name" id="file-name">Loading…</span>
+    <span class="state" id="state"></span>
+  </span>
+  <span class="proj" role="group" aria-label="View"><button type="button" id="proj-iso" aria-pressed="true" title="Isometric view">Iso</button><button type="button" id="proj-top" aria-pressed="false" title="Top-down view">Top</button></span>
   <span class="top-right">
     <button class="ib" type="button" id="undo" title="Undo (Ctrl+Z)" aria-label="Undo"></button>
     <button class="ib" type="button" id="redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo"></button>
@@ -285,9 +288,7 @@ dialog::backdrop { background: rgba(20, 24, 32, 0.5); }
   </aside>
   <button class="tab right" type="button" id="tab-right" data-unfold="right" hidden>« Objects</button>
 
-  <div class="hud" id="hud">–</div>
   <div class="zoom">
-    <span class="proj" role="group" aria-label="Projection"><button type="button" id="proj-iso" aria-pressed="true">Iso</button><button type="button" id="proj-top" aria-pressed="false">Top</button></span>
     <button class="ib" type="button" id="zoom-out" aria-label="Zoom out" title="Zoom out (−)">−</button><span id="zoom-level">100%</span><button class="ib" type="button" id="zoom-in" aria-label="Zoom in" title="Zoom in (+)">+</button>
     <button class="ib" type="button" id="zoom-fit" title="Fit the map (Shift+1)">Fit</button>
   </div>

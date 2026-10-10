@@ -1163,7 +1163,7 @@ canvas.addEventListener("pointermove", (ev) => {
   if (S.drag) {
     const d = S.drag, e = d.e;
     const dx = p.mx - d.start.mx, dy = p.my - d.start.my;
-    if (!d.moved && Math.hypot(dx, dy) * S.zoom < 3) { S.needsDraw = true; updateHud(p); return; }
+    if (!d.moved && Math.hypot(dx, dy) * S.zoom < 3) { S.needsDraw = true; return; }
     d.moved = true;
     if (e.type === "Prop" || e.type === "Character") [e.x, e.y] = p.free ? [Math.round(d.x + dx), Math.round(d.y + dy)] : snapFeet(d.x + dx, d.y + dy - 1, false);
     else {
@@ -1173,7 +1173,6 @@ canvas.addEventListener("pointermove", (ev) => {
     }
     if (e.type === "Prop" && S.V.iso) S.terrainDirty = true;     // isometric props are part of the baked picture
   }
-  updateHud(p);
   S.needsDraw = true;
 });
 
@@ -1195,7 +1194,7 @@ function pointerEnd(ev) {
 }
 canvas.addEventListener("pointerup", pointerEnd);
 canvas.addEventListener("pointercancel", (ev) => { cancelStroke(); pointerEnd(ev); });
-canvas.addEventListener("pointerleave", () => { if (!S.dnd) { S.hover = null; S.needsDraw = true; updateHud(null); } });
+canvas.addEventListener("pointerleave", () => { if (!S.dnd) { S.hover = null; S.needsDraw = true; } });
 
 canvas.addEventListener("wheel", (ev) => {
   ev.preventDefault();
@@ -1203,19 +1202,6 @@ canvas.addEventListener("wheel", (ev) => {
   if (ev.ctrlKey || ev.metaKey) zoomTo(S.zoom * Math.exp(-ev.deltaY * 0.01), ev.clientX - r.left, ev.clientY - r.top);
   else { S.ox -= ev.deltaX; S.oy -= ev.deltaY; S.needsDraw = true; }
 }, { passive: false });
-
-function updateHud(p) {
-  const hud = $("hud");
-  if (!p || !S.map) { hud.textContent = S.map ? `${S.map.cols} × ${S.map.rows} cells` : "–"; return; }
-  if (!inside(S.map, p.c, p.r)) {
-    hud.textContent = near(p.c, p.r) && ["brush", "stamp", "place"].includes(S.tool) ? "Past the edge · this grows the map" : `${S.map.cols} × ${S.map.rows} cells`;
-    return;
-  }
-  const i = p.r * S.map.cols + p.c;
-  const name = (layer) => LAYERS[layer].values.find((x) => x.v === S.map.layers[layer][i])?.label;
-  const bits = [name("Terrain") || "Grass", `level ${S.map.layers.Height[i]}`, name("Features"), name("Deco")].filter(Boolean);
-  hud.textContent = `col ${p.c}, row ${p.r} · ${bits.join(", ")}`;
-}
 
 const typing = () => ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName) || document.querySelector("dialog[open]");
 window.addEventListener("keydown", (ev) => {
@@ -1399,7 +1385,7 @@ function useMap(m, name, note) {
   S.V = null;
   S.map = m; S.fileName = name; S.selected = null; S.sel = null;
   $("file-name").textContent = name;
-  sync(); fit(); S.terrainDirty = true; updateUndo(); updateHud(null);
+  sync(); fit(); S.terrainDirty = true; updateUndo();
   if (note) toast(note);
 }
 

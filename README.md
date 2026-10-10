@@ -18,7 +18,7 @@ repainted by hand).
 * **Walk** (Enter) your town with the arrow keys, then go straight back to building.
 * **Save** a `.ldtk` map (it also opens in [LDtk](https://ldtk.io)). The arrow beside Save holds the rest: save a PNG,
   copy a **share code** (the whole map as one line of text to send to a friend), open a file or a code, examples.
-* Switch **Iso / Top** beside the zoom. Your map is kept in your browser as you work.
+* Switch **Iso / Top** in the middle of the top bar. Your map is kept in your browser as you work.
 
 ## Running it
 
