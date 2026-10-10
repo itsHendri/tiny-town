@@ -1,6 +1,6 @@
 """Build the isometric tile sheet and prop atlas (tiles/iso/), in one palette.
 
-    python art/iso_tiles.py [earthy|deep|bright]
+    python art/iso_tiles.py [rich|earthy|deep|bright]  (default: palettes.DEFAULT)
 
 Every ground set has 15 shapes x 8 pattern phases (x 3 frames for water and tall grass). The browser picks the
 phase from the grid corner, so patterns run on seamlessly. Cliff walls aren't tiles: the browser pushes each
@@ -100,4 +100,4 @@ def build_iso_props():
 
 
 if __name__ == "__main__":
-    build(sys.argv[1] if len(sys.argv) > 1 else "earthy")
+    build(sys.argv[1] if len(sys.argv) > 1 else palettes.DEFAULT)

@@ -13,7 +13,7 @@ import palettes
 
 ROOT = Path(__file__).resolve().parent.parent
 
-palettes.use("earthy")
+palettes.use(palettes.DEFAULT)
 import iso
 import preview
 

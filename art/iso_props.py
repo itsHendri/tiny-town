@@ -6,7 +6,7 @@ windows, shingles, straw) decides its colour. So the patterns stay crisp at any 
 
 Units: map pixels, 16 per cell. X runs along columns (down-right on screen), Y along rows (down-left), Z up.
 
-    python art/iso_props.py <out.png> [earthy|deep|bright]     a sheet of every building
+    python art/iso_props.py <out.png> [rich|earthy|deep|bright]     a sheet of every building
 """
 import math
 import sys
@@ -260,7 +260,7 @@ def use_look(name):
 
 if __name__ == "__main__":
     import palettes
-    palettes.use(sys.argv[2] if len(sys.argv) > 2 else "earthy")
+    palettes.use(sys.argv[2] if len(sys.argv) > 2 else palettes.DEFAULT)
     use_look(sys.argv[3] if len(sys.argv) > 3 else "cosy")
     sprites = [house(**kw)[0] for kw in HOUSES.values()]
     W = sum(s.w for s in sprites) + 12 * len(sprites)

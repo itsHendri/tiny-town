@@ -148,7 +148,7 @@ def sprites():
     return out
 
 
-def build(palette="earthy", look="storybook"):
+def build(palette=palettes.DEFAULT, look="storybook"):
     palettes.use(palette)
     import iso
     import iso_props
@@ -193,7 +193,7 @@ def full_bleed(im):
 
 
 if __name__ == "__main__":
-    im = build(sys.argv[1] if len(sys.argv) > 1 else "earthy", sys.argv[2] if len(sys.argv) > 2 else "storybook")
+    im = build(sys.argv[1] if len(sys.argv) > 1 else palettes.DEFAULT, sys.argv[2] if len(sys.argv) > 2 else "storybook")
     im.save(ROOT / "out" / "market-village.png")
     full_bleed(im).save(ROOT / "out" / "market-village-scene.png")
     print("wrote maps/market-village.ldtk and out/market-village.png", im.size)

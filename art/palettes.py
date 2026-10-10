@@ -136,6 +136,11 @@ def shift(pal, hue=0.0, chroma=1.0, spread=1.0, lift=0.0, dark=None, dark_mix=0.
     return out
 
 
+# Picked 2026-10-10 (palette round, "storybook rich"): earthy with warm lights, cool shadows, more colour and contrast.
+PALETTES["rich"] = shift(PALETTES["earthy"], hue=14, chroma=1.35, spread=1.18)
+DEFAULT = "rich"
+
+
 def use(name):
     """Swap every colour behind the names (affects everything drawn afterwards)."""
     PAL.clear(); PAL.update(PALETTES[name])

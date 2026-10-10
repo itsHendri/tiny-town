@@ -27,13 +27,14 @@ Code MIT (`LICENSE`), art CC BY 4.0 (`LICENSE-art`). Read `README.md` for the us
 
 | Command | Does |
 |---|---|
-| `art/iso_tiles.py earthy` | Rebuilds `tiles/iso/` (isometric tile sheet + prop atlas). Run after any art change. |
-| `art/tiles.py` | Rebuilds `tiles/` (the top-down sheet, props, `sprites/index.json`). |
+| `art/iso_tiles.py` | Rebuilds `tiles/iso/` (isometric tile sheet + prop atlas) in `palettes.DEFAULT`. Run after any art change. |
+| `art/tiles.py` | Rebuilds `tiles/` (the top-down sheet, props, `sprites/index.json`), same palette as iso. |
 | `art/reference_town.py` | Rebuilds `maps/market-village.ldtk` (the default example) and `out/market-village*.png`. Copy the scene to `docs/market-village.png` when the look changes. |
 | `art/render_map.py <map.ldtk> <out.png> [--crop]` | Draws any map in Python. |
 | `art/dress.py <in.ldtk> <out.ldtk>` | Adds road-edge details and trees to any map (same result every time). |
 | `art/parity_ref.py` | Writes the parity test map (see below). |
 | `art/iso_village.py`, `art/preview.py` | Comparison sheets for picking looks (output in `out/`, which is gitignored). |
+| `art/lab.py <round>` | The look lab: options for one thing on the village, picker page in `out/lab/<round>/`. |
 | `art/ground_picker.py` | Candidate isometric ground looks on a small scene, with a picker page (`out/ground-picker/`). |
 
 ## Architecture
@@ -92,7 +93,8 @@ existing values. If the format must change, bump `tinyTownVersion` in `js/format
 ## The look (Hendri's picks, keep them)
 
 * Isometric is the main view; top-down still works.
-* Palette `earthy`, but with the **bright road and bright water** (`COBBLE_BRIGHT`, `WATER_BRIGHT`). In isometric,
+* Palette `rich` (`palettes.DEFAULT`): `earthy` run through `palettes.shift` (warm lights, cool shadows, more
+  chroma and contrast). `earthy` itself keeps the **bright road and bright water** (`COBBLE_BRIGHT`, `WATER_BRIGHT`). In isometric,
   **Path** is the bright gold rounded stones and **Cobbles** the same stones in grey (`STONE`, `grey_cobble_px`).
   Palette swatches are drawn in the current view.
 * Houses: the `storybook` look (`LOOK` in `art/iso_tiles.py`).

@@ -191,7 +191,7 @@ FOOTPRINTS = {name: [2, 1] for name in MARKET if name.startswith("stall")}
 
 if __name__ == "__main__":
     import palettes
-    palettes.use(sys.argv[2] if len(sys.argv) > 2 else "earthy")
+    palettes.use(sys.argv[2] if len(sys.argv) > 2 else palettes.DEFAULT)
     sprites = [f() for f in MARKET.values()]
     W = sum(s.w for s in sprites) + 8 * len(sprites)
     H = max(s.h for s in sprites)

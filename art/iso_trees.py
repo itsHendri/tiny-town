@@ -268,7 +268,7 @@ def trees():
 if __name__ == "__main__":
     import palettes
     from PIL import Image
-    palettes.use(sys.argv[2] if len(sys.argv) > 2 else "earthy")
+    palettes.use(sys.argv[2] if len(sys.argv) > 2 else palettes.DEFAULT)
     ts = list(trees().items())
     ts = [kv for kv in ts if "-d" not in kv[0]]
     W = sum(s.w for _, s in ts) + 6 * len(ts)

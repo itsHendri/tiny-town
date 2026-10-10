@@ -71,7 +71,7 @@ so they can also be opened in LDtk and read by its loaders.
 Needs Python 3 and Pillow (`pip install pillow`).
 
 ```bash
-python art/iso_tiles.py earthy
+python art/iso_tiles.py
 ```
 
 writes `tiles/iso/` (the isometric sheet and props); `python art/tiles.py` writes the top-down `tiles/`.

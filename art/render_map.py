@@ -74,7 +74,7 @@ def main():
     ap.add_argument("--margin", type=int, default=6)
     ap.add_argument("--sprites", default=str(ROOT / "sprites"))
     ap.add_argument("--crop", action="store_true")
-    ap.add_argument("--palette", default="earthy")
+    ap.add_argument("--palette", default=palettes.DEFAULT)
     a = ap.parse_args()
     palettes.use(a.palette)
     import iso
