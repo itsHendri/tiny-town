@@ -3,6 +3,7 @@
 
 import { newMap } from "./format.js";
 import { drawProp, drawTerrain } from "./render.js";
+import { moveEntity } from "./tools.js";
 
 const T = 16;
 const KEY = "tiny-town/stamps";
@@ -20,9 +21,7 @@ const within = (e, s) => { const [c, r] = cellOf(e); return c >= s.c0 && c <= s.
 function shifted(e, dc, dr) {
   const copy = structuredClone(e);
   delete copy.iid;
-  copy.x += dc * T; copy.y += dr * T;
-  for (const k of ["points", "path"]) if (Array.isArray(copy.fields[k])) copy.fields[k] = copy.fields[k].map(([c, r]) => [c + dc, r + dr]);
-  for (const k of ["perch", "flyTo"]) if (copy.fields[k]) copy.fields[k] = [copy.fields[k][0] + dc, copy.fields[k][1] + dr];
+  moveEntity(copy, dc, dr);
   return copy;
 }
 

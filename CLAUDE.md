@@ -56,7 +56,10 @@ Code MIT (`LICENSE`), art CC BY 4.0 (`LICENSE-art`). Read `README.md` for the us
 * **Props:** isometric buildings, stalls, fences, stairs use a face painter (`Canvas3D` in `art/iso_props.py`).
   Anchors (`ax`, `ay`) and footprints (`foot`) live in `tiles/iso/props.json`; aliases map old names to new ones so old
   maps keep working. Trees: `art/iso_trees.py` (many kinds, varied per seed); the editor groups them by name regex.
-* **Editor** (`js/editor.js`): one state object `S` (projection `"iso"` or top-down, view `S.V`). A view abstraction
+* **Editor** (`js/editor.js`): one state object `S` (projection `"iso"` or top-down, view `S.V`). One active tool,
+  `S.tool` (`select hand brush rect fill plot pick area place scatter stamp`); `S.place` / `S.pasting` are only what
+  `place` / `stamp` put down, and `setTool` clears the rest. Painting just past the edge grows the map (`grow` in
+  `tools.js`); `rebuildView(dc, dr)` keeps the screen still when the view changes shape. A view abstraction
   (`pt`, `feet`, `cellPoly`, `pick`, `border`) keeps tools projection-free. Undo is snapshots; autosave in
   localStorage; `window.tinyTown = { state, history }` for debugging in the console.
 * Other modules: `tools.js` (brush, line, rect, fill, height shaping, plots, resize, History), `stamps.js`,
@@ -123,6 +126,6 @@ So the town page keeps working, keep these stable (or note the change in the com
 
 ## Ideas, next up
 
-From the README's list: isometric stamp thumbnails, paste previews and palette swatches; more buildings (mill,
+From the README's list: isometric palette swatches; more buildings (mill,
 tavern, chapel), stall goods, carts; sounds (off by default); per-terrain cliff lips; a darker roof option;
 characters drawn for the isometric angle (the sprites in `sprites/` are still straight-on).

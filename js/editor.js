@@ -4,7 +4,7 @@ import { newMap, parseMap, stringifyMap } from "./format.js";
 import { drawProp, drawTerrain, loadTileset } from "./render.js";
 import { bakeIso, isoView, loadIsoTileset } from "./iso.js";
 import { ENTITIES, LAYERS, MAX_LEVEL, value } from "./registry.js";
-import { History, brushCells, floodCells, inside, lineCells, paint, plotCells, rectCells, resize, shapeHeight } from "./tools.js";
+import { History, brushCells, floodCells, grow, inside, lineCells, paint, plotCells, rectCells, shapeHeight } from "./tools.js";
 import { loadAutosave, openFile, saveFile, writeAutosave } from "./files.js";
 import { area, clearArea, copyArea, drawClip, loadBuiltinStamps, loadStamps, pasteArea, saveStamps } from "./stamps.js";
 import { codeToMap, mapToCode } from "./share.js";
@@ -12,9 +12,12 @@ import { Walker } from "./walk.js";
 
 const T = 16;
 const EXAMPLE = "maps/market-village.ldtk";
-const ZOOMS = [0.5, 1, 2, 3, 4, 5, 6, 8];
+const ZOOMS = [0.25, 0.5, 1, 2, 3, 4, 5, 6, 8];
+const REACH = 6;            // how far past the edge painting still grows the map (the forest margin is 6 cells)
+const MAX_SIZE = 200;
 const $ = (id) => document.getElementById(id);
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const phone = () => matchMedia("(max-width: 720px)").matches;
 
 function el(tag, attrs = {}, ...kids) {
   const e = document.createElement(tag);
@@ -27,18 +30,48 @@ function el(tag, attrs = {}, ...kids) {
   return e;
 }
 
+// Line icons, 24x24, drawn with the current text colour.
+const ICONS = {
+  select: '<path d="M6 3.5l12.5 6.2-5.6 1.8-2 5.8z"/>',
+  hand: '<path d="M8.5 12.5V6a1.4 1.4 0 0 1 2.8 0v5.5M11.3 11V4.6a1.4 1.4 0 0 1 2.8 0V11M14.1 11V6a1.4 1.4 0 0 1 2.8 0v7.5c0 4-2.4 6.8-5.8 6.8-2.6 0-4-1.4-5.4-3.7l-2.2-3.7a1.4 1.4 0 0 1 2.3-1.6l1.7 2.2"/>',
+  brush: '<path d="M14.5 4.5l5 5-8.5 8.5H6v-5z"/><path d="M12.5 6.5l5 5"/>',
+  rect: '<rect x="4.5" y="4.5" width="15" height="15" rx="1.5"/><path d="M4.5 12h15M12 4.5v15" opacity=".35"/>',
+  fill: '<path d="M4.5 11.5l6.5-6.5 7.5 7.5-6.5 6.5z"/><path d="M4.5 11.5h14"/><path d="M20 15.5c.7 1.2 1.2 2 1.2 2.7a1.2 1.2 0 0 1-2.4 0c0-.7.5-1.5 1.2-2.7z"/>',
+  plot: '<path d="M5.5 20V9l1.8-2.5L9 9v11M15 20V9l1.8-2.5L18.5 9v11M3.5 12h17M3.5 16.5h17"/>',
+  pick: '<path d="M14.5 5.5l4 4M16.5 3.5a2 2 0 0 1 4 4l-2 2-4-4z"/><path d="M14.5 7.5l-9 9V19h2.5l9-9"/>',
+  area: '<rect x="4.5" y="4.5" width="15" height="15" rx="1" stroke-dasharray="3 2.6"/>',
+  erase: '<path d="M8.5 19.5h11M5.3 14.7l8.4-8.4a1.5 1.5 0 0 1 2.1 0l3 3a1.5 1.5 0 0 1 0 2.1L11 19.5H8.6z"/><path d="M9.5 10.5l5 5"/>',
+  undo: '<path d="M9 6.5L4.5 11 9 15.5"/><path d="M4.5 11h10a5 5 0 0 1 0 10H12"/>',
+  redo: '<path d="M15 6.5l4.5 4.5-4.5 4.5"/><path d="M19.5 11h-10a5 5 0 0 0 0 10H12"/>',
+  cog: '<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/><circle cx="12" cy="12" r="6.6"/>',
+  walk: '<path d="M8 5.5v13l10.5-6.5z"/>',
+  chev: '<path d="M7 10l5 5 5-5"/>',
+  dup: '<rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/>',
+  trash: '<path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 12.5h9l1-12.5"/>',
+  x: '<path d="M6 6l12 12M18 6L6 18"/>',
+  paint: '<path d="M14.5 4.5l5 5-8.5 8.5H6v-5z"/>',
+  objects: '<path d="M12 3.5l7.5 4v9L12 20.5l-7.5-4v-9z"/><path d="M4.5 7.5L12 11.5l7.5-4M12 11.5v9"/>',
+};
+function icon(name) {
+  const t = document.createElement("template");
+  t.innerHTML = `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
+  return t.content.firstChild;
+}
+
 // ---------- state ----------
 
+// One tool is active at a time. `place`, `scatter` and `stamp` carry what they put down in S.place and S.pasting.
+const PAINT_TOOLS = ["brush", "rect", "fill", "plot", "pick"];
 const S = {
   map: null, ts: null, sprites: {}, spriteNames: [], fileName: "town.ldtk",
-  mode: "paint", tool: "brush", size: 1, brush: { layer: "Terrain", v: 1 },
+  tool: "brush", paintTool: "brush", size: 1, brush: { layer: "Terrain", v: 1 }, eraseMode: false,
   place: null, selected: null, scatter: { on: false, density: 0.35 }, scatterStroke: null,
-  sel: null, selFrom: null, clip: null, pasting: null, stamps: [], walk: null, walkView: null, eraseMode: false, longPress: null,
+  sel: null, selFrom: null, clip: null, pasting: null, stamps: [], walk: null, walkView: null, longPress: null,
   fx: [], squash: new Map(), isoTs: null, projection: "iso", V: null,
   zoom: 2, ox: 0, oy: 0,
   show: { terrain: true, props: true, characters: true, data: true, raw: false, grid: false, margin: true },
   frames: [], frame: 0, terrainDirty: true, needsDraw: true,
-  hover: null, stroke: null, drag: null, pointers: new Map(), pinch: null, spaceDown: false, panning: null,
+  hover: null, stroke: null, drag: null, pointers: new Map(), pinch: null, spaceDown: false, panning: null, dnd: null,
 };
 const history = new History();
 window.tinyTown = { state: S, history };          // for poking around in the browser console
@@ -51,7 +84,7 @@ const PALETTE = [
   { group: "Features", layer: "Features", items: LAYERS.Features.values.map((x) => ({ v: x.v, label: x.label, key: x.id })) },
   { group: "Decoration", layer: "Deco", items: LAYERS.Deco.values.map((x) => ({ v: x.v, label: x.label, key: x.id })) },
 ];
-const TOOLS = [["brush", "Brush", "B"], ["rect", "Box", "R"], ["fill", "Fill", "F"], ["plot", "Plot", "T"], ["pick", "Pick", "I"], ["select", "Select", "S"]];
+const TOOLS = [["select", "Move", "V"], ["hand", "Hand", "H"], null, ["brush", "Brush", "B"], ["rect", "Box", "R"], ["fill", "Fill", "F"], ["plot", "Plot", "T"], ["pick", "Pick", "I"], ["area", "Area", "S"]];
 
 // A 2x2-cell scene that shows what a palette item paints.
 function swatch(key, color, mark) {
@@ -75,24 +108,23 @@ function swatch(key, color, mark) {
   return c;
 }
 
+const brushKey = (b) => `${b.layer}:${b.op || b.v}`;
+const brushItem = () => PALETTE.find((g) => g.layer === S.brush.layer)?.items.find((x) => (S.brush.op ? x.op === S.brush.op : x.v === S.brush.v && !x.op));
+
 function buildPaintPanel() {
-  const row = $("toolrow");
-  row.replaceChildren(...TOOLS.map(([id, label, key]) => el("button", {
-    class: "tool", type: "button", id: `tool-${id}`, "aria-pressed": String(S.tool === id), title: `${label} (${key})`, onclick: () => setTool(id),
-  }, el("span", { text: label }), el("kbd", { text: key }))));
-  const pal = $("palette");
-  pal.replaceChildren(...PALETTE.filter((g) => g.items.length).map((g) => el("div", {},
-    el("h3", { text: g.group }),
+  $("palette").replaceChildren(...PALETTE.filter((g) => g.items.length).map((g) => el("details", { class: "sec", open: true },
+    el("summary", { text: g.group }),
     el("div", { class: "swatches" }, ...g.items.map((it) => {
-      const on = S.brush.layer === g.layer && (it.op ? S.brush.op === it.op : S.brush.v === it.v && !S.brush.op);
       const color = LAYERS[g.layer].values.find((x) => x.v === it.v)?.color;
-      return el("button", { class: "swatch", type: "button", "aria-pressed": String(on), title: `${g.group}: ${it.label}`,
-        onclick: () => { S.brush = it.op ? { layer: g.layer, op: it.op } : { layer: g.layer, v: it.v }; if (S.tool === "pick") S.tool = "brush"; buildPaintPanel(); } },
-      swatch(it.key, color, it.mark), el("span", { text: it.label }));
+      return el("button", { class: "swatch", type: "button", "data-brush": brushKey(it.op ? { layer: g.layer, op: it.op } : { layer: g.layer, v: it.v }), title: `${g.group}: ${it.label}`,
+        onclick: () => choosePaint(g.layer, it) }, swatch(it.key, color, it.mark), el("span", { text: it.label }));
     })))));
-  if (S.ts) queueMicrotask(syncBar);
-  $("sizes").replaceChildren("Brush", ...[1, 2, 3].map((n) => el("button", { type: "button", "aria-pressed": String(S.size === n),
-    title: `Brush ${n}×${n} cells`, onclick: () => { S.size = n; buildPaintPanel(); } }, sizeIcon(n), el("span", { text: `${n}×${n}` }))));
+}
+
+function choosePaint(layer, it) {
+  S.brush = it.op ? { layer, op: it.op } : { layer, v: it.v };
+  if (!["brush", "rect", "fill"].includes(S.tool)) setTool(S.paintTool);
+  else sync();
 }
 
 // A 3x3 grid of cells with the brush's footprint filled in.
@@ -109,26 +141,39 @@ function sizeIcon(n) {
   return svg;
 }
 
+// ---------- stamps ----------
+
+// A stamp's picture in the current view: the isometric bake when it's isometric (cached on the clip).
+function clipPicture(clip) {
+  if (S.projection === "iso" && S.isoTs) {
+    if (!clip.iso) {
+      const m = newMap(clip.cols, clip.rows);
+      for (const [k, L] of Object.entries(clip.layers)) if (m.layers[k]) m.layers[k].set(L);
+      m.entities = structuredClone(clip.entities);
+      const v = isoView(m);
+      clip.iso = { canvas: bakeIso(m, S.isoTs, v, { objects: true, frames: [0] })[0], at: v.cellTop(0, 0) };
+    }
+    return clip.iso.canvas;
+  }
+  return drawClip(clip, S.ts, S.sprites);
+}
+
 function buildStamps() {
   const box = $("stamps");
-  if (!S.stamps.length) { box.replaceChildren(el("p", { class: "hint", text: "None yet. Select an area (S), then Save as stamp. Your stamps are kept in this browser." })); return; }
+  if (!S.stamps.length) { box.replaceChildren(el("p", { class: "hint", text: "None yet. Use Area (S) to select part of the map, then Save as stamp. Your stamps are kept in this browser." })); return; }
   box.replaceChildren(el("div", { class: "swatches" }, ...S.stamps.map((st, i) => {
-    const c = drawClip(st.clip, S.ts, S.sprites);
+    const c = clipPicture(st.clip);
     const t = thumb((g, x, y, w, h) => g.drawImage(c, x, y, w, h), c.width, c.height, 40);
     return el("div", { class: "stamp" },
-      el("button", { class: "swatch", type: "button", title: `Place ${st.name}`, "aria-pressed": String(S.pasting?.name === st.name), onclick: () => startPaste(st.clip, st.name) }, t, el("span", { text: st.name })),
-      st.builtin ? "" : el("button", { class: "remove", type: "button", title: `Remove ${st.name}`, "aria-label": `Remove ${st.name}`, onclick: () => { S.stamps.splice(i, 1); saveStamps(S.stamps); buildStamps(); } }, "×"));
+      el("button", { class: "swatch", type: "button", title: `Stamp: ${st.name}`, "data-stamp": st.name, onclick: () => startPaste(st.clip, st.name) }, t, el("span", { text: st.name })),
+      st.builtin ? "" : el("button", { class: "remove", type: "button", title: `Remove ${st.name}`, "aria-label": `Remove ${st.name}`, onclick: () => { S.stamps.splice(i, 1); saveStamps(S.stamps); buildStamps(); sync(); } }, "×"));
   })));
 }
 
 function startPaste(clip, name = null) {
   S.pasting = { clip, name, canvas: drawClip(clip, S.ts, S.sprites) };
-  S.sel = null; buildInspector(); buildStamps();
-  toast("Click to place. Esc to stop.");
-  S.needsDraw = true;
+  setTool("stamp");
 }
-
-function stopPaste() { if (S.pasting) { S.pasting = null; buildStamps(); S.needsDraw = true; } }
 
 const pasteAt = (hv) => [hv.c - Math.floor(S.pasting.clip.cols / 2), hv.r - Math.floor(S.pasting.clip.rows / 2)];
 
@@ -144,17 +189,107 @@ function deleteSel() {
   history.push(S.map); clearArea(S.map, S.sel); changed(true);
 }
 
-function syncBar() {
-  for (const b of $("mbar").querySelectorAll("[data-tool]")) b.setAttribute("aria-pressed", String(S.mode === "paint" && S.tool === b.dataset.tool));
-  $("m-erase").setAttribute("aria-pressed", String(S.eraseMode));
-  $("m-mode").textContent = S.mode === "paint" ? "Objects" : "Paint";
-  const it = PALETTE.find((g) => g.layer === S.brush.layer)?.items.find((x) => (S.brush.op ? x.op === S.brush.op : x.v === S.brush.v));
-  $("m-brush").replaceChildren(it ? swatch(it.key, null, it.mark) : "");
-  $("m-brush").title = it ? `Painting: ${it.label}` : "Choose what to paint";
-  for (const b of $("mbar").querySelectorAll("[data-tool], #m-erase, #m-brush")) b.hidden = S.mode !== "paint";
+// ---------- tools ----------
+
+function setTool(id) {
+  if (S.walk) return;
+  S.tool = id;
+  if (id !== "place" && id !== "scatter") S.place = null;
+  if (id !== "stamp") S.pasting = null;
+  if (id !== "area") { S.sel = null; S.selFrom = null; }
+  if (["brush", "rect", "fill"].includes(id)) S.paintTool = id;
+  if (id !== "select" && id !== "hand" && S.selected) S.selected = null;
+  sync();
 }
 
-function setTool(id) { S.tool = id; buildPaintPanel(); S.needsDraw = true; }
+// Armed with an object: placing it once, or scattering it (props only).
+function arm(p) {
+  S.place = p;
+  setTool(p.type === "Prop" && S.scatter.on ? "scatter" : "place");
+}
+
+const isPaint = () => PAINT_TOOLS.includes(S.tool);
+
+// The toolbox, its context options, the pressed states in both panels, and the selection card.
+function sync() {
+  buildToolbox();
+  const paintOn = ["brush", "rect", "fill", "pick"].includes(S.tool);
+  for (const b of $("palette").querySelectorAll("[data-brush]")) b.setAttribute("aria-pressed", String(paintOn && b.dataset.brush === brushKey(S.brush)));
+  for (const b of $("catalog").querySelectorAll("[data-obj]")) b.setAttribute("aria-pressed", String(!!S.place && b.dataset.obj === objKey(S.place)));
+  for (const b of $("stamps").querySelectorAll("[data-stamp]")) b.setAttribute("aria-pressed", String(S.tool === "stamp" && S.pasting?.name === b.dataset.stamp));
+  $("stage").dataset.tool = S.tool;
+  buildCard();
+  S.needsDraw = true;
+}
+
+function buildToolbox() {
+  const kids = [
+    el("button", { class: "tbtn sheet", type: "button", "aria-pressed": String($("paint-panel").classList.contains("open")), onclick: () => sheet("left") }, icon("paint"), el("span", { text: "Paint" })),
+    el("button", { class: "tbtn sheet", type: "button", "aria-pressed": String($("objects-panel").classList.contains("open")), onclick: () => sheet("right") }, icon("objects"), el("span", { text: "Objects" })),
+    el("span", { class: "tdiv sheet-div", hidden: !phone() }),
+  ];
+  for (const t of TOOLS) {
+    if (!t) { kids.push(el("span", { class: "tdiv" })); continue; }
+    const [id, label, key] = t;
+    kids.push(el("button", { class: id === "hand" || id === "pick" ? "tbtn desk" : "tbtn", type: "button", "aria-pressed": String(S.tool === id), title: `${label} (${key})`, onclick: () => setTool(id) }, icon(id), el("span", { text: label })));
+  }
+  kids.push(el("span", { class: "tdiv" }),
+    el("button", { class: "tbtn erase", type: "button", "aria-pressed": String(S.eraseMode), title: "Erase (E). Right-click erases too.", onclick: toggleErase }, icon("erase"), el("span", { text: "Erase" })),
+    el("span", { class: "tdiv" }), chip());
+  const opts = options();
+  if (opts.length) kids.push(el("span", { class: "tdiv" }), el("span", { class: "opts" }, ...opts));
+  $("toolbox").replaceChildren(...kids);
+}
+
+// What the next click puts down: the swatch, the object or the stamp.
+function chip() {
+  let pic, text, side = "left";
+  if (S.place) {
+    pic = S.place.type === "Prop" ? propThumb(S.place.sprite, 32) : S.place.type === "Character" ? charThumb(S.place.sprite, 32) : dataIcon(S.place.type === "Path" ? "path" : "region");
+    text = S.place.sprite || S.place.type; side = "right";
+  } else if (S.pasting) {
+    const c = S.pasting.canvas;
+    pic = thumb((g, x, y, w, h) => g.drawImage(c, x, y, w, h), c.width, c.height, 32);
+    text = S.pasting.name || "Clipboard";
+  } else {
+    const it = brushItem();
+    pic = it ? swatch(it.key, LAYERS[S.brush.layer].values.find((x) => x.v === S.brush.v)?.color, it.mark) : el("canvas", { width: 32, height: 32 });
+    text = it?.label || "Paint";
+  }
+  return el("button", { class: "chip", type: "button", title: side === "left" ? "What you're painting (opens Paint)" : "What you're placing (opens Objects)", onclick: () => reveal(side) }, pic, el("span", { text }));
+}
+
+// Only the options that apply to the active tool.
+function options() {
+  const seg = (items, cur, set, label) => el("span", { class: "seg", role: "group", "aria-label": label }, ...items.map(([v, kids, title]) =>
+    el("button", { type: "button", "aria-pressed": String(cur === v), title, onclick: () => set(v) }, kids)));
+  switch (S.tool) {
+    case "brush":
+      return ["Size", seg([1, 2, 3].map((n) => [n, sizeIcon(n), `${n}×${n} cells ([ and ]). Shift-click draws a line.`]), S.size, (n) => { S.size = n; sync(); }, "Brush size")];
+    case "plot": return [el("span", { text: "Drag a yard; the gate faces the nearest path" })];
+    case "pick": return [el("span", { text: "Click to pick what's there" })];
+    case "area": return [el("span", { text: S.sel ? "Ctrl C / X to copy or cut" : "Drag to select an area" })];
+    case "select": return S.selected ? [] : [el("span", { text: "Click an object; drag to move" })];
+    case "hand": return [el("span", { text: "Drag to look around" })];
+    case "stamp": return [el("span", { text: "Click to stamp · Esc stops" })];
+    case "place":
+    case "scatter": {
+      const out = [];
+      if (S.place?.type === "Prop") {
+        out.push("Scatter", seg([[0, "Off"], [0.15, "Few"], [0.35, "Some"], [0.7, "Lots"]].map(([d, l]) => [d, l, d ? `Drag to sprinkle (${l.toLowerCase()})` : "Place one at a time"]),
+          S.scatter.on ? S.scatter.density : 0, (d) => { S.scatter.on = !!d; if (d) S.scatter.density = d; setTool(d ? "scatter" : "place"); }, "Scatter"));
+      }
+      out.push(el("span", { text: S.tool === "scatter" ? "Right-drag clears" : "Shift keeps placing · Esc stops" }));
+      return out;
+    }
+    default: return [];
+  }
+}
+
+function toggleErase() {
+  S.eraseMode = !S.eraseMode;
+  if (!isPaint() || S.tool === "pick" || S.tool === "plot") setTool(S.paintTool); else sync();
+}
 
 // ---------- the object catalog ----------
 
@@ -177,6 +312,7 @@ const charThumb = (name, box) => {
   const im = S.sprites[name];
   return im ? thumb((g, x, y, w, h) => g.drawImage(im, x, y, w, h), im.width, im.height, box) : el("canvas", { width: box, height: box });
 };
+const objKey = (p) => `${p.type}:${p.sprite || ""}`;
 
 function propGroups() {
   const groups = { Houses: [], Market: [], Trees: [], Pines: [], Bushes: [], Rocks: [], Details: [], Things: [] };
@@ -194,28 +330,33 @@ function propGroups() {
 }
 
 function buildCatalog() {
-  const same = (p) => S.place && S.place.type === p.type && S.place.sprite === p.sprite;
-  const item = (p, label, canvas) => el("button", { class: "swatch", type: "button", "aria-pressed": String(same(p)), title: p.sprite || label,
-    onclick: () => { S.place = same(p) ? null : p; buildCatalog(); S.needsDraw = true; } }, canvas, el("span", { text: label }));
-  const sections = [el("div", { class: "swatches" }, el("button", { class: "swatch", type: "button", "aria-pressed": String(!S.place), title: "Select and move (V)",
-    onclick: () => { S.place = null; buildCatalog(); } }, el("span", { text: "↖", style: "font-size:22px;line-height:32px" }), el("span", { text: "Select" }))),
-  el("div", { class: "scatter" },
-    el("label", { for: "scatter-on" }, el("input", { type: "checkbox", id: "scatter-on", checked: S.scatter.on,
-      onchange: (ev) => { S.scatter.on = ev.target.checked; S.needsDraw = true; } }), "Scatter (drag to sprinkle props like the one picked)"),
-    el("div", { class: "density", role: "group", "aria-label": "Scatter density" }, ...[["Few", 0.15], ["Some", 0.35], ["Lots", 0.7]].map(([label, d]) =>
-      el("button", { type: "button", "aria-pressed": String(S.scatter.density === d), onclick: () => { S.scatter.density = d; S.scatter.on = true; buildCatalog(); } }, label))))];
-  if (S.spriteNames.length) {
-    sections.push(el("h3", { text: "Characters" }), el("div", { class: "swatches" },
-      ...S.spriteNames.map((n) => item({ type: "Character", sprite: n }, n, charThumb(n, 40)))));
-  }
+  const item = (p, label, canvas) => {
+    const b = el("button", { class: "swatch", type: "button", "data-obj": objKey(p), "data-name": `${p.sprite || ""} ${label}`.toLowerCase(), title: p.sprite || label }, canvas, el("span", { text: label }));
+    b.addEventListener("pointerdown", (ev) => dndStart(ev, p, canvas));
+    b.addEventListener("click", () => { if (S.dnd?.done) return; if (S.place && objKey(S.place) === objKey(p)) setTool("select"); else arm(p); if (phone()) sheet(null); });
+    return b;
+  };
+  const sec = (title, kids) => el("details", { class: "sec", open: true }, el("summary", { text: title }), el("div", { class: "swatches" }, ...kids));
+  const sections = [];
+  if (S.spriteNames.length) sections.push(sec("Characters", S.spriteNames.map((n) => item({ type: "Character", sprite: n }, n, charThumb(n, 40)))));
   for (const [g, names] of Object.entries(propGroups())) {
-    if (!names.length) continue;
-    sections.push(el("h3", { text: g }), el("div", { class: "swatches" }, ...names.map((n) => item({ type: "Prop", sprite: n }, n.replace(/^(tree|bush|rock|house|detail)-/, ""), propThumb(n, 40)))));
+    if (names.length) sections.push(sec(g, names.map((n) => item({ type: "Prop", sprite: n }, n.replace(/^(tree|bush|rock|house|detail)-/, ""), propThumb(n, 40)))));
   }
-  sections.push(el("h3", { text: "Data" }), el("div", { class: "swatches" },
-    item({ type: "Path" }, "Path", dataIcon("path")), item({ type: "Region" }, "Region", dataIcon("region"))));
+  sections.push(sec("Paths and regions", [item({ type: "Path" }, "Path", dataIcon("path")), item({ type: "Region" }, "Region", dataIcon("region"))]));
   $("catalog").replaceChildren(...sections);
+  filterCatalog();
 }
+
+function filterCatalog() {
+  const q = $("obj-search").value.trim().toLowerCase();
+  for (const d of $("catalog").querySelectorAll("details")) {
+    let any = false;
+    for (const b of d.querySelectorAll("[data-obj]")) { const ok = !q || b.dataset.name.includes(q); b.hidden = !ok; any ||= ok; }
+    d.hidden = !any;
+    if (q && any) d.open = true;
+  }
+}
+$("obj-search").addEventListener("input", filterCatalog);
 
 function dataIcon(kind) {
   const c = el("canvas", { width: 40, height: 40, "aria-hidden": "true" });
@@ -226,6 +367,44 @@ function dataIcon(kind) {
   else { g.setLineDash([4, 3]); g.strokeRect(6, 8, 28, 24); }
   return c;
 }
+
+// ---------- drag and drop from the Objects panel ----------
+// Pointer events rather than HTML drag and drop, so the map can show the object where it will land.
+
+function dndStart(ev, p, canvas) {
+  if (ev.button !== 0 || ev.pointerType === "touch" || S.walk) return;
+  ev.preventDefault();                                     // no text selection while dragging
+  S.dnd = { p, x: ev.clientX, y: ev.clientY, live: false, done: false, src: canvas.toDataURL(), was: { tool: S.tool, place: S.place, pasting: S.pasting } };
+}
+
+window.addEventListener("pointermove", (ev) => {
+  const d = S.dnd;
+  if (!d || d.done) return;
+  if (!d.live) {
+    if (Math.hypot(ev.clientX - d.x, ev.clientY - d.y) < 5) return;
+    d.live = true;
+    $("ghost").src = d.src;
+    S.place = d.p; S.tool = "place"; S.pasting = null;
+  }
+  const over = document.elementFromPoint(ev.clientX, ev.clientY) === canvas;
+  $("ghost").hidden = over;
+  $("ghost").style.left = `${ev.clientX}px`; $("ghost").style.top = `${ev.clientY}px`;
+  S.hover = over ? toMap(ev) : null;
+  S.needsDraw = true;
+});
+
+window.addEventListener("pointerup", (ev) => {
+  const d = S.dnd;
+  if (!d) return;
+  if (!d.live) { S.dnd = null; return; }
+  d.done = true;
+  $("ghost").hidden = true;
+  setTimeout(() => { if (S.dnd === d) S.dnd = null; }, 0);   // the click that follows a drop is not a pick
+  const over = document.elementFromPoint(ev.clientX, ev.clientY) === canvas;
+  S.tool = d.was.tool; S.place = d.was.place; S.pasting = d.was.pasting;
+  if (over && placeFrom(ev, d.p)) { setTool("select"); select(S.selected); }
+  else sync();
+});
 
 // ---------- entities ----------
 
@@ -238,6 +417,7 @@ function orthoView(m) {
     iso: false, W: m.cols * T, H: m.rows * T,
     pt: (u, v) => [u, v],
     feet: (e) => [e.x, e.y],
+    cellTop: (c, r) => [c * T, r * T],
     cellPoly: (c, r) => [[c * T, r * T], [(c + 1) * T, r * T], [(c + 1) * T, (r + 1) * T], [c * T, (r + 1) * T]],
     pick: (x, y) => ({ c: Math.floor(x / T), r: Math.floor(y / T), u: x, v: y }),
     border: () => [[0, 0], [m.cols * T, 0], [m.cols * T, m.rows * T], [0, m.rows * T]],
@@ -253,36 +433,76 @@ function makeView() {
     ...v,
     pt: (u, vv) => v.toScreen(u, vv, lvl(u, vv)),
     feet: (e) => v.feet(e, lvl(e.x, e.y - 1)),
-    cellPoly: (c, r) => v.cellPoly(c, r, m.layers.Height[r * m.cols + c] || 0),
+    cellPoly: (c, r) => v.cellPoly(c, r, (inside(m, c, r) && m.layers.Height[r * m.cols + c]) || 0),
     pick: (x, y) => v.pick(x, y, m),
     border: () => [v.cellTop(0, 0), v.cellTop(m.cols, 0), v.cellTop(m.cols, m.rows), v.cellTop(0, m.rows)],
   };
 }
 
+// A new view after the map changed shape (grew, a new top level, the margin): the cell that was (0, 0) is now
+// (dc, dr), and it stays where it was on screen.
+function rebuildView(dc = 0, dr = 0) {
+  const old = S.V;
+  S.V = makeView();
+  if (!old || old.iso !== S.V.iso) return;
+  const [ax, ay] = old.cellTop(0, 0), [bx, by] = S.V.cellTop(dc, dr);
+  S.ox += (ax - bx) * S.zoom; S.oy += (ay - by) * S.zoom;
+}
+
 function poly(g, pts) { g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); }
 
+// Where an object's picture sits, in view pixels: [left, top, width, height] (whole pixels, as it's drawn).
 function bounds(e) {
   if (e.type === "Prop") {
     const p = (S.V.iso ? S.isoTs : S.ts).props[e.fields.sprite] || { w: T, h: T };
     const [x, y] = S.V.feet(e);
-    return p.ax !== undefined ? [x - p.ax, y - p.ay, p.w, p.h] : [x - p.w / 2, y - p.h, p.w, p.h];
+    return p.ax !== undefined ? [Math.round(x - p.ax), Math.round(y - p.ay), p.w, p.h] : [Math.round(x - p.w / 2), Math.round(y - p.h), p.w, p.h];
   }
-  if (e.type === "Character") { const im = S.sprites[e.fields.sprite]; const w = im?.width || T, h = im?.height || T; const [x, y] = S.V.feet(e); return [x - w / 2, y - h, w, h]; }
-  if (e.type === "Region") return [e.x, e.y, e.w || T, e.h || T];
-  const pts = (e.fields.points || []).map(cellCentre);
-  if (!pts.length) return [e.x, e.y, T, T];
+  if (e.type === "Character") { const im = S.sprites[e.fields.sprite]; const w = im?.width || T, h = im?.height || T; const [x, y] = S.V.feet(e); return [Math.round(x - w / 2), Math.round(y - h), w, h]; }
+  const pts = e.type === "Region" ? [S.V.pt(e.x, e.y), S.V.pt(e.x + (e.w || T), e.y), S.V.pt(e.x + (e.w || T), e.y + (e.h || T)), S.V.pt(e.x, e.y + (e.h || T))]
+    : (e.fields.points || []).map(cellCentre).map(([u, v]) => S.V.pt(u, v));
+  if (!pts.length) { const [x, y] = S.V.pt(e.x, e.y); return [x, y, T, T]; }
   const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
   return [Math.min(...xs) - 4, Math.min(...ys) - 4, Math.max(...xs) - Math.min(...xs) + 8, Math.max(...ys) - Math.min(...ys) + 8];
 }
 
-// What's under the pointer: sprites by their picture on screen (wx, wy), paths and regions by map pixels (mx, my).
+// Is the picture solid near (sx, sy)? Sprites are mostly see-through, so a click has to land on paint, give or take
+// two pixels. The alpha of each sheet is read once.
+const alphas = new Map();
+function solid(img, x0, y0, w, h, sx, sy) {
+  let a = alphas.get(img);
+  if (a === undefined) {
+    try {
+      const c = el("canvas", { width: img.width, height: img.height }), g = c.getContext("2d", { willReadFrequently: true });
+      g.drawImage(img, 0, 0);
+      a = { w: img.width, d: g.getImageData(0, 0, img.width, img.height).data };
+    } catch { a = null; }
+    alphas.set(img, a);
+  }
+  if (!a) return true;
+  for (const dy of [0, -2, 2]) for (const dx of [0, -2, 2]) {
+    const x = sx + dx, y = sy + dy;
+    if (x >= 0 && y >= 0 && x < w && y < h && a.d[((y0 + y) * a.w + x0 + x) * 4 + 3] > 24) return true;
+  }
+  return false;
+}
+
+// What's under the pointer: sprites by their painted pixels on screen (wx, wy), paths and regions by map pixels.
 function hit(p) {
   const { mx, my, wx, wy } = p;
   const sprites = S.map.entities.filter((e) => (e.type === "Prop" && S.show.props) || (e.type === "Character" && S.show.characters))
     .sort((a, b) => (S.V.iso ? (b.x + b.y) - (a.x + a.y) : b.y - a.y));
   for (const e of sprites) {
     const [x, y, w, h] = bounds(e);
-    if (wx >= x && wx < x + w && wy >= y && wy < y + h) return e;
+    if (wx < x - 2 || wx >= x + w + 2 || wy < y - 2 || wy >= y + h + 2) continue;
+    const lx = Math.floor(wx - x), ly = Math.floor(wy - y);
+    if (e.type === "Prop") {
+      const ts = S.V.iso ? S.isoTs : S.ts, pr = ts.props[e.fields.sprite];
+      if (!pr || solid(ts.propsImg, pr.x, pr.y, pr.w, pr.h, lx, ly)) return e;
+    } else {
+      const im = S.sprites[e.fields.sprite];
+      if (!im || solid(im, 0, 0, im.width, im.height, lx, ly)) return e;
+    }
   }
   if (!S.show.data) return null;
   const near = 6 / Math.max(1, S.zoom) + 3;
@@ -304,8 +524,55 @@ function snapFeet(mx, my, free) {
   return [c * T + T / 2, (r + 1) * T];
 }
 
-function placeAt(mx, my, free) {
-  const p = S.place, c = Math.floor(mx / T), r = Math.floor(my / T);
+// ---------- the map grows when you paint past its edge ----------
+
+const near = (c, r) => c >= -REACH && r >= -REACH && c < S.map.cols + REACH && r < S.map.rows + REACH;
+
+// Grow the map so cells c0..c1, r0..r1 fit (up to MAX_SIZE). Returns true if it grew.
+function growTo(c0, r0, c1, r1) {
+  const m = S.map;
+  let room = MAX_SIZE - m.cols;
+  const l = Math.min(Math.max(0, -c0), room); room -= l;
+  const rt = Math.min(Math.max(0, c1 - m.cols + 1), room);
+  room = MAX_SIZE - m.rows;
+  const t = Math.min(Math.max(0, -r0), room); room -= t;
+  const b = Math.min(Math.max(0, r1 - m.rows + 1), room);
+  if (!(l || t || rt || b)) return false;
+  const oldCols = m.cols;
+  grow(m, l, t, rt, b);
+  const mv = (a) => a && [a[0] + l, a[1] + t];               // cells in flight move with the map
+  if (S.stroke) {
+    S.stroke.rectFrom = mv(S.stroke.rectFrom); S.stroke.last = mv(S.stroke.last); S.stroke.changed = true;
+    S.stroke.touched = new Set([...S.stroke.touched].map((i) => (((i / oldCols) | 0) + t) * m.cols + (i % oldCols) + l));
+  }
+  S.lastCell = mv(S.lastCell); S.selFrom = mv(S.selFrom);
+  rebuildView(l, t);
+  S.terrainDirty = true;
+  return true;
+}
+
+// The cells a brush of the current size covers around (c, r), even off the map.
+function footprint(c, r) {
+  const lo = -Math.floor((S.size - 1) / 2);
+  return [c + lo, r + lo, c + lo + S.size - 1, r + lo + S.size - 1];
+}
+
+// Grow for the pointer if it's just off the map with a tool that paints there; returns the fresh map point.
+function growFor(ev, p) {
+  if (inside(S.map, p.c, p.r) || !near(p.c, p.r)) return p;
+  const box = S.tool === "brush" ? footprint(p.c, p.r) : [p.c, p.r, p.c, p.r];
+  return growTo(...box) ? toMap(ev) : p;
+}
+
+// ---------- placing ----------
+
+// Put one object where the pointer is (growing the map if that's just off it). Returns false if it's too far out.
+function placeFrom(ev, p) {
+  let q = toMap(ev);
+  if (!near(q.c, q.r)) return false;
+  history.push(S.map);
+  if (!inside(S.map, q.c, q.r)) { growTo(q.c, q.r, q.c, q.r); q = toMap(ev); }
+  const { mx, my, free } = q, c = Math.floor(mx / T), r = Math.floor(my / T);
   let e;
   if (p.type === "Prop") { const [x, y] = snapFeet(mx, my, free); e = { type: "Prop", x, y, w: T, h: T, fields: { sprite: p.sprite } }; }
   else if (p.type === "Character") {
@@ -313,11 +580,11 @@ function placeAt(mx, my, free) {
     e = { type: "Character", x, y, w: T, h: T, fields: { id: p.sprite.split("-")[0], sprite: p.sprite, perch: null, flyTo: null, path: [] } };
   } else if (p.type === "Region") e = { type: "Region", x: c * T, y: r * T, w: 2 * T, h: 2 * T, fields: { name: "region" } };
   else e = { type: "Path", x: c * T, y: r * T, w: T, h: T, fields: { name: "path", points: [[c, r], [Math.min(S.map.cols - 1, c + 3), r]] } };
-  history.push(S.map);
   S.map.entities.push(e);
   land(e);
-  select(e);
+  S.selected = e;
   changed(false);
+  return true;
 }
 
 // ---------- scatter ----------
@@ -358,6 +625,7 @@ function scatterAt(p, erase) {
       st.changed = true;
     }
   }
+  if (st.changed && S.V?.iso) S.terrainDirty = true;
   S.needsDraw = true;
 }
 
@@ -374,60 +642,65 @@ function drawFx(g, now) {
   S.fx = S.fx.filter((p) => now - p.t < 380);
   for (const p of S.fx) {
     const k = (now - p.t) / 380, d = 3 + k * 9;
+    const [x, y] = S.V.pt(p.x + Math.cos(p.a) * d, p.y + Math.sin(p.a) * d * 0.6);
     g.globalAlpha = 0.75 * (1 - k);
     g.fillStyle = "#f6ecd2";
-    g.beginPath(); g.arc(p.x + Math.cos(p.a) * d, p.y + Math.sin(p.a) * d * 0.6, 2.2 * (1 - k * 0.5), 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.arc(x, y, 2.2 * (1 - k * 0.5), 0, Math.PI * 2); g.fill();
   }
   g.globalAlpha = 1;
 }
 
-// ---------- inspector ----------
+// ---------- the selection card ----------
 
 const fmtPoint = (p) => (p ? `${p[0]},${p[1]}` : "");
 const parsePoint = (s) => { const m = String(s).trim().match(/^(-?\d+)\s*[, ]\s*(-?\d+)$/); return m ? [+m[1], +m[2]] : null; };
 const parsePoints = (s) => String(s).split(/[;\n]+|\s{2,}|\)\s*\(|\s(?=-?\d+\s*,)/).map(parsePoint).filter(Boolean);
 
-function select(e) { S.selected = e; buildInspector(); S.needsDraw = true; }
+function select(e) { S.selected = e; sync(); }
 
 function edit(fn) {
-  return (ev) => { history.push(S.map); fn(ev.target.value, ev.target); changed(S.selected?.type === "Region"); buildInspector(); };
+  return (ev) => { history.push(S.map); fn(ev.target.value, ev.target); changed(S.selected?.type === "Region"); buildCard(true); };
 }
 
-function buildInspector() {
-  const box = $("inspector"), e = S.selected;
-  if (!e || !S.map.entities.includes(e)) {
-    S.selected = null;
-    if (S.sel) {
-      const w = S.sel.c1 - S.sel.c0 + 1, h = S.sel.r1 - S.sel.r0 + 1;
-      const name = el("input", { id: "stamp-name", placeholder: "e.g. house with yard", value: "" });
-      box.replaceChildren(
-        el("div", { class: "inspect-head" }, el("div", {}, el("b", { text: "Area" }), el("small", { text: `${w} × ${h} cells from col ${S.sel.c0}, row ${S.sel.r0}` }))),
-        el("div", { class: "actions" },
-          el("button", { class: "btn quiet", type: "button", text: "Copy", onclick: () => copySel(false) }),
-          el("button", { class: "btn quiet", type: "button", text: "Cut", onclick: () => copySel(true) }),
-          el("button", { class: "btn danger", type: "button", text: "Clear", onclick: deleteSel })),
-        el("div", { class: "field", style: "margin-top:12px" }, el("label", { for: "stamp-name", text: "Save as a stamp" }), name),
-        el("button", { class: "btn", type: "button", text: "Save as stamp", onclick: () => {
-          const n = name.value.trim() || `stamp ${S.stamps.length + 1}`;
-          S.stamps.push({ name: n, clip: copyArea(S.map, S.sel) });
-          toast(saveStamps(S.stamps) ? `Saved the stamp "${n}"` : "This browser can't keep stamps; it will be gone after a reload");
-          buildStamps();
-        } }));
-      return;
-    }
-    box.replaceChildren(el("p", { class: "empty", text: "Nothing selected. In Objects mode, click a tree, a house or a character. In Paint mode, the Select tool (S) picks an area to copy or save as a stamp." }));
+let cardFor = null;
+function buildCard(force = false) {
+  const box = $("selcard"), e = S.selected;
+  if (e && !S.map.entities.includes(e)) S.selected = null;
+  const key = S.selected || (S.sel && !S.selFrom ? `${S.sel.c0},${S.sel.r0},${S.sel.c1},${S.sel.r1}` : null);
+  if (key === cardFor && !force) return;
+  cardFor = key;
+  if (!key) { box.hidden = true; box.replaceChildren(); return; }
+  box.hidden = false;
+  const close = el("button", { class: "ib", type: "button", "aria-label": "Close", title: "Close (Esc)", onclick: () => { S.sel = null; select(null); } }, icon("x"));
+  if (!S.selected) {
+    const w = S.sel.c1 - S.sel.c0 + 1, h = S.sel.r1 - S.sel.r0 + 1;
+    const name = el("input", { id: "stamp-name", placeholder: "e.g. house with yard", value: "" });
+    box.replaceChildren(
+      el("div", { class: "inspect-head" }, el("div", {}, el("b", { text: "Area" }), el("small", { text: `${w} × ${h} cells` })), close),
+      el("div", { class: "row" },
+        el("button", { class: "btn quiet", type: "button", text: "Copy", onclick: () => copySel(false) }),
+        el("button", { class: "btn quiet", type: "button", text: "Cut", onclick: () => copySel(true) }),
+        el("button", { class: "btn danger", type: "button", text: "Clear", onclick: deleteSel })),
+      el("div", { class: "field", style: "margin-top:10px" }, el("label", { for: "stamp-name", text: "Save as a stamp" }), name),
+      el("div", { class: "row" }, el("button", { class: "btn", type: "button", text: "Save as stamp", onclick: () => {
+        const n = name.value.trim() || `stamp ${S.stamps.length + 1}`;
+        S.stamps.push({ name: n, clip: copyArea(S.map, S.sel) });
+        toast(saveStamps(S.stamps) ? `Saved the stamp "${n}"` : "This browser can't keep stamps; it will be gone after a reload");
+        buildStamps(); sync();
+      } })));
+    placeCard();
     return;
   }
   const head = el("div", { class: "inspect-head" },
-    e.type === "Prop" ? propThumb(e.fields.sprite, 40) : e.type === "Character" ? charThumb(e.fields.sprite, 40) : dataIcon(e.type === "Path" ? "path" : "region"),
-    el("div", {}, el("b", { text: ENTITIES[e.type].label }), el("small", { text: e.fields.sprite || e.fields.name || "" })));
+    e.type === "Prop" ? propThumb(e.fields.sprite, 36) : e.type === "Character" ? charThumb(e.fields.sprite, 36) : dataIcon(e.type === "Path" ? "path" : "region"),
+    el("div", {}, el("b", { text: ENTITIES[e.type].label }), el("small", { text: e.fields.sprite || e.fields.name || "" })), close);
   const field = (id, label, input) => el("div", { class: "field" }, el("label", { for: id, text: label }), input);
   const rows = [head];
   const xy = el("div", { class: "pair" },
     field("f-x", "x (px)", el("input", { id: "f-x", type: "number", value: e.x, onchange: edit((v) => { e.x = Math.round(+v); }) })),
     field("f-y", "y (px)", el("input", { id: "f-y", type: "number", value: e.y, onchange: edit((v) => { e.y = Math.round(+v); }) })));
   if (e.type === "Prop") {
-    const sel = el("select", { id: "f-sprite", onchange: edit((v) => { e.fields.sprite = v; }) }, ...Object.keys(propSet().props).map((n) => el("option", { value: n, text: n, selected: n === e.fields.sprite })));
+    const sel = el("select", { id: "f-sprite", onchange: edit((v) => { e.fields.sprite = v; }) }, ...Object.keys(propSet().props).filter((n) => !n.startsWith("_")).map((n) => el("option", { value: n, text: n, selected: n === e.fields.sprite })));
     rows.push(field("f-sprite", "sprite", sel), xy);
   } else if (e.type === "Character") {
     const sel = el("select", { id: "f-sprite", onchange: edit((v) => { e.fields.sprite = v; }) }, ...S.spriteNames.map((n) => el("option", { value: n, text: n, selected: n === e.fields.sprite })));
@@ -440,7 +713,7 @@ function buildInspector() {
   } else if (e.type === "Path") {
     rows.push(
       field("f-name", "name", el("input", { id: "f-name", value: e.fields.name || "", onchange: edit((v) => { e.fields.name = v.trim(); }) })),
-      field("f-points", "points (cells, one per line)", el("textarea", { id: "f-points", rows: "6", onchange: edit((v) => { e.fields.points = parsePoints(v); }) }, (e.fields.points || []).map(fmtPoint).join("\n"))));
+      field("f-points", "points (cells, one per line)", el("textarea", { id: "f-points", rows: "5", onchange: edit((v) => { e.fields.points = parsePoints(v); }) }, (e.fields.points || []).map(fmtPoint).join("\n"))));
   } else {
     rows.push(
       field("f-name", "name", el("input", { id: "f-name", value: e.fields.name || "", onchange: edit((v) => { e.fields.name = v.trim(); }) })), xy,
@@ -448,10 +721,36 @@ function buildInspector() {
         field("f-w", "width (px)", el("input", { id: "f-w", type: "number", min: "1", value: e.w, onchange: edit((v) => { e.w = Math.max(1, Math.round(+v)); }) })),
         field("f-h", "height (px)", el("input", { id: "f-h", type: "number", min: "1", value: e.h, onchange: edit((v) => { e.h = Math.max(1, Math.round(+v)); }) }))));
   }
-  rows.push(el("div", { class: "actions" },
-    el("button", { class: "btn quiet", type: "button", text: "Duplicate", onclick: duplicate }),
-    el("button", { class: "btn danger", type: "button", text: "Delete", onclick: removeSelected })));
+  rows.push(el("div", { class: "row" },
+    el("button", { class: "btn quiet", type: "button", onclick: duplicate }, icon("dup"), "Duplicate"),
+    el("button", { class: "btn danger", type: "button", "aria-label": "Delete", title: "Delete (Del)", onclick: removeSelected }, icon("trash"))));
   box.replaceChildren(...rows);
+  placeCard();
+}
+
+// Beside the selection, on whichever side has room, with its pointer at the selection's middle.
+function placeCard() {
+  const box = $("selcard");
+  if (box.hidden || !S.V) return;
+  let b;
+  if (S.selected) b = bounds(S.selected);
+  else if (S.sel) {
+    const pts = [[S.sel.c0, S.sel.r0], [S.sel.c1 + 1, S.sel.r0], [S.sel.c1 + 1, S.sel.r1 + 1], [S.sel.c0, S.sel.r1 + 1]].map(([c, r]) => S.V.pt(c * T, r * T));
+    const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+    b = [Math.min(...xs), Math.min(...ys), Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)];
+  } else return;
+  const busy = S.drag?.moved || S.stroke || S.panning || S.pinch || S.walk;
+  box.style.visibility = busy ? "hidden" : "";
+  const st = $("stage"), sw = st.clientWidth, sh = st.clientHeight, W = box.offsetWidth, H = box.offsetHeight;
+  const cs = getComputedStyle(st), lw = phone() ? 0 : parseFloat(cs.getPropertyValue("--lw")) || 0, rw = phone() ? 0 : parseFloat(cs.getPropertyValue("--rw")) || 0;
+  const x0 = S.ox + b[0] * S.zoom, y0 = S.oy + b[1] * S.zoom, x1 = x0 + b[2] * S.zoom, y1 = y0 + b[3] * S.zoom, my = (y0 + y1) / 2;
+  let left = x1 + 14, side = "right";
+  if (left + W > sw - rw - 8) { left = x0 - 14 - W; side = "left"; }
+  if (left < lw + 8) { left = Math.min(sw - W - 8, Math.max(lw + 8, x1 + 14)); side = "none"; }
+  const top = Math.min(Math.max(12, my - 40), Math.max(12, sh - H - 84));
+  box.dataset.side = my - top < 14 || my - top > H - 14 ? "none" : side;
+  box.style.left = `${Math.round(left)}px`; box.style.top = `${Math.round(top)}px`;
+  box.style.setProperty("--ay", `${Math.round(my - top)}px`);
 }
 
 function duplicate() {
@@ -461,6 +760,7 @@ function duplicate() {
   copy.x += T;
   if (copy.fields.points) copy.fields.points = copy.fields.points.map(([c, r]) => [c + 1, r]);
   S.map.entities.push(copy);
+  land(copy);
   select(copy); changed(false);
 }
 
@@ -472,12 +772,20 @@ function removeSelected() {
   select(null); changed(false);
 }
 
+function nudge(dx, dy) {
+  const e = S.selected;
+  history.push(S.map);
+  e.x += dx; e.y += dy;
+  if (e.type === "Path" && e.fields.points && dx % T === 0 && dy % T === 0) e.fields.points = e.fields.points.map(([c, r]) => [c + dx / T, r + dy / T]);
+  changed(e.type === "Region"); buildCard(true);
+}
+
 // ---------- drawing ----------
 
 const canvas = $("view"), ctx = canvas.getContext("2d");
 
 function bake() {
-  S.V = makeView();
+  rebuildView();
   if (S.V.iso) {
     // while painting, only the first frame; the other two follow once things are quiet
     const quick = S.stroke || S.drag || S.scatterStroke;
@@ -587,6 +895,7 @@ function draw() {
     }
   }
 
+  const hv = S.hover;
   const sel = S.selected;
   if (sel) {
     const [x, y, w, h] = bounds(sel);
@@ -600,9 +909,11 @@ function draw() {
   }
 
   // what the next click will do
-  const hv = S.hover;
-  if (hv && !S.panning && !S.pinch && !S.pasting && !S.walk) {
-    if (S.mode === "paint" && S.tool !== "select") {
+  if (hv && !S.panning && !S.pinch && !S.walk) {
+    if (S.tool === "select" && !S.drag) {
+      const e = hit(hv);
+      if (e && e !== sel) { const [x, y, w, h] = bounds(e); ctx.strokeStyle = "rgba(232,103,58,0.55)"; line(1.5); ctx.strokeRect(x - 1, y - 1, w + 2, h + 2); }
+    } else if (["brush", "rect", "fill", "plot", "pick"].includes(S.tool)) {
       if (S.stroke?.plot) {
         const { fence, gate } = plotCells(S.map, S.stroke.rectFrom[0], S.stroke.rectFrom[1], hv.c, hv.r, value("Terrain", "path"));
         ctx.strokeStyle = "rgba(255,255,255,0.9)"; line(1.5);
@@ -610,36 +921,49 @@ function draw() {
         if (gate) { ctx.strokeStyle = "#f2c94c"; line(2.5); poly(ctx, V.cellPoly(gate[0], gate[1])); ctx.stroke(); }
       }
       const shiftLine = !S.stroke && hv.free && S.tool === "brush" && S.lastCell;
-      const cells = S.stroke?.plot ? [] : S.stroke?.rectFrom ? rectCells(S.map, S.stroke.rectFrom[0], S.stroke.rectFrom[1], hv.c, hv.r)
+      let cells = S.stroke?.plot ? [] : S.stroke?.rectFrom ? rectCells(S.map, S.stroke.rectFrom[0], S.stroke.rectFrom[1], hv.c, hv.r)
         : shiftLine ? lineCells(S.lastCell[0], S.lastCell[1], hv.c, hv.r).flatMap(([c, r]) => brushCells(S.map, c, r, S.size))
-        : S.tool === "brush" ? brushCells(S.map, hv.c, hv.r, S.size) : inside(S.map, hv.c, hv.r) ? [[hv.c, hv.r]] : [];
-      ctx.strokeStyle = "rgba(255,255,255,0.9)"; line(1.5);
+        : inside(S.map, hv.c, hv.r) ? (S.tool === "brush" ? brushCells(S.map, hv.c, hv.r, S.size) : [[hv.c, hv.r]]) : [];
+      let off = false;
+      if (!S.stroke && !inside(S.map, hv.c, hv.r) && near(hv.c, hv.r) && ["brush", "rect", "plot"].includes(S.tool)) {    // past the edge: this grows the map
+        const [c0, r0, c1, r1] = S.tool === "brush" ? footprint(hv.c, hv.r) : [hv.c, hv.r, hv.c, hv.r];
+        cells = []; off = true;
+        for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) cells.push([c, r]);
+      }
+      ctx.strokeStyle = S.eraseMode ? "rgba(240,138,98,0.95)" : "rgba(255,255,255,0.9)"; line(1.5);
+      if (off) ctx.setLineDash([3 / S.zoom, 3 / S.zoom]);
       for (const [c, r] of cells) { poly(ctx, V.cellPoly(c, r)); ctx.stroke(); }
-    } else if (S.place?.type === "Prop" && S.scatter.on) {
+      ctx.setLineDash([]);
+    } else if (S.tool === "scatter") {
       ctx.strokeStyle = "rgba(255,255,255,0.9)"; line(1.5); ctx.setLineDash([3 / S.zoom, 3 / S.zoom]);
       for (const [c, r] of brushCells(S.map, hv.c, hv.r, 3)) { poly(ctx, V.cellPoly(c, r)); ctx.stroke(); }
       ctx.setLineDash([]);
-    } else if (S.place && !S.drag && (S.place.type === "Prop" || S.place.type === "Character") && !hit(hv)) {
-      const [x, y] = snapFeet(hv.mx, hv.my, hv.free);
-      ctx.globalAlpha = 0.6;
-      drawSprites(ctx, [{ type: S.place.type, x, y, fields: { sprite: S.place.sprite } }]);
-      ctx.globalAlpha = 1;
+    } else if (S.tool === "place" && S.place && near(hv.c, hv.r)) {
+      if (S.place.type === "Prop" || S.place.type === "Character") {
+        const [x, y] = snapFeet(hv.mx, hv.my, hv.free);
+        ctx.globalAlpha = 0.7;
+        drawSprites(ctx, [{ type: S.place.type, x, y, fields: { sprite: S.place.sprite } }]);
+        ctx.globalAlpha = 1;
+      } else { ctx.strokeStyle = ENTITIES[S.place.type].color; line(2); poly(ctx, V.cellPoly(hv.c, hv.r)); ctx.stroke(); }
     }
   }
-  const footprint = (c0, r0, c1, r1) => [V.pt(c0 * T, r0 * T), V.pt((c1 + 1) * T, r0 * T), V.pt((c1 + 1) * T, (r1 + 1) * T), V.pt(c0 * T, (r1 + 1) * T)];
+  const area4 = (c0, r0, c1, r1) => [V.pt(c0 * T, r0 * T), V.pt((c1 + 1) * T, r0 * T), V.pt((c1 + 1) * T, (r1 + 1) * T), V.pt(c0 * T, (r1 + 1) * T)];
   if (S.sel) {
     const { c0, r0, c1, r1 } = S.sel;
-    ctx.fillStyle = "rgba(58,118,240,0.12)"; poly(ctx, footprint(c0, r0, c1, r1)); ctx.fill();
+    ctx.fillStyle = "rgba(58,118,240,0.12)"; poly(ctx, area4(c0, r0, c1, r1)); ctx.fill();
     ctx.strokeStyle = "#3a76f0"; line(2); ctx.setLineDash([4 / S.zoom, 3 / S.zoom]); ctx.stroke(); ctx.setLineDash([]);
   }
-  if (S.pasting && hv) {
-    const [c0, r0] = pasteAt(hv);
-    if (!V.iso) { ctx.globalAlpha = 0.75; ctx.drawImage(S.pasting.canvas, c0 * T, r0 * T); ctx.globalAlpha = 1; }
-    ctx.fillStyle = "rgba(58,118,240,0.12)"; poly(ctx, footprint(c0, r0, c0 + S.pasting.clip.cols - 1, r0 + S.pasting.clip.rows - 1));
-    if (V.iso) ctx.fill();
-    ctx.strokeStyle = "#3a76f0"; line(2); ctx.stroke();
+  if (S.tool === "stamp" && S.pasting && hv && !S.walk) {
+    const [c0, r0] = pasteAt(hv), clip = S.pasting.clip;
+    ctx.globalAlpha = 0.8;
+    if (!V.iso) ctx.drawImage(S.pasting.canvas, c0 * T, r0 * T);
+    else { clipPicture(clip); const [dx, dy] = V.cellTop(c0, r0); ctx.drawImage(clip.iso.canvas, dx - clip.iso.at[0], dy - clip.iso.at[1]); }
+    ctx.globalAlpha = 1;
+    const corners = V.iso ? [V.cellTop(c0, r0), V.cellTop(c0 + clip.cols, r0), V.cellTop(c0 + clip.cols, r0 + clip.rows), V.cellTop(c0, r0 + clip.rows)] : area4(c0, r0, c0 + clip.cols - 1, r0 + clip.rows - 1);
+    poly(ctx, corners); ctx.strokeStyle = "#3a76f0"; line(2); ctx.setLineDash([4 / S.zoom, 3 / S.zoom]); ctx.stroke(); ctx.setLineDash([]);
   }
   ctx.strokeStyle = "rgba(38,48,63,0.8)"; line(1); poly(ctx, V.border()); ctx.stroke();
+  placeCard();
 }
 
 function label(text, x, y, color) {
@@ -666,29 +990,37 @@ function loop(now) {
 
 // ---------- view: zoom and pan ----------
 
+const showZoom = () => { $("zoom-level").textContent = `${Math.round(S.zoom * 100)}%`; };
 function zoomTo(z, sx, sy) {
   const r = canvas.getBoundingClientRect();
   sx ??= r.width / 2; sy ??= r.height / 2;
-  z = Math.min(12, Math.max(0.25, z));
+  z = Math.min(12, Math.max(0.2, z));
   const mx = (sx - S.ox) / S.zoom, my = (sy - S.oy) / S.zoom;
   S.zoom = z; S.ox = sx - mx * z; S.oy = sy - my * z;
-  $("zoom-level").textContent = `${+z.toFixed(2)}×`;
+  showZoom();
   S.needsDraw = true;
 }
 const stepZoom = (dir) => {
   const i = ZOOMS.findIndex((z) => z >= S.zoom - 1e-6);
   zoomTo(dir > 0 ? ZOOMS[Math.min(ZOOMS.length - 1, (ZOOMS[i] > S.zoom + 1e-6 ? i : i + 1))] : ZOOMS[Math.max(0, i - 1)]);
 };
+// Fit the map into the room between the panels and above the toolbox.
 function fit() {
   const r = canvas.getBoundingClientRect();
   if (r.width < 60 || r.height < 60) { requestAnimationFrame(fit); return; }   // not laid out yet
   S.V = makeView();
+  const cs = getComputedStyle($("stage")), lw = parseFloat(cs.getPropertyValue("--lw")) || 0, rw = parseFloat(cs.getPropertyValue("--rw")) || 0;
+  const bottom = phone() ? 70 : 76, w = r.width - lw - rw, h = r.height - bottom;
   const MW = S.V.W, MH = S.V.H;
-  const best = Math.min((r.width - 24) / MW, (r.height - 24) / MH);
-  const z = ZOOMS.filter((x) => x <= best).pop() || Math.max(0.25, best);
-  S.zoom = z; S.ox = Math.round((r.width - MW * z) / 2); S.oy = Math.round((r.height - MH * z) / 2);
-  $("zoom-level").textContent = `${+z.toFixed(2)}×`;
+  const best = Math.min((w - 24) / MW, (h - 24) / MH);
+  const z = best >= 1 ? ZOOMS.filter((x) => x <= best).pop() : Math.max(0.2, Math.floor(best * 20) / 20);   // whole steps when it's big enough
+  S.zoom = z; S.ox = Math.round(lw + (w - MW * z) / 2); S.oy = Math.round((h - MH * z) / 2);
+  showZoom();
   S.needsDraw = true;
+}
+function zoomActual() {
+  const r = canvas.getBoundingClientRect();
+  zoomTo(1, r.width / 2, r.height / 2);
 }
 
 // ---------- input ----------
@@ -709,22 +1041,26 @@ function strokeCells(p) {
   return lineCells(c0, r0, p.c, p.r).flatMap(([c, r]) => brushCells(S.map, c, r, S.size));
 }
 
-function beginPaint(p, erase, pick, line) {
-  if (pick || S.tool === "pick") {
-    if (!inside(S.map, p.c, p.r)) return;
-    for (const g of [...PALETTE].reverse()) {
-      const v = S.map.layers[g.layer][p.r * S.map.cols + p.c];
-      if (v && g.items.some((it) => it.v === v)) { S.brush = { layer: g.layer, v }; break; }
-      if (g.layer === "Terrain") S.brush = { layer: "Terrain", v: 0 };
-    }
-    if (S.tool === "pick") S.tool = "brush";
-    buildPaintPanel();
-    return;
+function pickAt(p) {
+  if (!inside(S.map, p.c, p.r)) return;
+  for (const g of [...PALETTE].reverse()) {
+    const v = S.map.layers[g.layer][p.r * S.map.cols + p.c];
+    if (v && g.items.some((it) => it.v === v)) { S.brush = { layer: g.layer, v }; break; }
+    if (g.layer === "Terrain") S.brush = { layer: "Terrain", v: 0 };
   }
+  setTool(S.tool === "pick" || !isPaint() ? S.paintTool : S.tool);
+}
+
+function beginPaint(ev, erase, pick, line) {
+  let p = toMap(ev);
+  if (pick || S.tool === "pick") { pickAt(p); return; }
+  if (S.tool === "fill" && !inside(S.map, p.c, p.r)) return;
   history.push(S.map);
   const op = S.brush.op && (erase ? { raise: "lower", lower: "raise", flat: "lower" }[S.brush.op] : S.brush.op);
-  const target = inside(S.map, p.c, p.r) ? S.map.layers.Height[p.r * S.map.cols + p.c] : 0;
-  S.stroke = { v: erase ? 0 : S.brush.v, op, target, touched: new Set(), changed: false, rectFrom: S.tool === "rect" || S.tool === "plot" ? [p.c, p.r] : null, plot: S.tool === "plot" };
+  S.stroke = { v: erase ? 0 : S.brush.v, op, target: 0, touched: new Set(), changed: false, rectFrom: null, plot: S.tool === "plot" };
+  p = growFor(ev, p);
+  S.stroke.target = inside(S.map, p.c, p.r) ? S.map.layers.Height[p.r * S.map.cols + p.c] : 0;
+  if (S.tool === "rect" || S.tool === "plot") S.stroke.rectFrom = [p.c, p.r];
   if (line && S.tool === "brush" && S.lastCell) S.stroke.last = S.lastCell;      // Shift: a straight line from the last stroke
   if (!S.stroke.rectFrom) applyStroke(p);
 }
@@ -753,10 +1089,21 @@ function endPaint(p) {
   if (st.changed) changed(true); else history.drop();
 }
 
+// Put the map back as the last snapshot had it, keeping the screen still if the map shrinks back.
+function restore(fn) {
+  const s0 = S.map.shift || [0, 0];
+  if (!fn()) return false;
+  const s1 = S.map.shift || [0, 0];
+  rebuildView(s1[0] - s0[0], s1[1] - s0[1]);
+  S.terrainDirty = true;
+  return true;
+}
+
 function cancelStroke() {
-  if (S.scatterStroke) { if (S.scatterStroke.changed) { history.undo(S.map); history.future = []; } else history.drop(); S.scatterStroke = null; }
-  if (S.stroke) { if (S.stroke.changed) { history.undo(S.map); history.future = []; S.terrainDirty = true; } else history.drop(); S.stroke = null; }
-  if (S.drag) { if (S.drag.moved) { history.undo(S.map); history.future = []; select(null); } else history.drop(); S.drag = null; }
+  const back = () => { restore(() => history.undo(S.map)); history.future = []; };
+  if (S.scatterStroke) { if (S.scatterStroke.changed) back(); else history.drop(); S.scatterStroke = null; }
+  if (S.stroke) { if (S.stroke.changed) back(); else history.drop(); S.stroke = null; }
+  if (S.drag) { if (S.drag.moved) { back(); select(null); } else history.drop(); S.drag = null; }
 }
 
 canvas.addEventListener("contextmenu", (ev) => ev.preventDefault());
@@ -774,39 +1121,41 @@ canvas.addEventListener("pointerdown", (ev) => {
   }
   if (S.pointers.size > 2) return;
   if (S.walk) return;
-  const p = toMap(ev);
-  if (ev.button === 1 || S.spaceDown) { S.panning = { x: ev.clientX, y: ev.clientY, ox: S.ox, oy: S.oy }; $("stage").classList.add("pan"); return; }
-  if (S.pasting) {
-    if (ev.button === 2) { stopPaste(); return; }
+  if (phone()) sheet(null);
+  let p = toMap(ev);
+  if (ev.button === 1 || S.spaceDown || S.tool === "hand") { S.panning = { x: ev.clientX, y: ev.clientY, ox: S.ox, oy: S.oy }; $("stage").classList.add("pan"); return; }
+  const tool = S.tool;
+  if (tool === "stamp") {
+    if (ev.button === 2) { setTool("select"); return; }
+    if (!near(p.c, p.r)) return;
     history.push(S.map);
-    const [c0, r0] = pasteAt(p);
+    let [c0, r0] = pasteAt(p);
+    if (growTo(c0, r0, c0 + S.pasting.clip.cols - 1, r0 + S.pasting.clip.rows - 1)) { p = toMap(ev); [c0, r0] = pasteAt(p); }
     pasteArea(S.map, S.pasting.clip, c0, r0);
     changed(true);
-    return;
-  }
-  if (S.mode === "paint" && S.tool === "select") {
-    S.selFrom = [p.c, p.r]; S.sel = inside(S.map, p.c, p.r) ? area(S.selFrom, S.selFrom) : null; select(null);
-    S.needsDraw = true; return;
-  }
-  if (S.mode === "paint") {
-    beginPaint(p, ev.button === 2 || S.eraseMode, ev.altKey, ev.shiftKey);
+  } else if (tool === "area") {
+    S.selFrom = [p.c, p.r]; S.sel = inside(S.map, p.c, p.r) ? area(S.selFrom, S.selFrom) : null; sync();
+  } else if (isPaint()) {
+    beginPaint(ev, ev.button === 2 || S.eraseMode, ev.altKey, ev.shiftKey);
     if (ev.pointerType === "touch" && S.tool !== "pick") {           // hold still to pick instead of paint
       const at = { x: ev.clientX, y: ev.clientY };
-      S.longPress = { at, timer: setTimeout(() => { cancelStroke(); beginPaint(p, false, true, false); toast("Picked what was there"); S.longPress = null; }, 500) };
+      S.longPress = { at, timer: setTimeout(() => { cancelStroke(); pickAt(toMap(ev)); toast("Picked what was there"); S.longPress = null; }, 500) };
     }
-  }
-  else if (S.place?.type === "Prop" && S.scatter.on) {
+  } else if (tool === "scatter") {
     history.push(S.map);
     S.scatterStroke = { done: new Set(), changed: false, erase: ev.button === 2 };
     scatterAt(p, S.scatterStroke.erase);
+  } else if (tool === "place") {
+    if (ev.button === 2) { setTool("select"); return; }
+    const what = S.place;
+    if (placeFrom(ev, what)) { if (ev.shiftKey) { S.place = what; sync(); } else { setTool("select"); select(S.selected); } }
   } else {
     const e = hit(p);
     if (e) {
       select(e);
       history.push(S.map);
       S.drag = { e, start: p, x: e.x, y: e.y, points: e.fields.points ? structuredClone(e.fields.points) : null, moved: false };
-    } else if (S.place && inside(S.map, p.c, p.r)) placeAt(p.mx, p.my, p.free);
-    else select(null);
+    } else select(null);
   }
   S.needsDraw = true;
 });
@@ -823,7 +1172,8 @@ canvas.addEventListener("pointermove", (ev) => {
     S.pinch.mx = mx; S.pinch.my = my;
     return;
   }
-  const p = toMap(ev);
+  let p = toMap(ev);
+  if (S.stroke && ["brush", "rect", "plot"].includes(S.tool)) p = growFor(ev, p);
   S.hover = p;
   if (S.longPress && Math.hypot(ev.clientX - S.longPress.at.x, ev.clientY - S.longPress.at.y) > 6) { clearTimeout(S.longPress.timer); S.longPress = null; }
   if (S.panning) { S.ox = S.panning.ox + ev.clientX - S.panning.x; S.oy = S.panning.oy + ev.clientY - S.panning.y; S.needsDraw = true; return; }
@@ -844,6 +1194,7 @@ canvas.addEventListener("pointermove", (ev) => {
       e.x = d.x + dc * T; e.y = d.y + dr * T;
       if (d.points) e.fields.points = d.points.map(([c, r]) => [c + dc, r + dr]);
     }
+    if (e.type === "Prop" && S.V.iso) S.terrainDirty = true;     // isometric props are part of the baked picture
   }
   updateHud(p);
   S.needsDraw = true;
@@ -853,21 +1204,21 @@ function pointerEnd(ev) {
   S.pointers.delete(ev.pointerId);
   if (S.longPress) { clearTimeout(S.longPress.timer); S.longPress = null; }
   if (S.pinch) { if (S.pointers.size < 2) S.pinch = null; return; }
-  if (S.panning) { S.panning = null; $("stage").classList.remove("pan"); return; }
+  if (S.panning) { S.panning = null; $("stage").classList.remove("pan"); S.needsDraw = true; return; }
   const p = S.map ? toMap(ev) : null;
-  if (S.selFrom) { S.selFrom = null; buildInspector(); }
+  if (S.selFrom) { S.selFrom = null; sync(); }
   if (S.stroke) endPaint(p);
   if (S.scatterStroke) { const st = S.scatterStroke; S.scatterStroke = null; if (st.changed) changed(false); else history.drop(); }
   if (S.drag) {
     const moved = S.drag.moved;
     S.drag = null;
-    if (moved) { changed(S.selected?.type === "Region"); buildInspector(); } else history.drop();
+    if (moved) { changed(S.selected?.type === "Region"); buildCard(true); } else history.drop();
   }
   S.needsDraw = true;
 }
 canvas.addEventListener("pointerup", pointerEnd);
 canvas.addEventListener("pointercancel", (ev) => { cancelStroke(); pointerEnd(ev); });
-canvas.addEventListener("pointerleave", () => { S.hover = null; S.needsDraw = true; updateHud(null); });
+canvas.addEventListener("pointerleave", () => { if (!S.dnd) { S.hover = null; S.needsDraw = true; updateHud(null); } });
 
 canvas.addEventListener("wheel", (ev) => {
   ev.preventDefault();
@@ -878,17 +1229,22 @@ canvas.addEventListener("wheel", (ev) => {
 
 function updateHud(p) {
   const hud = $("hud");
-  if (!p || !S.map || !inside(S.map, p.c, p.r)) { hud.textContent = S.map ? `${S.map.cols}×${S.map.rows}` : "–"; return; }
+  if (!p || !S.map) { hud.textContent = S.map ? `${S.map.cols} × ${S.map.rows} cells` : "–"; return; }
+  if (!inside(S.map, p.c, p.r)) {
+    hud.textContent = near(p.c, p.r) && ["brush", "rect", "plot", "stamp", "place"].includes(S.tool) ? "Past the edge · this grows the map" : `${S.map.cols} × ${S.map.rows} cells`;
+    return;
+  }
   const i = p.r * S.map.cols + p.c;
   const name = (layer) => LAYERS[layer].values.find((x) => x.v === S.map.layers[layer][i])?.label;
   const bits = [name("Terrain") || "Grass", `level ${S.map.layers.Height[i]}`, name("Features"), name("Deco")].filter(Boolean);
   hud.textContent = `col ${p.c}, row ${p.r} · ${bits.join(", ")}`;
 }
 
-const typing = () => ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName);
+const typing = () => ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName) || document.querySelector("dialog[open]");
 window.addEventListener("keydown", (ev) => {
   const mod = ev.ctrlKey || ev.metaKey;
   if (mod && ev.key.toLowerCase() === "s") { ev.preventDefault(); save(); return; }
+  if (mod && ev.key.toLowerCase() === "o") { ev.preventDefault(); openMap(); return; }
   if (typing()) return;
   if (S.walk) {
     const dir = WALK_KEYS[ev.key.toLowerCase()];
@@ -896,88 +1252,98 @@ window.addEventListener("keydown", (ev) => {
     if (ev.key === "Escape" || ev.key === "Enter") walkStop();
     return;
   }
+  if (!$("file-menu").hidden) return;
   if (ev.key === "Enter" && !mod && document.activeElement?.tagName !== "BUTTON") { ev.preventDefault(); walkStart(); return; }
   if (mod && ev.key.toLowerCase() === "z") { ev.preventDefault(); ev.shiftKey ? redo() : undo(); return; }
   if (mod && ev.key.toLowerCase() === "y") { ev.preventDefault(); redo(); return; }
   if (mod && ev.key.toLowerCase() === "c" && S.sel) { ev.preventDefault(); copySel(false); return; }
   if (mod && ev.key.toLowerCase() === "x" && S.sel) { ev.preventDefault(); copySel(true); return; }
   if (mod && ev.key.toLowerCase() === "v" && S.clip) { ev.preventDefault(); startPaste(S.clip); return; }
+  if (mod && ev.key === "\\") { ev.preventDefault(); foldBoth(); return; }
+  if (mod && ev.key === "0") { ev.preventDefault(); zoomActual(); return; }
   if (mod) return;
   if (ev.key === " ") { if (!S.spaceDown) { S.spaceDown = true; $("stage").classList.add("pan"); } ev.preventDefault(); return; }
   const k = ev.key.toLowerCase();
+  if (ev.shiftKey && (ev.code === "Digit1")) { fit(); return; }
+  if (ev.shiftKey && (ev.code === "Digit0")) { zoomActual(); return; }
   if (k === "r" && ev.shiftKey) { S.show.raw = !S.show.raw; buildShow(); S.needsDraw = true; return; }
-  if (S.mode === "paint" && { b: 1, r: 1, f: 1, i: 1, s: 1, t: 1 }[k]) { setTool({ b: "brush", r: "rect", f: "fill", i: "pick", s: "select", t: "plot" }[k]); return; }
-  if (k === "p") { setMode(S.mode === "paint" ? "objects" : "paint"); return; }
-  if (k === "v") { setMode("objects"); S.place = null; buildCatalog(); return; }
-  if (S.mode === "paint" && /^[1-9]$/.test(ev.key)) {
+  const keyTool = { v: "select", h: "hand", b: "brush", r: "rect", f: "fill", i: "pick", s: "area", t: "plot" }[k];
+  if (keyTool) { setTool(keyTool); return; }
+  if (k === "e") { toggleErase(); return; }
+  if (/^[1-9]$/.test(ev.key)) {
     const all = PALETTE.flatMap((g) => g.items.map((it) => ({ layer: g.layer, it })));
     const pickd = all[+ev.key - 1];
-    if (pickd) { S.brush = pickd.it.op ? { layer: pickd.layer, op: pickd.it.op } : { layer: pickd.layer, v: pickd.it.v }; buildPaintPanel(); }
+    if (pickd) choosePaint(pickd.layer, pickd.it);
     return;
   }
-  if (k === "[" || k === "]") { S.size = Math.min(3, Math.max(1, S.size + (k === "]" ? 1 : -1))); buildPaintPanel(); S.needsDraw = true; return; }
+  if (k === "[" || k === "]") { S.size = Math.min(3, Math.max(1, S.size + (k === "]" ? 1 : -1))); sync(); return; }
   if (k === "shift" && S.hover) { S.hover.free = true; S.needsDraw = true; return; }
   if (k === "+" || k === "=") { stepZoom(1); return; }
   if (k === "-" || k === "_") { stepZoom(-1); return; }
+  const arrow = { arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, -1], arrowdown: [0, 1] }[k];
+  if (arrow && S.selected) { ev.preventDefault(); const n = ev.shiftKey ? 1 : T; nudge(arrow[0] * n, arrow[1] * n); return; }
   if ((k === "delete" || k === "backspace") && S.selected) { ev.preventDefault(); removeSelected(); return; }
   if ((k === "delete" || k === "backspace") && S.sel) { ev.preventDefault(); deleteSel(); return; }
-  if (k === "escape") { if (S.pasting) { stopPaste(); return; } S.place = null; S.sel = null; select(null); buildCatalog(); }
+  if (k === "escape") {
+    if (["place", "scatter", "stamp"].includes(S.tool)) { setTool("select"); return; }
+    S.sel = null; select(null);
+  }
 });
 window.addEventListener("keyup", (ev) => {
   if (S.walk) { const dir = WALK_KEYS[ev.key.toLowerCase()]; if (dir) S.walk.release(dir); }
   if (ev.key === " ") { S.spaceDown = false; if (!S.panning) $("stage").classList.remove("pan"); }
   if (ev.key === "Shift" && S.hover) { S.hover.free = false; S.needsDraw = true; }
 });
-window.addEventListener("resize", () => { S.needsDraw = true; });
+window.addEventListener("resize", () => { S.needsDraw = true; buildToolbox(); });
 
-// ---------- modes, panels ----------
+// ---------- panels: fold on a desk, sheets on a phone ----------
 
-function setMode(mode) {
-  S.mode = mode;
-  $("mode-paint").setAttribute("aria-pressed", String(mode === "paint"));
-  $("mode-objects").setAttribute("aria-pressed", String(mode === "objects"));
-  $("paint-panel").hidden = mode !== "paint";
-  $("objects-panel").hidden = mode !== "objects";
-  syncBar();
+function setFold(side, folded) {
+  $("stage").classList.toggle(`fold-${side}`, folded);
+  $(`tab-${side}`).hidden = !folded;
+  try { localStorage.setItem(`tiny-town/fold-${side}`, folded ? "1" : ""); } catch { /* fine */ }
   S.needsDraw = true;
 }
-$("m-mode").addEventListener("click", () => setMode(S.mode === "paint" ? "objects" : "paint"));
-for (const b of $("mbar").querySelectorAll("[data-tool]")) b.addEventListener("click", () => setTool(b.dataset.tool));
-$("m-erase").addEventListener("click", () => { S.eraseMode = !S.eraseMode; syncBar(); });
-$("m-undo").addEventListener("click", () => undo());
-$("m-redo").addEventListener("click", () => redo());
-$("m-brush").addEventListener("click", () => $("palette").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" }));
-$("mode-paint").addEventListener("click", () => setMode("paint"));
-$("mode-objects").addEventListener("click", () => setMode("objects"));
+function foldBoth() {
+  const st = $("stage"), any = !st.classList.contains("fold-left") || !st.classList.contains("fold-right");
+  setFold("left", any); setFold("right", any);
+}
+// Show a panel: unfold it on a desk, slide it up on a phone.
+function reveal(side) {
+  if (phone()) { sheet(side); return; }
+  setFold(side, false);
+  const on = side === "left" ? $("palette").querySelector('[aria-pressed="true"]') : $("catalog").querySelector('[aria-pressed="true"]');
+  on?.scrollIntoView({ block: "nearest", behavior: reduceMotion ? "auto" : "smooth" });
+}
+function sheet(side) {
+  const L = $("paint-panel"), R = $("objects-panel");
+  const open = side && !(side === "left" ? L : R).classList.contains("open") ? side : null;
+  L.classList.toggle("open", open === "left"); R.classList.toggle("open", open === "right");
+  buildToolbox();
+}
+for (const b of document.querySelectorAll("[data-fold]")) b.addEventListener("click", () => (phone() ? sheet(null) : setFold(b.dataset.fold, true)));
+for (const b of document.querySelectorAll("[data-unfold]")) b.addEventListener("click", () => setFold(b.dataset.unfold, false));
 
 const SHOW = [["terrain", "Terrain"], ["props", "Props"], ["characters", "Characters"], ["data", "Paths and regions"], ["raw", "Raw grid (Shift R)"], ["grid", "Grid lines"], ["margin", "Forest round the edge"]];
 function buildShow() {
   $("show").replaceChildren(...SHOW.map(([k, label]) => el("label", { for: `show-${k}` },
-    el("input", { type: "checkbox", id: `show-${k}`, checked: S.show[k], onchange: (ev) => { S.show[k] = ev.target.checked; if (k === "props" || k === "margin") { S.terrainDirty = true; S.V = null; } S.needsDraw = true; } }), label)));
+    el("input", { type: "checkbox", id: `show-${k}`, checked: S.show[k], onchange: (ev) => { S.show[k] = ev.target.checked; if (k === "props" || k === "margin") { S.terrainDirty = true; rebuildView(); } S.needsDraw = true; } }), label)));
 }
 
 $("zoom-in").addEventListener("click", () => stepZoom(1));
 $("zoom-out").addEventListener("click", () => stepZoom(-1));
 $("zoom-fit").addEventListener("click", fit);
-
-$("resize").addEventListener("click", () => {
-  const cols = Math.max(4, Math.min(200, +$("cols").value | 0)), rows = Math.max(4, Math.min(200, +$("rows").value | 0));
-  if (cols === S.map.cols && rows === S.map.rows) return;
-  history.push(S.map);
-  resize(S.map, cols, rows);
-  changed(true);
-  toast(`Map is now ${cols} × ${rows} cells`);
-});
+$("settings").addEventListener("click", () => $("settings-dialog").showModal());
 
 // ---------- saving ----------
 
 let autosaveTimer = null;
 function changed(terrain) {
-  if (terrain) { S.terrainDirty = true; if (S.V?.iso) S.V = makeView(); }
+  if (terrain) { S.terrainDirty = true; if (S.V?.iso) rebuildView(); }
   else if (S.V?.iso) S.terrainDirty = true;                  // props are part of the isometric picture
   S.needsDraw = true;
   updateUndo();
-  $("cols").value = S.map.cols; $("rows").value = S.map.rows;
+  buildCard(true);
   setState("Unsaved changes · kept in this browser");
   clearTimeout(autosaveTimer);
   autosaveTimer = setTimeout(() => { if (!writeAutosave(S.fileName, stringifyMap(S.map))) setState("Unsaved changes · this browser can't keep them, save to a file"); }, 600);
@@ -992,14 +1358,15 @@ function toast(text) {
 }
 
 function updateUndo() {
-  $("undo").disabled = $("m-undo").disabled = !history.past.length;
-  $("redo").disabled = $("m-redo").disabled = !history.future.length;
+  $("undo").disabled = !history.past.length;
+  $("redo").disabled = !history.future.length;
 }
-function undo() { if (history.undo(S.map)) afterHistory(); }
-function redo() { if (history.redo(S.map)) afterHistory(); }
+function undo() { if (restore(() => history.undo(S.map))) afterHistory(); }
+function redo() { if (restore(() => history.redo(S.map))) afterHistory(); }
 function afterHistory() {
   if (S.selected && !S.map.entities.includes(S.selected)) S.selected = null;
-  buildInspector(); changed(true);
+  if (S.sel && (S.sel.c1 >= S.map.cols || S.sel.r1 >= S.map.rows)) S.sel = null;
+  sync(); changed(true);
 }
 $("undo").addEventListener("click", undo);
 $("redo").addEventListener("click", redo);
@@ -1014,17 +1381,44 @@ async function save() {
 }
 $("save").addEventListener("click", save);
 
-$("export").addEventListener("click", async () => {
-  const c = document.createElement("canvas");
-  c.width = S.V.W; c.height = S.V.H;
+async function savePng() {
+  const V = makeView(), c = document.createElement("canvas");
+  c.width = V.W; c.height = V.H;
   const g = c.getContext("2d");
-  if (S.V.iso) g.drawImage(bakeIso(S.map, S.isoTs, S.V)[0], 0, 0); else drawTerrain(g, S.map, S.ts, 0);
-  drawSprites(g, S.map.entities.filter((e) => (e.type === "Prop" && !S.V.iso) || e.type === "Character").sort((a, b) => (S.V.iso ? (a.x + a.y) - (b.x + b.y) : a.y - b.y)));
+  if (V.iso) g.drawImage(bakeIso(S.map, S.isoTs, V)[0], 0, 0); else drawTerrain(g, S.map, S.ts, 0);
+  drawSprites(g, S.map.entities.filter((e) => (e.type === "Prop" && !V.iso) || e.type === "Character").sort((a, b) => (V.iso ? (a.x + a.y) - (b.x + b.y) : a.y - b.y)));
   const blob = await new Promise((ok) => c.toBlob(ok, "image/png"));
   try {
     const r = await saveFile(blob, S.fileName.replace(/\.(ldtk|json)$/, "") + ".png", { types: [{ description: "PNG image", accept: { "image/png": [".png"] } }] });
-    if (r === "saved") toast("Exported the map as a PNG");
-  } catch (e) { toast(`Couldn't export: ${e.message}`); }
+    if (r === "saved") toast("Saved the map as a PNG");
+  } catch (e) { toast(`Couldn't save the picture: ${e.message}`); }
+}
+
+async function copyCode() {
+  let code;
+  try { code = await mapToCode(S.map); } catch (e) { toast(`Couldn't make a code here: ${e.message}`); return; }
+  try { await navigator.clipboard.writeText(code); toast(`Copied a ${Math.round(code.length / 1024)} KB share code. Paste it anywhere.`); }
+  catch { codeDialog(code); }
+}
+
+// The share code box: shows a code to copy by hand, or takes one to open.
+function codeDialog(code = "") {
+  $("code-text").value = code; $("code-text").readOnly = !!code;
+  $("code-title").firstChild.textContent = code ? "Copy this share code" : "Open a share code";
+  $("code-hint").textContent = code ? "Select it all and copy it. Whoever pastes it into Open a share code gets this map (with the same tiles and sprites)."
+    : "Paste a code (it starts with tinytown1:). Undo brings your map back.";
+  $("code-go").hidden = !!code;
+  $("code-dialog").showModal();
+  if (code) $("code-text").select(); else $("code-text").focus();
+}
+$("code-go").addEventListener("click", async () => {
+  try {
+    const m = await codeToMap($("code-text").value);
+    history.push(S.map);
+    useMap(m, "shared.ldtk", "Opened the shared map. Undo brings yours back.");
+    changed(true);
+    $("code-dialog").close();
+  } catch (e) { toast(e.message); }
 });
 
 function useMap(m, name, note) {
@@ -1032,12 +1426,11 @@ function useMap(m, name, note) {
   S.V = null;
   S.map = m; S.fileName = name; S.selected = null; S.sel = null;
   $("file-name").textContent = name;
-  $("cols").value = m.cols; $("rows").value = m.rows;
-  buildInspector(); fit(); S.terrainDirty = true; updateUndo(); updateHud(null);
+  sync(); fit(); S.terrainDirty = true; updateUndo(); updateHud(null);
   if (note) toast(note);
 }
 
-$("open").addEventListener("click", async () => {
+async function openMap() {
   const f = await openFile(".ldtk,.json,application/json");
   if (!f) return;
   try {
@@ -1046,66 +1439,63 @@ $("open").addEventListener("click", async () => {
     useMap(m, f.name.endsWith(".json") ? f.name.replace(/(\.ldtk)?\.json$/, ".ldtk") : f.name, `Opened ${f.name}`);
     changed(true);
   } catch (e) { toast(`Couldn't open ${f.name}: ${e.message}`); }
-});
+}
 
-let confirmNew = 0;
-$("new").addEventListener("click", () => {
-  const b = $("new");
-  if (Date.now() - confirmNew > 3000) { confirmNew = Date.now(); b.textContent = "Sure? Click again"; setTimeout(() => { b.textContent = "New"; }, 3000); return; }
-  b.textContent = "New";
-  history.push(S.map);
-  useMap(newMap(S.map.cols, S.map.rows), "town.ldtk", "New empty map. Undo brings the old one back.");
-  changed(true);
-});
-
-$("example").addEventListener("change", async (ev) => {
-  const url = ev.target.value;
-  ev.target.value = "";
-  if (!url) return;
+async function openExample(url) {
   try {
     const m = parseMap(await (await fetch(url)).json());
     history.push(S.map);
     useMap(m, url.split("/").pop(), "Opened the example. Undo brings your map back.");
     changed(true);
   } catch (e) { toast(`Couldn't load the example: ${e.message}`); }
-});
+}
 
-$("share").addEventListener("click", async () => {
-  const out = $("share-out");
-  out.value = "Packing…";
-  $("share-dialog").showModal();
-  try { out.value = await mapToCode(S.map); out.select(); } catch (e) { out.value = `Couldn't make a code here: ${e.message}`; }
+function newTown() {
+  history.push(S.map);
+  useMap(newMap(24, 24), "town.ldtk", "A new empty map. Paint past the edge to make it bigger; undo brings the old one back.");
+  changed(true);
+}
+
+// ---------- the file menu (the arrow beside Save) ----------
+
+const menu = $("file-menu"), menuBtn = $("file-btn");
+function openMenu(open) {
+  menu.hidden = !open;
+  menuBtn.setAttribute("aria-expanded", String(open));
+  if (open) menu.querySelector("button").focus();
+}
+menuBtn.addEventListener("click", () => openMenu(menu.hidden));
+document.addEventListener("pointerdown", (ev) => { if (!menu.hidden && !menu.contains(ev.target) && ev.target !== menuBtn && !menuBtn.contains(ev.target)) openMenu(false); });
+menu.addEventListener("keydown", (ev) => {
+  const items = [...menu.querySelectorAll("button")], i = items.indexOf(document.activeElement);
+  if (ev.key === "Escape") { openMenu(false); menuBtn.focus(); }
+  else if (ev.key === "ArrowDown") { ev.preventDefault(); items[(i + 1) % items.length].focus(); }
+  else if (ev.key === "ArrowUp") { ev.preventDefault(); items[(i - 1 + items.length) % items.length].focus(); }
 });
-$("share-copy").addEventListener("click", async () => {
-  const out = $("share-out");
-  try { await navigator.clipboard.writeText(out.value); toast(`Copied a ${Math.round(out.value.length / 1024)} KB code`); }
-  catch { out.select(); toast("Select the code and copy it with Ctrl+C"); }
-});
-$("share-open").addEventListener("click", async () => {
-  try {
-    const m = await codeToMap($("share-in").value);
-    history.push(S.map);
-    useMap(m, "shared.ldtk", "Opened the shared map. Undo brings yours back.");
-    changed(true);
-    $("share-dialog").close();
-  } catch (e) { toast(e.message); }
+menu.addEventListener("click", (ev) => {
+  const b = ev.target.closest("button[data-act]");
+  if (!b) return;
+  openMenu(false);
+  ({ save, png: savePng, "copy-code": copyCode, open: openMap, "open-code": () => codeDialog(), example: () => openExample(b.dataset.url), new: newTown })[b.dataset.act]();
 });
 
 // ---------- isometric or top-down ----------
 
 function syncProjection() {
-  const b = $("projection");
-  b.textContent = S.projection === "iso" ? "Isometric" : "Top-down";
-  b.title = `Showing ${S.projection === "iso" ? "isometric" : "top-down"}; click to switch`;
-  b.disabled = !S.isoTs;
+  $("proj-iso").setAttribute("aria-pressed", String(S.projection === "iso"));
+  $("proj-top").setAttribute("aria-pressed", String(S.projection !== "iso"));
+  $("proj-iso").disabled = !S.isoTs;
 }
-$("projection").addEventListener("click", () => {
-  S.projection = S.projection === "iso" ? "ortho" : "iso";
+function setProjection(p) {
+  if (p === S.projection || (p === "iso" && !S.isoTs)) return;
+  S.projection = p;
   try { localStorage.setItem("tiny-town/projection", S.projection); } catch { /* fine */ }
   syncProjection();
   S.V = null; S.terrainDirty = true;
-  if (S.map) { fit(); buildCatalog(); buildInspector(); }
-});
+  if (S.map) { fit(); buildCatalog(); buildStamps(); sync(); buildCard(true); }
+}
+$("proj-iso").addEventListener("click", () => setProjection("iso"));
+$("proj-top").addEventListener("click", () => setProjection("ortho"));
 
 // ---------- walk mode ----------
 
@@ -1119,18 +1509,18 @@ function walkStart() {
     : cat ? [Math.floor(cat.x / T), Math.floor((cat.y - 1) / T)] : [Math.floor(m.cols / 2), Math.floor(m.rows / 2)];
   S.walk = new Walker(m, (S.V?.iso ? S.isoTs : S.ts).props, at, { faces: !S.V?.iso });
   S.walkView = { zoom: S.zoom, ox: S.ox, oy: S.oy };
-  S.zoom = 3; $("zoom-level").textContent = "3×";
-  S.pasting = null; S.sel = null; select(null);
-  $("walk").setAttribute("aria-pressed", "true"); $("pad").hidden = false; $("walking").hidden = false; $("mbar").hidden = true;
+  S.zoom = 3; showZoom();
+  S.sel = null; S.selected = null; buildCard();
+  $("walk").setAttribute("aria-pressed", "true"); $("pad").hidden = false; $("walking").hidden = false; $("stage").classList.add("walk");
   S.needsDraw = true;
 }
 
 function walkStop() {
   if (!S.walk) return;
   S.walk = null;
-  Object.assign(S, S.walkView); $("zoom-level").textContent = `${+S.zoom.toFixed(2)}×`;
-  $("walk").setAttribute("aria-pressed", "false"); $("pad").hidden = true; $("walking").hidden = true; $("mbar").hidden = false;
-  S.needsDraw = true;
+  Object.assign(S, S.walkView); showZoom();
+  $("walk").setAttribute("aria-pressed", "false"); $("pad").hidden = true; $("walking").hidden = true; $("stage").classList.remove("walk");
+  sync();
 }
 
 $("walk").addEventListener("click", () => (S.walk ? walkStop() : walkStart()));
@@ -1164,6 +1554,10 @@ function drawWalker(g) {
 // ---------- start ----------
 
 async function start() {
+  $("undo").append(icon("undo")); $("redo").append(icon("redo")); $("settings").append(icon("cog")); $("file-btn").append(icon("chev"));
+  $("walk").append(icon("walk"), el("span", { text: "Walk" }));
+  $("walk").querySelector("svg").style.fill = "currentColor";
+  for (const side of ["left", "right"]) { let f = false; try { f = localStorage.getItem(`tiny-town/fold-${side}`) === "1"; } catch { /* fine */ } if (f) setFold(side, true); }
   try {
     S.ts = await loadTileset("tiles/");
   } catch (e) {

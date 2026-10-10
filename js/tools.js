@@ -1,4 +1,4 @@
-// Map edits that don't need the screen: painting cells, flood fill, resizing, and undo history.
+// Map edits that don't need the screen: painting cells, flood fill, resizing and growing, and undo history.
 
 export const at = (m, c, r) => r * m.cols + c;
 export const inside = (m, c, r) => c >= 0 && r >= 0 && c < m.cols && r < m.rows;
@@ -102,13 +102,34 @@ export function resize(m, cols, rows) {
   m.cols = cols; m.rows = rows;
 }
 
+// Move an object by whole cells, with everything it points at (its feet, path points, perch, where it flies to).
+export function moveEntity(e, dc, dr) {
+  e.x += dc * 16; e.y += dr * 16;
+  for (const k of ["points", "path"]) if (Array.isArray(e.fields[k])) e.fields[k] = e.fields[k].map(([c, r]) => [c + dc, r + dr]);
+  for (const k of ["perch", "flyTo"]) if (e.fields[k]) e.fields[k] = [e.fields[k][0] + dc, e.fields[k][1] + dr];
+}
+
+// Add empty cells on any side. Cells and objects keep their place in the world; `m.shift` counts the cells added on
+// the left and top this session, so the editor can keep the screen still (it isn't saved).
+export function grow(m, left, top, right, bottom) {
+  const cols = m.cols + left + right, rows = m.rows + top + bottom;
+  for (const k of Object.keys(m.layers)) {
+    const old = m.layers[k], next = new Uint8Array(cols * rows);
+    for (let r = 0; r < m.rows; r++) next.set(old.subarray(r * m.cols, (r + 1) * m.cols), (r + top) * cols + left);
+    m.layers[k] = next;
+  }
+  m.cols = cols; m.rows = rows;
+  if (left || top) for (const e of m.entities) moveEntity(e, left, top);
+  m.shift = [(m.shift?.[0] || 0) + left, (m.shift?.[1] || 0) + top];
+}
+
 const snap = (m) => ({
-  cols: m.cols, rows: m.rows,
+  cols: m.cols, rows: m.rows, shift: [...(m.shift || [0, 0])],
   layers: Object.fromEntries(Object.entries(m.layers).map(([k, v]) => [k, v.slice()])),
   entities: structuredClone(m.entities),
 });
 const restore = (m, s) => {
-  m.cols = s.cols; m.rows = s.rows;
+  m.cols = s.cols; m.rows = s.rows; m.shift = [...s.shift];
   m.layers = Object.fromEntries(Object.entries(s.layers).map(([k, v]) => [k, v.slice()]));
   m.entities = structuredClone(s.entities);
 };
