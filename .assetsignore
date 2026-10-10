@@ -1,0 +1,15 @@
+# Kept off the website (wrangler.jsonc publishes the repo folder): git, the Python art scripts, notes for working on it
+.git
+.github
+.claude
+.wrangler
+art
+out
+__pycache__
+*.py
+*.pyc
+.DS_Store
+CLAUDE.md
+wrangler.jsonc
+.assetsignore
+.gitignore

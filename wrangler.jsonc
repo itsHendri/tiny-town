@@ -1,0 +1,7 @@
+// Cloudflare (Workers static assets) serves this folder as tinypixeltown.com. Every push to main redeploys.
+// What stays off the site is in .assetsignore.
+{
+  "name": "tiny-pixel-town",
+  "compatibility_date": "2026-10-06",
+  "assets": { "directory": "." }
+}
