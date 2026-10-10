@@ -102,7 +102,6 @@ lamps, fences, bridges, stairs, flower beds, dirt, details, a forest margin, chi
 
 Still open:
 
-* Isometric palette swatches (stamps and their previews are isometric now).
 * More houses and buildings (a mill, a tavern, a chapel), more stall goods, carts.
 * Sounds (off by default), per-terrain cliff lips, a darker roof option.
 * Characters drawn for the isometric angle (the cast sprites are still straight-on).

@@ -31,14 +31,13 @@ def build(palette):
     meta["grass"] = {f"{a},{b}": sh.add(grass_cell((a, b))) for a, b in PHASES}
     sh.newline()
     meta["sets"] = {}
-    for name in ("raised_fill", "raised_edge", "dirt", "water", "soil", "path", "tallgrass"):
+    for name in ("raised_fill", "raised_edge", "dirt", "water", "soil", "path", "cobbles", "tallgrass"):
         frames = 3 if name in ANIMATED else 1
         tiles = {}
         for mask in range(1, 16):
             tiles[mask] = {f"{a},{b}": [sh.add(iso_tile(name, mask, f, (a, b))) for f in range(frames)] for a, b in PHASES}
         sh.newline()
         meta["sets"][name] = tiles
-    meta["sets"]["cobbles"] = meta["sets"]["path"]
     from iso_ground import flats
     sh.newline()
     meta["flats"] = {name: sh.add(im) for name, im in flats().items()}

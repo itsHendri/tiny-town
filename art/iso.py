@@ -164,6 +164,15 @@ def cobble_px(sh, x, y, gx, gy):
     return "cb2" if h("cbs", *sid) < 0.22 else "cb1"
 
 
+GREY_STONE = {"cb0": "cs0", "cb1": "cs1", "cb2": "cs2", "cb3": "cs3"}
+
+
+def grey_cobble_px(sh, x, y, gx, gy):
+    """Cobbles: the same rounded stones as the path, in cool grey."""
+    c = cobble_px(sh, x, y, gx, gy)
+    return GREY_STONE.get(c, c)
+
+
 def dirt_px(sh, x, y, gx, gy):
     """Trampled earth: warm dirt with pebbles, thinning raggedly into the grass."""
     if not sh.inside(x, y):
@@ -242,7 +251,7 @@ SETS = {
     "dirt": lambda sh, x, y, gx, gy, f: dirt_px(sh, x, y, gx, gy),
     "soil": lambda sh, x, y, gx, gy, f: soil_px(sh, x, y, gx, gy),
     "path": lambda sh, x, y, gx, gy, f: cobble_px(sh, x, y, gx, gy),
-    "cobbles": lambda sh, x, y, gx, gy, f: cobble_px(sh, x, y, gx, gy),
+    "cobbles": lambda sh, x, y, gx, gy, f: grey_cobble_px(sh, x, y, gx, gy),
     "tallgrass": tallgrass_px,
 }
 ANIMATED = {"water", "tallgrass"}

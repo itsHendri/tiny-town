@@ -44,6 +44,6 @@ write(m, "iso-ref")
 d = preview.Map(12, 10)
 d.fill("height", 0, 0, 10, 12, 1)
 d.fill("height", 2, 3, 6, 7, 0); d.fill("height", 1, 8, 4, 11, 2)       # rows first, ends not included
-d.fill("terrain", 3, 4, 5, 6, "water"); d.fill("terrain", 8, 0, 9, 12, "path")
+d.fill("terrain", 3, 4, 5, 6, "water"); d.fill("terrain", 8, 0, 9, 12, "path"); d.fill("terrain", 5, 8, 8, 11, "cobbles")
 d.feature[2][4] = "stairs"                                            # at the foot of the pit's back wall
 write(d, "iso-ref-dig", margin=2)

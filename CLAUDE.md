@@ -32,6 +32,7 @@ Code MIT (`LICENSE`), art CC BY 4.0 (`LICENSE-art`). Read `README.md` for the us
 | `art/dress.py <in.ldtk> <out.ldtk>` | Adds road-edge details and trees to any map (same result every time). |
 | `art/parity_ref.py` | Writes the parity test map (see below). |
 | `art/iso_village.py`, `art/preview.py` | Comparison sheets for picking looks (output in `out/`, which is gitignored). |
+| `art/ground_picker.py` | Candidate isometric ground looks on a small scene, with a picker page (`out/ground-picker/`). |
 
 ## Architecture
 
@@ -84,7 +85,9 @@ existing values. If the format must change, bump `tinyTownVersion` in `js/format
 ## The look (Hendri's picks, keep them)
 
 * Isometric is the main view; top-down still works.
-* Palette `earthy`, but with the **bright road (cobbles) and bright water** (`COBBLE_BRIGHT`, `WATER_BRIGHT`).
+* Palette `earthy`, but with the **bright road and bright water** (`COBBLE_BRIGHT`, `WATER_BRIGHT`). In isometric,
+  **Path** is the bright gold rounded stones and **Cobbles** the same stones in grey (`STONE`, `grey_cobble_px`).
+  Palette swatches are drawn in the current view.
 * Houses: the `storybook` look (`LOOK` in `art/iso_tiles.py`).
 * Trees: lots of variety, no two alike; leaves use hash speckle, not dither stripes.
 * Reference: the market village (`docs/market-village.png`) was rebuilt from a storybook-style picture of a market
@@ -133,6 +136,6 @@ So the town page keeps working, keep these stable (or note the change in the com
 
 ## Ideas, next up
 
-From the README's list: isometric palette swatches; more buildings (mill,
+From the README's list: more buildings (mill,
 tavern, chapel), stall goods, carts; sounds (off by default); per-terrain cliff lips; a darker roof option;
 characters drawn for the isometric angle (the sprites in `sprites/` are still straight-on).

@@ -3,7 +3,7 @@
 import { newMap, parseMap, stringifyMap } from "./format.js";
 import { drawProp, drawTerrain, loadTileset } from "./render.js";
 import { bakeIso, isoView, loadIsoTileset } from "./iso.js";
-import { ENTITIES, LAYERS, MAX_LEVEL } from "./registry.js";
+import { ENTITIES, LAYERS, MAX_LEVEL, value } from "./registry.js";
 import { History, brushCells, grow, inside, lineCells, paint, shapeHeight } from "./tools.js";
 import { loadAutosave, openFile, saveFile, writeAutosave } from "./files.js";
 import { area, copyArea, drawClip, loadBuiltinStamps, loadStamps, pasteArea, saveStamps } from "./stamps.js";
@@ -79,18 +79,33 @@ window.tinyTown = { state: S, history };          // for poking around in the br
 
 const PALETTE = [
   { group: "Ground", layer: "Terrain", items: [{ v: 0, label: "Grass", key: "grass" }, ...LAYERS.Terrain.values.map((x) => ({ v: x.v, label: x.label, key: x.id }))] },
-  { group: "Height", layer: "Height", items: [{ op: "raise", label: "Raise", key: "raised", mark: "▲" }, { op: "lower", label: "Lower", key: "grass", mark: "▼" }, { op: "flat", label: "Flatten", key: "grass", mark: "=" }] },
+  { group: "Height", layer: "Height", items: [{ op: "raise", label: "Raise", key: "raised", mark: "▲" }, { op: "lower", label: "Lower", key: "pit", mark: "▼" }, { op: "flat", label: "Flatten", key: "grass", mark: "=" }] },
   { group: "Features", layer: "Features", items: LAYERS.Features.values.map((x) => ({ v: x.v, label: x.label, key: x.id })) },
   { group: "Decoration", layer: "Deco", items: LAYERS.Deco.values.map((x) => ({ v: x.v, label: x.label, key: x.id })) },
 ];
 
-// A 2x2-cell scene that shows what a palette item paints.
+// A small scene that shows what a palette item paints, drawn the way the map is (isometric or top-down).
+// Each picture is drawn once and copied after that.
+const swatches = new Map();
 function swatch(key, color, mark) {
-  const c = el("canvas", { width: 32, height: 32, "aria-hidden": "true" });
+  const id = `${S.projection === "iso" && S.isoTs ? "iso" : "top"}:${key}:${mark || ""}`;
+  if (!swatches.has(id)) swatches.set(id, id.startsWith("iso") ? isoSwatch(key) : topSwatch(key, color));
+  const c = el("canvas", { width: 32, height: 32, "aria-hidden": "true" }), g = c.getContext("2d");
+  g.drawImage(swatches.get(id), 0, 0);
+  if (mark) {
+    g.font = "bold 13px ui-monospace, monospace"; g.textAlign = "center"; g.textBaseline = "middle";
+    g.lineWidth = 3; g.strokeStyle = "#26303f"; g.strokeText(mark, 24, 9); g.fillStyle = "#fff"; g.fillText(mark, 24, 9);
+  }
+  return c;
+}
+
+function topSwatch(key, color) {
+  const c = el("canvas", { width: 32, height: 32 });
   const m = newMap(2, 2);
   const tv = LAYERS.Terrain.values.find((x) => x.id === key);
   if (tv) m.layers.Terrain.fill(tv.v);
   else if (key === "raised") { m.layers.Height[0] = m.layers.Height[1] = 1; }
+  else if (key === "pit") { m.layers.Height.fill(1); m.layers.Height[3] = 0; }
   else if (key === "stairs") { m.layers.Height[0] = m.layers.Height[1] = 1; m.layers.Features[2] = m.layers.Features[3] = 1; m.layers.Terrain[0] = m.layers.Terrain[2] = 1; }
   else if (key === "fence") { m.layers.Deco[2] = m.layers.Deco[3] = 1; }
   else if (key === "gate") { m.layers.Deco[2] = 4; m.layers.Deco[3] = 1; }
@@ -98,11 +113,26 @@ function swatch(key, color, mark) {
   else if (key === "tallgrass") { m.layers.Deco.fill(3); }
   const g = c.getContext("2d");
   drawTerrain(g, m, S.ts, 0);
-  if (!["grass", "raised", "stairs", "fence", "gate", "flowers", "tallgrass"].includes(key) && !tv && color) { g.fillStyle = color; g.fillRect(4, 4, 24, 24); }
-  if (mark) {
-    g.font = "bold 13px ui-monospace, monospace"; g.textAlign = "center"; g.textBaseline = "middle";
-    g.lineWidth = 3; g.strokeStyle = "#26303f"; g.strokeText(mark, 24, 9); g.fillStyle = "#fff"; g.fillText(mark, 24, 9);
-  }
+  if (!["grass", "raised", "pit", "stairs", "fence", "gate", "flowers", "tallgrass"].includes(key) && !tv && color) { g.fillStyle = color; g.fillRect(4, 4, 24, 24); }
+  return c;
+}
+
+// A 3x3 isometric scene, cropped to the 32x32 round its middle cell, at the map's own pixel size.
+function isoSwatch(key) {
+  const m = newMap(3, 3), L = m.layers, at = (c, r) => r * 3 + c, row = (r, layer, v) => { for (let c = 0; c < 3; c++) L[layer][at(c, r)] = v; };
+  const tv = LAYERS.Terrain.values.find((x) => x.id === key);
+  if (key === "bridge") { L.Terrain.fill(value("Terrain", "water")); for (let r = 0; r < 3; r++) L.Terrain[at(1, r)] = tv.v; }
+  else if (tv) L.Terrain.fill(tv.v);
+  else if (key === "raised") { for (const [c, r] of [[0, 0], [1, 0], [0, 1], [1, 1]]) L.Height[at(c, r)] = 1; }
+  else if (key === "pit") { L.Height.fill(1); L.Height[at(1, 1)] = 0; }
+  else if (key === "stairs") { row(0, "Height", 1); L.Features[at(1, 1)] = 1; L.Terrain[at(1, 1)] = L.Terrain[at(1, 0)] = value("Terrain", "path"); }
+  else if (key === "fence") row(1, "Deco", value("Deco", "fence"));
+  else if (key === "gate") { row(1, "Deco", value("Deco", "fence")); L.Deco[at(1, 1)] = value("Deco", "gate"); }
+  else if (key === "flowers") L.Deco.fill(value("Deco", "flowers"));
+  else if (key === "tallgrass") L.Deco.fill(value("Deco", "tallgrass"));
+  const v = isoView(m), big = bakeIso(m, S.isoTs, v, { objects: false, frames: [0] })[0];
+  const [x, y] = v.cellTop(1, 1, key === "pit" ? 1 : 0), c = el("canvas", { width: 32, height: 32 });
+  c.getContext("2d").drawImage(big, x - 16, y - 8, 32, 32, 0, 0, 32, 32);
   return c;
 }
 
@@ -1451,7 +1481,7 @@ function setProjection(p) {
   try { localStorage.setItem("tiny-town/projection", S.projection); } catch { /* fine */ }
   syncProjection();
   S.V = null; S.terrainDirty = true;
-  if (S.map) { fit(); buildCatalog(); buildStamps(); sync(); buildCard(true); }
+  if (S.map) { fit(); buildPaintPanel(); buildCatalog(); buildStamps(); sync(); buildCard(true); }
 }
 $("proj-iso").addEventListener("click", () => setProjection("iso"));
 $("proj-top").addEventListener("click", () => setProjection("ortho"));

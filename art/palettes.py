@@ -43,8 +43,11 @@ COBBLE_DEEP = {"cb0": "#d6c8a8", "cb1": "#b5a584", "cb2": "#8f8062", "cb3": "#65
 # Picked 2026-10-09 (tiles round 3): earthy, but with the bright road and water for contrast.
 WATER_BRIGHT = {k: BRIGHT[k] for k in ("w0", "w1", "w2", "w3")}
 
-PALETTES = {"bright": {**BRIGHT, **COBBLE_BRIGHT}, "earthy": {**BRIGHT, **EARTHY, **COBBLE_BRIGHT, **WATER_BRIGHT},
-            "earthy-muted": {**BRIGHT, **EARTHY, **COBBLE}, "deep": {**BRIGHT, **DEEP, **COBBLE_DEEP}}
+# Grey stones for the isometric Cobbles (the bright gold ones are Path): an old-town street
+STONE = {"cs0": "#dcd6ca", "cs1": "#b6b0a6", "cs2": "#928c84", "cs3": "#605c58"}
+
+PALETTES = {"bright": {**BRIGHT, **COBBLE_BRIGHT, **STONE}, "earthy": {**BRIGHT, **EARTHY, **COBBLE_BRIGHT, **WATER_BRIGHT, **STONE},
+            "earthy-muted": {**BRIGHT, **EARTHY, **COBBLE, **STONE}, "deep": {**BRIGHT, **DEEP, **COBBLE_DEEP, **STONE}}
 
 
 def use(name):
