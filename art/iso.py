@@ -326,6 +326,15 @@ def render(m, frame=0, objects=True, margin=0):
     from iso_ground import flats, uprights
     FL, UP = _cached(flats), _cached(uprights)
 
+    def dual_ext(layer, name, ext, M):
+        """A dual-grid set over a grid that reaches M cells past the map on every side."""
+        for dy in range(-M, rows + M + 1):
+            for dx in range(-M, cols + M + 1):
+                mask = cell_mask(ext, dy + M, dx + M)
+                if mask:
+                    cx, cy = cell_top(dx, dy, 0)
+                    put(layer, iso_tile(name, mask, frame if name in ANIMATED else 0, phase_of(dx, dy)), X0 + cx - 16, Y0 + cy - 8)
+
     def overlays(layer, level):
         for name in ("dirt", "water", "soil", "path", "cobbles"):
             dual(layer, name, m.cells(name, level), level)
@@ -353,7 +362,7 @@ def render(m, frame=0, objects=True, margin=0):
                 x, y = cell_top(c, r)
                 put(outside, grass_cell(phase_of(c, r)), X0 + x - 16, Y0 + y)
         for name in ("water", "path", "cobbles"):            # roads and rivers run on out into the forest
-            dual(outside, name, m.cells(name, 0), 0, ext=M)
+            dual_ext(outside, name, margin_cells(m.cells(name, 0), M), M)
         shade = Image.new("RGBA", outside.size, (34, 40, 18, 70))
         outside = Image.composite(Image.alpha_composite(outside, shade), outside, outside.getchannel("A"))
 
@@ -389,6 +398,7 @@ def render(m, frame=0, objects=True, margin=0):
         for c in range(cols):
             if m.height[r][c] > 0:
                 items.append((c + r, 0, "cell", (c, r)))
+    RUNS = [margin_cells(m.cells(n, 0), M) for n in ("water", "path", "cobbles")] if M else []
     if objects and M:                                         # the forest round the edge
         from iso_nature import nature
         NAT = _cached(nature)
@@ -396,7 +406,7 @@ def render(m, frame=0, objects=True, margin=0):
             for c in range(-M, cols + M):
                 if (0 <= c < cols and 0 <= r < rows) or ihash(c & 0xffff, r & 0xffff, 11) >= 0.45:
                     continue
-                if m.terrain[min(rows - 1, max(0, r))][min(cols - 1, max(0, c))] in ("path", "cobbles", "water", "bridge"):
+                if any(ext[r + M][c + M] for ext in RUNS):
                     continue                                  # keep the road or river leaving the map clear
                 spr = NAT[MARGIN_TREES[int(ihash(c & 0xffff, r & 0xffff, 13) * len(MARGIN_TREES))]]
                 items.append((c + r, 1, "obj", (spr, c * 16 + 8, (r + 1) * 16, 0)))
@@ -468,6 +478,30 @@ def upright_items(m, UP):
                     out.append((UP["_stairs-n"], c, r))
                 elif c > 0 and m.height[r][c - 1] == lv + 1:
                     out.append((UP["_stairs-w"], c, r))
+    return out
+
+
+RUN_ON = 3                       # how far roads and rivers run on into the margin, in cells
+
+
+def margin_cells(cells, M):
+    """The map's cells plus M cells round it. Outside, a cell copies the nearest edge cell only where the ground
+    crosses the edge (the edge cell and the one two steps further in agree), so a road or river leaving the map
+    runs on, but one running along the edge doesn't spread into a lake."""
+    rows, cols = len(cells), len(cells[0])
+    out = [[False] * (cols + 2 * M) for _ in range(rows + 2 * M)]
+    for r in range(-M, rows + M):
+        for c in range(-M, cols + M):
+            if 0 <= r < rows and 0 <= c < cols:
+                v = cells[r][c]
+            else:
+                rc, cc = min(rows - 1, max(0, r)), min(cols - 1, max(0, c))
+                if max(abs(r - rc), abs(c - cc)) > RUN_ON:
+                    continue                                   # past that, the forest takes over
+                ri = rc + (2 if r < 0 else -2 if r >= rows else 0)
+                ci = cc + (2 if c < 0 else -2 if c >= cols else 0)
+                v = cells[rc][cc] and cells[min(rows - 1, max(0, ri))][min(cols - 1, max(0, ci))]
+            out[r + M][c + M] = v
     return out
 
 

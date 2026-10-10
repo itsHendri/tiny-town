@@ -92,6 +92,8 @@ def build_iso_props():
     out = Image.new("RGBA", (W, y + shelf), (0, 0, 0, 0))
     for name, (spr, _, _) in items.items():
         out.alpha_composite(spr.im, (placed[name]["x"], placed[name]["y"]))
+    for old_name, target in (("lamp", "lamp-iso"), ("bench", "bench-iso"), ("barrel", "barrel-iso")):
+        placed[old_name] = {**placed[target], "alias": target}
     for colour, target in HOUSE_ALIASES.items():
         for size in ("s", "m", "l"):
             placed[f"house-{colour}-{size}"] = {**placed[target], "alias": target}

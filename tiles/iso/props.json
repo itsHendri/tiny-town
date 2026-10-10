@@ -237,11 +237,14 @@
    "ay": 39
   },
   "barrel": {
-   "x": 429,
+   "x": 414,
    "y": 386,
-   "w": 12,
-   "h": 13,
-   "shadow": false
+   "w": 14,
+   "h": 17,
+   "shadow": true,
+   "ax": 7,
+   "ay": 13,
+   "alias": "barrel-iso"
   },
   "barrel-iso": {
    "x": 414,
@@ -253,11 +256,14 @@
    "ay": 13
   },
   "bench": {
-   "x": 60,
-   "y": 423,
-   "w": 32,
-   "h": 10,
-   "shadow": false
+   "x": 259,
+   "y": 386,
+   "w": 38,
+   "h": 26,
+   "shadow": false,
+   "ax": 17,
+   "ay": 23,
+   "alias": "bench-iso"
   },
   "bench-iso": {
    "x": 259,
@@ -592,11 +598,14 @@
    "alias": "thatch-house"
   },
   "lamp": {
-   "x": 298,
-   "y": 386,
-   "w": 8,
-   "h": 24,
-   "shadow": false
+   "x": 479,
+   "y": 252,
+   "w": 24,
+   "h": 42,
+   "shadow": false,
+   "ax": 11,
+   "ay": 40,
+   "alias": "lamp-iso"
   },
   "lamp-iso": {
    "x": 479,

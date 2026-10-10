@@ -206,6 +206,21 @@ export function bakeIso(m, ts, view, { objects = true, frames: only = null } = {
   }
 
   const M = view.margin || 0;
+  // outside the map, a cell copies the nearest edge cell only where the ground crosses the edge (it and the cell two
+  // further in agree), and only up to 3 cells out; past that the forest takes over
+  function runOnFor(o) {
+    const vs = o.ids.map((id) => value("Terrain", id));
+    const has = (i) => vs.includes(TER[i]) && H[i] === 0;
+    return (r, c) => {
+      if (r >= 0 && c >= 0 && r < rows && c < cols) return has(r * cols + c);
+      const rc = Math.min(rows - 1, Math.max(0, r)), cc = Math.min(cols - 1, Math.max(0, c));
+      if (Math.max(Math.abs(r - rc), Math.abs(c - cc)) > 3) return false;
+      const ri = rc + (r < 0 ? 2 : r >= rows ? -2 : 0), ci = cc + (c < 0 ? 2 : c >= cols ? -2 : 0);
+      return has(rc * cols + cc) && has(idx(ri, ci));
+    };
+  }
+  const runs = OVERLAYS.filter((o) => ["water", "path", "cobbles"].includes(o.name)).map(runOnFor);
+  const runOn = (r, c) => runs.some((f) => f(r, c));
   return Array.from({ length: ts.frames }, (_, frame) => {
     if (only && !only.includes(frame)) return null;
     const out = canvas(view.W, view.H), g = out.getContext("2d");
@@ -219,8 +234,16 @@ export function bakeIso(m, ts, view, { objects = true, frames: only = null } = {
       }
       for (const o of OVERLAYS) {                           // roads and rivers run on out into the forest
         if (!["water", "path", "cobbles"].includes(o.name)) continue;
-        const vs = o.ids.map((id) => value("Terrain", id));
-        dual(og, o.name, (i) => vs.includes(TER[i]) && H[i] === 0, 0, frame, M);
+        const at = runOnFor(o);
+        const tiles = sets[o.name];
+        for (let dy = -M; dy <= rows + M; dy++) for (let dx = -M; dx <= cols + M; dx++) {
+          const cl = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+          const A = (r, c) => at(cl(r, -M, rows + M - 1), cl(c, -M, cols + M - 1));
+          const mask = (A(dy - 1, dx - 1) ? 1 : 0) | (A(dy - 1, dx) ? 2 : 0) | (A(dy, dx - 1) ? 4 : 0) | (A(dy, dx) ? 8 : 0);
+          if (!mask) continue;
+          const frames = tiles[mask][phase(dx, dy)], xy = frames[frame % frames.length], [x, y] = view.cellTop(dx, dy, 0);
+          og.drawImage(ts.sheet, xy[0], xy[1], 32, 16, x - 16, y - 8, 32, 16);
+        }
       }
       og.globalCompositeOperation = "source-atop"; og.fillStyle = "rgba(34, 40, 18, 0.275)"; og.fillRect(0, 0, view.W, view.H);
       g.drawImage(o, 0, 0);
@@ -259,7 +282,7 @@ export function bakeIso(m, ts, view, { objects = true, frames: only = null } = {
       const trees = ["tree-1-d1", "tree-3-d1", "tree-5-d2", "pine-1", "pine-2", "tree-2-d2", "pine-3", "tree-4-d1"];
       for (let r = -M; r < rows + M; r++) for (let c = -M; c < cols + M; c++) {
         if ((c >= 0 && r >= 0 && c < cols && r < rows) || ihash(c & 0xffff, r & 0xffff, 11) >= 0.45) continue;
-        if ([value("Terrain", "path"), value("Terrain", "cobbles"), WATER, BRIDGE].includes(TER[idx(r, c)])) continue;   // keep roads and rivers clear
+        if (runOn(r, c)) continue;                         // keep the road or river leaving the map clear
         items.push([c + r, 1, { type: "Prop", x: c * 16 + 8, y: (r + 1) * 16, fields: { sprite: trees[Math.floor(ihash(c & 0xffff, r & 0xffff, 13) * trees.length)] } }]);
       }
     }

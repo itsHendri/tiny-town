@@ -164,3 +164,17 @@ class Project:
         text = re.sub(r'"intGridCsv": \[([\d,\s]*)\]', rows, text)
         with open(path, "w") as f:
             f.write(text + "\n")
+
+
+def load(path):
+    """Read a map written by tiny-town (or LDtk) back into a Project: cell layers and the Objects layer's entities."""
+    d = json.load(open(path))
+    level = d["levels"][0]
+    cols, rows = level["pxWid"] // GRID, level["pxHei"] // GRID
+    p = Project(cols, rows)
+    for li in level["layerInstances"]:
+        if li["__identifier"] in LAYERS and len(li["intGridCsv"]) == cols * rows:
+            p.grids[li["__identifier"]] = list(li["intGridCsv"])
+        if li["__identifier"] == "Objects":
+            p.entities = list(li["entityInstances"])
+    return p
