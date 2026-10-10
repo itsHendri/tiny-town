@@ -69,10 +69,12 @@ so they can also be opened in LDtk and read by its loaders.
 Needs Python 3 and Pillow (`pip install pillow`).
 
 ```bash
-python art/tiles.py
+python art/iso_tiles.py earthy
 ```
 
-writes `tiles/`. `python art/preview.py options out/options` draws every style option on a sample scene.
+writes `tiles/iso/` (the isometric sheet and props); `python art/tiles.py` writes the top-down `tiles/`.
+`python art/reference_town.py` rebuilds the Market village example, and `python art/render_map.py <map.ldtk> <out.png>`
+draws any map. `CLAUDE.md` explains how the code fits together.
 
 ## Repainting tiles
 
