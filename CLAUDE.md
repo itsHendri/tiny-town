@@ -3,8 +3,7 @@
 A browser map builder for pixel towns (isometric or top-down). Public repo: https://github.com/itsHendri/tiny-town,
 live at https://tinypixeltown.com (Cloudflare Workers static assets, Worker `tiny-pixel-town`, built from `main` on
 every push; `wrangler.jsonc` and `.assetsignore` say what gets published; Cloudflare Web Analytics is on, and
-`www` redirects to the bare domain). The old GitHub Pages copy at https://itshendri.github.io/tiny-town/ still
-updates on push too.
+`www` redirects to the bare domain). GitHub Pages is switched off.
 Code MIT (`LICENSE`), art CC BY 4.0 (`LICENSE-art`). Read `README.md` for the user-facing side.
 
 ## How to work with me
