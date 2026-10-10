@@ -12,7 +12,8 @@ import { Walker } from "./walk.js";
 
 const T = 16;
 const EXAMPLE = "maps/market-village.ldtk";
-const ZOOMS = [0.25, 0.5, 1, 2, 3, 4, 5, 6, 8];
+const ZOOMS = [0.25, 0.5, 1, 2, 3, 4, 5, 6, 8];      // whole-map zoom levels Fit picks from
+const STEPS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 6, 8, 12, 16];   // the − and + steps, as shares of the fitted view (100%)
 const MAX_SIZE = 200;       // painting anywhere grows the map, up to this many cells a side
 const $ = (id) => document.getElementById(id);
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -1020,7 +1021,8 @@ function loop(now) {
 
 // ---------- view: zoom and pan ----------
 
-const showZoom = () => { $("zoom-level").textContent = `${Math.round(S.zoom * 100)}%`; };
+// 100% is the map fitted to the screen (S.fit), whatever its pixel scale.
+const showZoom = () => { $("zoom-level").textContent = `${Math.round((S.zoom / (S.fit || S.zoom)) * 100)}%`; };
 function zoomTo(z, sx, sy) {
   const r = canvas.getBoundingClientRect();
   sx ??= r.width / 2; sy ??= r.height / 2;
@@ -1031,8 +1033,9 @@ function zoomTo(z, sx, sy) {
   S.needsDraw = true;
 }
 const stepZoom = (dir) => {
-  const i = ZOOMS.findIndex((z) => z >= S.zoom - 1e-6);
-  zoomTo(dir > 0 ? ZOOMS[Math.min(ZOOMS.length - 1, (ZOOMS[i] > S.zoom + 1e-6 ? i : i + 1))] : ZOOMS[Math.max(0, i - 1)]);
+  const f = S.fit || S.zoom, rel = S.zoom / f, i = STEPS.findIndex((z) => z >= rel - 1e-6);
+  const next = dir > 0 ? STEPS[Math.min(STEPS.length - 1, i < 0 ? STEPS.length - 1 : STEPS[i] > rel + 1e-6 ? i : i + 1)] : STEPS[Math.max(0, (i < 0 ? STEPS.length : i) - 1)];
+  zoomTo(next * f);
 };
 // Fit the map into the room between the panels and above the toolbox.
 function fit() {
@@ -1044,13 +1047,9 @@ function fit() {
   const MW = S.V.W, MH = S.V.H;
   const best = Math.min((w - 24) / MW, (h - 24) / MH);
   const z = best >= 1 ? ZOOMS.filter((x) => x <= best).pop() : Math.max(0.2, Math.floor(best * 20) / 20);   // whole steps when it's big enough
-  S.zoom = z; S.ox = Math.round(lw + (w - MW * z) / 2); S.oy = Math.round((h - MH * z) / 2);
+  S.zoom = S.fit = z; S.ox = Math.round(lw + (w - MW * z) / 2); S.oy = Math.round((h - MH * z) / 2);
   showZoom();
   S.needsDraw = true;
-}
-function zoomActual() {
-  const r = canvas.getBoundingClientRect();
-  zoomTo(1, r.width / 2, r.height / 2);
 }
 
 // ---------- input ----------
@@ -1311,12 +1310,12 @@ window.addEventListener("keydown", (ev) => {
   if (mod && ev.key.toLowerCase() === "z") { ev.preventDefault(); ev.shiftKey ? redo() : undo(); return; }
   if (mod && ev.key.toLowerCase() === "y") { ev.preventDefault(); redo(); return; }
   if (mod && ev.key === "\\") { ev.preventDefault(); foldBoth(); return; }
-  if (mod && ev.key === "0") { ev.preventDefault(); zoomActual(); return; }
+  if (mod && ev.key === "0") { ev.preventDefault(); fit(); return; }
   if (mod) return;
   if (ev.key === " ") { if (!S.spaceDown) { S.spaceDown = true; $("stage").classList.add("pan"); } ev.preventDefault(); return; }
   const k = ev.key.toLowerCase();
   if (ev.shiftKey && (ev.code === "Digit1")) { fit(); return; }
-  if (ev.shiftKey && (ev.code === "Digit0")) { zoomActual(); return; }
+  if (ev.shiftKey && (ev.code === "Digit0")) { fit(); return; }
   if (k === "r" && ev.shiftKey) { S.show.raw = !S.show.raw; buildShow(); S.needsDraw = true; return; }
   const keyTool = { v: "select", b: "brush" }[k];
   if (keyTool) { setTool(keyTool); return; }
