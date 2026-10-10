@@ -1,11 +1,22 @@
 # tiny-town
 
-A small map builder for pixel towns, isometric or top-down (16 px cells), made for drawing your own little world.
-It runs in the browser with no install and no build step. The art is drawn in code and can be repainted by hand.
+A small map builder for pixel towns, isometric or top-down, made for drawing your own little world. It runs in the
+browser with no install and no build step, and every tile, house, tree and stall is drawn in code (and can be
+repainted by hand).
 
-Status: early but usable. Paint ground, up to four levels of height with stairs and waterfalls, fences, gates,
-flowers and tall grass; fence a yard in one drag; scatter trees; place props and characters; select, copy and paste
-areas and keep them as stamps (six come built in); undo; save and open `.ldtk` maps; export a PNG; share a map as a short text code.
+**Try it: https://itshendri.github.io/tiny-town/** (it opens the Market village example)
+
+![The Market village example: a storybook market town with cobbled streets, striped stalls, timber houses, a pond with a waterfall and a forest all round](docs/market-village.png)
+
+## Start here
+
+* **Paint** the ground (grass, paths, cobbles, water, dirt, crops), raise and lower hills, add stairs, fences and gates,
+  flowers and tall grass. Brush, Box, Fill, or Plot (a fenced yard with a gate in one drag).
+* **Place** houses, market stalls, trees and more from the Objects panel; Scatter sprinkles trees and flowers.
+* **Walk** (Enter) your town with the arrow keys, then go straight back to building.
+* **Save** a `.ldtk` map (it also opens in [LDtk](https://ldtk.io)), **export** a PNG, or copy a **share code**: the
+  whole map as one line of text to send to a friend.
+* Switch **Isometric / Top-down** in the top bar. Your map is kept in your browser as you work.
 
 ## Running it
 
@@ -76,7 +87,7 @@ fully transparent replaces the generated one when the page loads, so regeneratin
 3. Map format, renderer and an example map (done)
 4. The editor: paint, height, stairs, entities, undo, save/open, export PNG (done)
 5. Polish the example town
-6. Publish on GitHub Pages
+6. Publish on GitHub Pages (done)
 
 ## Ideas, next up
 
