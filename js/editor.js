@@ -370,9 +370,8 @@ function buildCatalog() {
   const sections = [];
   if (S.spriteNames.length) sections.push(sec("Characters", S.spriteNames.map((n) => item({ type: "Character", sprite: n }, n, charThumb(n, 40)))));
   for (const [g, names] of Object.entries(propGroups())) {
-    if (names.length) sections.push(sec(g, names.map((n) => item({ type: "Prop", sprite: n }, n.replace(/^(tree|bush|rock|house|detail)-/, ""), propThumb(n, 40)))));
+    if (names.length) sections.push(sec(g, names.map((n) => item({ type: "Prop", sprite: n }, n.replace(/^(tree|bush|rock|house|detail)-/, "").replace(/-iso$/, ""), propThumb(n, 40)))));
   }
-  sections.push(sec("Paths and regions", [item({ type: "Path" }, "Path", dataIcon("path")), item({ type: "Region" }, "Region", dataIcon("region"))]));
   $("catalog").replaceChildren(...sections);
   filterCatalog();
 }
@@ -749,7 +748,7 @@ function placeCard() {
   let left = x1 + 14, side = "right";
   if (left + W > sw - rw - 8) { left = x0 - 14 - W; side = "left"; }
   if (left < lw + 8) { left = Math.min(sw - W - 8, Math.max(lw + 8, x1 + 14)); side = "none"; }
-  const top = Math.min(Math.max(12, my - 40), Math.max(12, sh - H - 84));
+  const top = Math.min(Math.max(72, my - 40), Math.max(72, sh - H - 84));       // clear of the top pill and the bottom row
   box.dataset.side = my - top < 14 || my - top > H - 14 ? "none" : side;
   box.style.left = `${Math.round(left)}px`; box.style.top = `${Math.round(top)}px`;
   box.style.setProperty("--ay", `${Math.round(my - top)}px`);
@@ -1038,11 +1037,11 @@ function fit() {
   if (r.width < 60 || r.height < 60) { requestAnimationFrame(fit); return; }   // not laid out yet
   S.V = makeView();
   const cs = getComputedStyle($("stage")), lw = parseFloat(cs.getPropertyValue("--lw")) || 0, rw = parseFloat(cs.getPropertyValue("--rw")) || 0;
-  const bottom = phone() ? 70 : 76, w = r.width - lw - rw, h = r.height - bottom;
+  const top = phone() ? 56 : 70, bottom = phone() ? 70 : 76, w = r.width - lw - rw, h = r.height - top - bottom;
   const MW = S.V.W, MH = S.V.H;
   const best = Math.min((w - 24) / MW, (h - 24) / MH);
   const z = best >= 1 ? ZOOMS.filter((x) => x <= best).pop() : Math.max(0.2, Math.floor(best * 20) / 20);   // whole steps when it's big enough
-  S.zoom = S.fit = z; S.ox = Math.round(lw + (w - MW * z) / 2); S.oy = Math.round((h - MH * z) / 2);
+  S.zoom = S.fit = z; S.ox = Math.round(lw + (w - MW * z) / 2); S.oy = Math.round(top + (h - MH * z) / 2);
   showZoom();
   S.needsDraw = true;
 }
@@ -1518,9 +1517,10 @@ menu.addEventListener("click", (ev) => {
 // ---------- isometric or top-down ----------
 
 function syncProjection() {
-  $("proj-iso").setAttribute("aria-pressed", String(S.projection === "iso"));
-  $("proj-top").setAttribute("aria-pressed", String(S.projection !== "iso"));
-  $("proj-iso").disabled = !S.isoTs;
+  for (const b of document.querySelectorAll("[data-proj]")) {          // one switch at the bottom, one in the top pill on narrow screens
+    b.setAttribute("aria-pressed", String((S.projection === "iso") === (b.dataset.proj === "iso")));
+    if (b.dataset.proj === "iso") b.disabled = !S.isoTs;
+  }
 }
 function setProjection(p) {
   if (p === S.projection || (p === "iso" && !S.isoTs)) return;
@@ -1530,8 +1530,7 @@ function setProjection(p) {
   S.V = null; S.terrainDirty = true;
   if (S.map) { fit(); buildPaintPanel(); buildCatalog(); buildStamps(); sync(); buildCard(true); }
 }
-$("proj-iso").addEventListener("click", () => setProjection("iso"));
-$("proj-top").addEventListener("click", () => setProjection("ortho"));
+for (const b of document.querySelectorAll("[data-proj]")) b.addEventListener("click", () => setProjection(b.dataset.proj));
 
 // ---------- a selected character walks with the arrow keys (or WASD) ----------
 // Cell by cell, with a little hop: water, fences and buildings block it, stairs take it up and down (js/walk.js).
