@@ -10,6 +10,7 @@ import palettes
 
 ROOT = Path(__file__).resolve().parent.parent
 N = 28
+PAD = 6          # cells of light wood round the town, part of the map (past it, the editor's grass runs on forever)
 
 
 def layout():
@@ -109,6 +110,30 @@ OBJECTS = [
 ]
 
 
+def with_woods(m, objects):
+    """The town with PAD cells of thinning wood all round it, its roads and river running on out through the trees.
+    The trees stand where the renderer's margin wood would (same hashes), so it looks as before, only lighter."""
+    import preview
+    from iso import MARGIN_TREES, ihash, margin_trees
+    n = N + 2 * PAD
+    big, trees = preview.Map(n, n), []
+    for r in range(n):
+        for c in range(n):
+            r0, c0 = r - PAD, c - PAD
+            if 0 <= r0 < N and 0 <= c0 < N:
+                for layer in ("height", "terrain", "feature", "fence", "deco"):
+                    getattr(big, layer)[r][c] = getattr(m, layer)[r0][c0]
+                continue
+            rc, cc = min(N - 1, max(0, r0)), min(N - 1, max(0, c0))
+            ri, ci = rc + (2 if r0 < 0 else -2 if r0 >= N else 0), cc + (2 if c0 < 0 else -2 if c0 >= N else 0)
+            t = m.terrain[rc][cc]
+            if t in ("path", "cobbles", "water") and m.terrain[ri][ci] == t and m.height[rc][cc] == 0:
+                big.terrain[r][c] = t                        # a road or the river leaving the town runs on
+            elif ihash(c0 & 0xffff, r0 & 0xffff, 11) < margin_trees(c0, r0, N, N):
+                trees.append((MARGIN_TREES[int(ihash(c0 & 0xffff, r0 & 0xffff, 13) * len(MARGIN_TREES))], c, r))
+    return big, [(name, c + PAD, r + PAD) for name, c, r in objects] + trees
+
+
 def sprites():
     """Every prop by name, drawn in the current palette."""
     import iso_ground
@@ -142,11 +167,12 @@ def build(palette="earthy", look="storybook"):
                 taken.add((cc, rr))
                 if name in iso_props.HOUSES:
                     houses.add((cc, rr))
-    objects = OBJECTS + dressing(m, taken, houses)
+    m, objects = with_woods(m, OBJECTS + dressing(m, taken, houses))
+    n = N + 2 * PAD
     for name, c, r in objects:
         m.objects.append((spr[name], c * 16 + 8, (r + 1) * 16))
     # the map file
-    p = ldtk.Project(N, N)
+    p = ldtk.Project(n, n)
     T_ = {"grass": 0, "path": 1, "cobbles": 2, "water": 3, "soil": 4, "bridge": 5, "dirt": 6}
     D_ = {"flowers": 2, "tallgrass": 3, "gate": 4}
     flat = lambda g: [v for row in g for v in row]
@@ -156,9 +182,9 @@ def build(palette="earthy", look="storybook"):
     p.set_intgrid("Deco", [1 if f else D_.get(d, 0) for f, d in zip(flat(m.fence), flat(m.deco))])
     for name, c, r in objects:
         p.add_entity("Prop", c * 16 + 8, (r + 1) * 16, {"sprite": name})
-    p.add_entity("Region", 8 * 16, 27 * 16, {"name": "start"}, w=16, h=16)
+    p.add_entity("Region", (8 + PAD) * 16, (27 + PAD) * 16, {"name": "start"}, w=16, h=16)
     p.save(ROOT / "maps" / "market-village.ldtk")
-    return iso.render(m, 0, margin=6)
+    return iso.render(m, 0, margin=6, woods=False)
 
 
 def full_bleed(im):

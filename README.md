@@ -11,8 +11,8 @@ repainted by hand).
 ## Start here
 
 * **Paint** the ground (grass, paths, cobbles, water, dirt, crops), raise hills and dig pits, add stairs, fences and
-  gates, flowers and tall grass: pick a swatch in the Paint panel on the left and brush. Paint past the edge and the
-  map grows.
+  gates, flowers and tall grass: pick a swatch in the Paint panel on the left and brush. The grass runs on forever:
+  paint anywhere and the map grows.
 * **Place** houses, market stalls, trees and more: drag them in from the Objects panel on the right. Scatter sprinkles
   trees and flowers.
 * **Walk** (Enter) your town with the arrow keys, then go straight back to building.
@@ -32,7 +32,7 @@ then visit http://localhost:8000. Your map is kept in the browser as you work; *
 
 | Do | How |
 |---|---|
-| Paint | Pick a swatch (or keys 1-9) and brush; pick it again or press Esc to put the brush down. The size (1, 2, 3 or `[` `]`) is beside it in the toolbox; fences, gates and stairs are always one cell. The Eraser (E, beside the toolbox, or right-click) takes away everything it touches: ground, fences, stairs, hills and pits, and whole buildings and objects. Alt-click takes the swatch under the cursor, Shift-click draws a straight line from the last stroke. Painting just past the edge makes the map bigger. |
+| Paint | Pick a swatch (or keys 1-9) and brush; pick it again or press Esc to put the brush down. The size (1, 2, 3 or `[` `]`) is beside it in the toolbox; fences, gates and stairs are always one cell. The Eraser (E, beside the toolbox, or right-click) takes away everything it touches: ground, fences, stairs, hills and pits, and whole buildings and objects. Alt-click takes the swatch under the cursor, Shift-click draws a straight line from the last stroke. The grass runs on forever: paint anywhere and the map grows to reach it. |
 | Height | Raise, Lower and Flatten (to the level where the stroke starts). Lower digs below the ground too: the map lifts a level to make room, so a pit or a sunken pond looks dug in. Neighbours are nudged so side-by-side cells are never more than one level apart. |
 | Stairs | Stairs go at the foot of a cliff that faces you (just south or just east of higher ground); painting on the cliff's top steps down to its foot, and the brush turns red where none can go. |
 | Place | Drag a prop or character from the Objects panel onto the map, or click it and then the map (Shift keeps placing). With no tool active (Esc, or click the active tool again): click an object to select it, drag to move it, arrows nudge; the card beside it has Duplicate and Delete. Pick Few, Some or Lots under Scatter and drag to sprinkle trees or bushes; right-drag clears them. |
@@ -98,7 +98,7 @@ fully transparent replaces the generated one when the page loads, so regeneratin
 The builder draws isometric (32x16 diamonds, levels 16 px high) or top-down; the Market village example rebuilds a
 storybook reference picture from these parts. Done from research and that reference: height levels, Shift-lines,
 scatter, stamps, plots, share codes, walk mode, a phone tool bar, isometric houses (storybook look), market stalls,
-lamps, fences, bridges, stairs, flower beds, dirt, details, a forest margin, chimney smoke.
+lamps, fences, bridges, stairs, flower beds, dirt, details, a light wood round the town, chimney smoke.
 
 Still open:
 

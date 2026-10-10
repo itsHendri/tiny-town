@@ -35,7 +35,13 @@ export function groundLevel(m) {
   return n.indexOf(Math.max(...n));
 }
 
-// `margin` cells of meadow and darker forest are drawn round the map so it fills the frame.
+// How likely a tree is on a margin cell: a light wood just outside the map, thinning out further away. Same in art/iso.py.
+export function marginTrees(c, r, cols, rows) {
+  const d = Math.max(-c, c - cols + 1, -r, r - rows + 1);
+  return 0.18 - 0.028 * (d - 1);
+}
+
+// `margin` cells of meadow and light wood are drawn round the map, so it runs on into the grass round it.
 export function isoView(m, { margin = 0 } = {}) {
   let top = 0;
   for (const v of m.layers.Height) if (v > top) top = v;
@@ -151,7 +157,7 @@ function walls(lay, fill, colors, frame) {
   g.putImageData(img, 0, 0);
 }
 
-export function bakeIso(m, ts, view, { objects = true, frames: only = null } = {}) {
+export function bakeIso(m, ts, view, { objects = true, woods = true, frames: only = null } = {}) {
   const { cols, rows } = m, H = m.layers.Height, TER = m.layers.Terrain, FEAT = m.layers.Features, D = m.layers.Deco;
   const idx = (r, c) => Math.min(rows - 1, Math.max(0, r)) * cols + Math.min(cols - 1, Math.max(0, c));
   const STAIRS = value("Features", "stairs"), TALL = value("Deco", "tallgrass");
@@ -234,7 +240,7 @@ export function bakeIso(m, ts, view, { objects = true, frames: only = null } = {
     if (only && !only.includes(frame)) return null;
     const out = canvas(view.W, view.H), g = out.getContext("2d");
     g.imageSmoothingEnabled = false;
-    if (M) {                                               // the margin: meadow round the map, a little darker
+    if (M) {                                               // the margin: the same meadow, running on round the map
       const o = canvas(view.W, view.H), og = o.getContext("2d");
       for (let r = -M; r < rows + M; r++) for (let c = -M; c < cols + M; c++) {
         if (c >= 0 && r >= 0 && c < cols && r < rows) continue;
@@ -254,7 +260,6 @@ export function bakeIso(m, ts, view, { objects = true, frames: only = null } = {
           og.drawImage(ts.sheet, xy[0], xy[1], 32, 16, x - 16, y - 8, 32, 16);
         }
       }
-      og.globalCompositeOperation = "source-atop"; og.fillStyle = "rgba(34, 40, 18, 0.275)"; og.fillRect(0, 0, view.W, view.H);
       g.drawImage(o, 0, 0);
     }
     const ground = canvas(view.W, view.H), gg = ground.getContext("2d");
@@ -291,10 +296,10 @@ export function bakeIso(m, ts, view, { objects = true, frames: only = null } = {
       const c = Math.floor(e.x / 16), r = Math.floor((e.y - 1) / 16);
       items.push([c + r, 1, e]);
     }
-    if (objects && M) {                                    // the forest round the edge
+    if (objects && woods && M) {                           // the light wood round the edge (the editor leaves it out: its grass runs on forever)
       const trees = ["tree-1-d1", "tree-1-d2", "tree-5-d2", "pine-1", "pine-3", "tree-2-d2", "pine-2", "tree-4-d1", "spruce-2", "oak-3", "pine-5", "tree-4-d2"];   // the same list is in art/iso.py
       for (let r = -M; r < rows + M; r++) for (let c = -M; c < cols + M; c++) {
-        if ((c >= 0 && r >= 0 && c < cols && r < rows) || ihash(c & 0xffff, r & 0xffff, 11) >= 0.45) continue;
+        if ((c >= 0 && r >= 0 && c < cols && r < rows) || ihash(c & 0xffff, r & 0xffff, 11) >= marginTrees(c, r, cols, rows)) continue;
         if (runOn(r, c)) continue;                         // keep the road or river leaving the map clear
         items.push([c + r, 1, { type: "Prop", x: c * 16 + 8, y: (r + 1) * 16, fields: { sprite: trees[Math.floor(ihash(c & 0xffff, r & 0xffff, 13) * trees.length)] } }]);
       }

@@ -315,8 +315,15 @@ def ground_level(m):
     return n.index(max(n))
 
 
-def render(m, frame=0, objects=True, margin=0):
-    """Draw a preview.Map in isometric. Returns an RGBA image. `margin` cells of meadow and darker forest are
+def margin_trees(c, r, cols, rows):
+    """How likely a tree is on a margin cell: a light wood just outside the map, thinning out further away. Same in
+    js/iso.js."""
+    d = max(-c, c - cols + 1, -r, r - rows + 1)
+    return 0.18 - 0.028 * (d - 1)
+
+
+def render(m, frame=0, objects=True, margin=0, woods=True):
+    """Draw a preview.Map in isometric. Returns an RGBA image. `margin` cells of meadow and light wood are
     drawn around the map so it fills the frame (they aren't part of the map)."""
     cols, rows = m.cols, m.rows
     top = max(max(row) for row in m.height)
@@ -373,7 +380,7 @@ def render(m, frame=0, objects=True, margin=0):
                 if m.terrain[r][c] == "bridge":
                     put(layer, FL[f"deck-{bridge_axis(m, r, c)}"], X, Y)
 
-    # the margin: meadow round the map, a little darker
+    # the margin: the same meadow, running on round the map
     outside = blank()
     if M:
         for r in range(-M, rows + M):
@@ -384,8 +391,6 @@ def render(m, frame=0, objects=True, margin=0):
                 put(outside, grass_cell(phase_of(c, r)), X0 + x - 16, Y0 + y)
         for name in ("water", "path", "cobbles"):            # roads and rivers run on out into the forest
             dual_ext(outside, name, margin_cells(m.cells(name, B), M), M)
-        shade = Image.new("RGBA", outside.size, (34, 40, 18, 70))
-        outside = Image.composite(Image.alpha_composite(outside, shade), outside, outside.getchannel("A"))
 
     # level 0: grass, then its overlays
     base = blank()
@@ -426,12 +431,12 @@ def render(m, frame=0, objects=True, margin=0):
             if m.height[r][c] > 0:
                 items.append((c + r, 0, "cell", (c, r)))
     RUNS = [margin_cells(m.cells(n, B), M) for n in ("water", "path", "cobbles")] if M else []
-    if objects and M:                                         # the forest round the edge
+    if objects and woods and M:                               # the light wood round the edge
         from iso_nature import nature
         NAT = _cached(nature)
         for r in range(-M, rows + M):
             for c in range(-M, cols + M):
-                if (0 <= c < cols and 0 <= r < rows) or ihash(c & 0xffff, r & 0xffff, 11) >= 0.45:
+                if (0 <= c < cols and 0 <= r < rows) or ihash(c & 0xffff, r & 0xffff, 11) >= margin_trees(c, r, cols, rows):
                     continue
                 if any(ext[r + M][c + M] for ext in RUNS):
                     continue                                  # keep the road or river leaving the map clear

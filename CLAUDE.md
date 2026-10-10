@@ -56,8 +56,12 @@ Code MIT (`LICENSE`), art CC BY 4.0 (`LICENSE-art`). Read `README.md` for the us
   use the cell centre (v-8). Ground patterns repeat every 64x32 with 8 lattice phases. Drawing is back to front, per
   cell column, clipped pixel-exactly (1 px row rects in JS, `in_column` in Python; no antialiased clips, they break
   parity). Sort key: cells (c+r, 0), uprights 0.5, objects 1.
-* **Forest margin:** a darker meadow with trees round the map; roads and rivers run on past the edge (at most 3 cells).
-  The margin tree list exists twice and must match: `MARGIN_TREES` in `art/iso.py` and in `js/iso.js`.
+* **Margin and the endless grass:** the same meadow runs on round the map; roads and rivers run on past the edge (at
+  most 3 cells). `bakeIso` can add a light wood there (`woods`, on by default, thinning out by `marginTrees`); the
+  editor turns it off and lays an endless grass pattern under the map (`grassEverywhere`), so the map's edge can't be
+  seen and painting anywhere grows the map (up to 200 x 200). The example village has its wood as real trees inside
+  the map (`with_woods` in `art/reference_town.py`, same hashes). The tree list and density exist twice and must
+  match: `MARGIN_TREES` / `margin_trees` in `art/iso.py` and `js/iso.js`.
 * **Palettes** (`art/palettes.py`) swap the colours behind names; `palettes.use()` must run before other art imports.
 * **Props:** isometric buildings, stalls, fences, stairs use a face painter (`Canvas3D` in `art/iso_props.py`).
   Anchors (`ax`, `ay`) and footprints (`foot`) live in `tiles/iso/props.json`; aliases map old names to new ones so old

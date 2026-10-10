@@ -13,8 +13,7 @@ import { Walker } from "./walk.js";
 const T = 16;
 const EXAMPLE = "maps/market-village.ldtk";
 const ZOOMS = [0.25, 0.5, 1, 2, 3, 4, 5, 6, 8];
-const REACH = 6;            // how far past the edge painting still grows the map (the forest margin is 6 cells)
-const MAX_SIZE = 200;
+const MAX_SIZE = 200;       // painting anywhere grows the map, up to this many cells a side
 const $ = (id) => document.getElementById(id);
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const phone = () => matchMedia("(max-width: 720px)").matches;
@@ -558,7 +557,8 @@ function snapFeet(mx, my, free) {
 
 // ---------- the map grows when you paint past its edge ----------
 
-const near = (c, r) => c >= -REACH && r >= -REACH && c < S.map.cols + REACH && r < S.map.rows + REACH;
+// Can the map grow to reach this cell?
+const near = (c, r) => Math.max(S.map.cols, c + 1) - Math.min(0, c) <= MAX_SIZE && Math.max(S.map.rows, r + 1) - Math.min(0, r) <= MAX_SIZE;
 
 // Grow the map so cells c0..c1, r0..r1 fit (up to MAX_SIZE). Returns true if it grew.
 function growTo(c0, r0, c1, r1) {
@@ -793,9 +793,9 @@ function bake() {
     // while painting, only the first frame; the other two follow once things are quiet
     const quick = S.stroke || S.drag || S.scatterStroke;
     if (quick) {
-      S.frames = bakeIso(S.map, S.isoTs, S.V, { objects: S.show.props, frames: [0] }).slice(0, 1);
+      S.frames = bakeIso(S.map, S.isoTs, S.V, { objects: S.show.props, woods: false, frames: [0] }).slice(0, 1);
       S.restDirty = true;
-    } else S.frames = bakeIso(S.map, S.isoTs, S.V, { objects: S.show.props });
+    } else S.frames = bakeIso(S.map, S.isoTs, S.V, { objects: S.show.props, woods: false });
     S.terrainDirty = false;
     return;
   }
@@ -845,6 +845,7 @@ function draw() {
   const V = S.V, k = S.zoom * dpr;
   ctx.setTransform(k, 0, 0, k, Math.round(S.ox * dpr), Math.round(S.oy * dpr));
   ctx.imageSmoothingEnabled = false;
+  if (S.show.terrain) grassEverywhere(W, H);
   if (S.show.terrain && S.frames.length) ctx.drawImage(S.frames[S.frame % S.frames.length], 0, 0);
   else { ctx.fillStyle = "#b4d566"; poly(ctx, V.border()); ctx.fill(); }
 
@@ -965,8 +966,34 @@ function draw() {
     const corners = V.iso ? [V.cellTop(c0, r0), V.cellTop(c0 + clip.cols, r0), V.cellTop(c0 + clip.cols, r0 + clip.rows), V.cellTop(c0, r0 + clip.rows)] : area4(c0, r0, c0 + clip.cols - 1, r0 + clip.rows - 1);
     poly(ctx, corners); ctx.strokeStyle = "#3a76f0"; line(2); ctx.setLineDash([4 / S.zoom, 3 / S.zoom]); ctx.stroke(); ctx.setLineDash([]);
   }
-  ctx.strokeStyle = "rgba(38,48,63,0.8)"; line(1); poly(ctx, V.border()); ctx.stroke();
   placeCard();
+}
+
+// The grass runs on forever round the map: one tile of the grass pattern (it repeats every 64 x 32 px in isometric,
+// every 11 cells top-down), laid under the whole screen and lined up with the map's own grass.
+const grassTiles = {};
+function grassPattern(iso) {
+  if (grassTiles[iso]) return grassTiles[iso];
+  const ts = iso ? S.isoTs : S.ts, c = el("canvas", { width: iso ? 64 : 11 * T, height: iso ? 32 : 11 * T }), g = c.getContext("2d");
+  if (iso) {
+    for (let u = -4; u <= 6; u++) for (let v = -4; v <= 6; v++) {          // u = c - r, v = c + r: the diamonds round the tile
+      if ((u + v) & 1) continue;
+      const col = (u + v) / 2, row = (v - u) / 2, xy = ts.json.grass[`${((col - row) % 4 + 4) % 4},${((col + row) % 4 + 4) % 4}`];
+      g.drawImage(ts.sheet, xy[0], xy[1], 32, 16, u * 16 - 16, v * 8, 32, 16);
+    }
+  } else {
+    for (let r = 0; r < 11; r++) for (let col = 0; col < 11; col++) {
+      const xy = ts.json.grass[Math.floor(((r * 7 + col * 13) % 11) / 11 * 4)];
+      g.drawImage(ts.sheet, xy[0], xy[1], T, T, col * T, r * T, T, T);
+    }
+  }
+  return (grassTiles[iso] = ctx.createPattern(c, "repeat"));
+}
+function grassEverywhere(W, H) {
+  const V = S.V, p = grassPattern(V.iso), [x0, y0] = V.iso ? V.cellTop(0, 0, groundLevel(S.map)) : [0, 0];
+  p.setTransform(new DOMMatrix([1, 0, 0, 1, x0, y0]));
+  ctx.fillStyle = p;
+  ctx.fillRect(-S.ox / S.zoom, -S.oy / S.zoom, W / S.zoom, H / S.zoom);
 }
 
 function label(text, x, y, color) {
@@ -1347,7 +1374,7 @@ function sheet(side) {
 for (const b of document.querySelectorAll("[data-fold]")) b.addEventListener("click", () => (phone() ? sheet(null) : setFold(b.dataset.fold, true)));
 for (const b of document.querySelectorAll("[data-unfold]")) b.addEventListener("click", () => setFold(b.dataset.unfold, false));
 
-const SHOW = [["terrain", "Terrain"], ["props", "Props"], ["characters", "Characters"], ["data", "Paths and regions"], ["raw", "Raw grid (Shift R)"], ["grid", "Grid lines"], ["margin", "Forest round the edge"]];
+const SHOW = [["terrain", "Terrain"], ["props", "Props"], ["characters", "Characters"], ["data", "Paths and regions"], ["raw", "Raw grid (Shift R)"], ["grid", "Grid lines"], ["margin", "Roads and rivers run on past the edge"]];
 function buildShow() {
   $("show").replaceChildren(...SHOW.map(([k, label]) => el("label", { for: `show-${k}` },
     el("input", { type: "checkbox", id: `show-${k}`, checked: S.show[k], onchange: (ev) => { S.show[k] = ev.target.checked; if (k === "props" || k === "margin") { S.terrainDirty = true; rebuildView(); } S.needsDraw = true; } }), label)));
@@ -1408,7 +1435,7 @@ async function savePng() {
   const V = makeView(), c = document.createElement("canvas");
   c.width = V.W; c.height = V.H;
   const g = c.getContext("2d");
-  if (V.iso) g.drawImage(bakeIso(S.map, S.isoTs, V)[0], 0, 0); else drawTerrain(g, S.map, S.ts, 0);
+  if (V.iso) g.drawImage(bakeIso(S.map, S.isoTs, V, { woods: false })[0], 0, 0); else drawTerrain(g, S.map, S.ts, 0);
   drawSprites(g, S.map.entities.filter((e) => (e.type === "Prop" && !V.iso) || e.type === "Character").sort((a, b) => (V.iso ? (a.x + a.y) - (b.x + b.y) : a.y - b.y)));
   const blob = await new Promise((ok) => c.toBlob(ok, "image/png"));
   try {
