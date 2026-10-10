@@ -4,7 +4,7 @@ A small map builder for pixel towns, isometric or top-down, made for drawing you
 browser with no install and no build step, and every tile, house, tree and stall is drawn in code (and can be
 repainted by hand).
 
-**Try it: https://itshendri.github.io/tiny-town/** (it opens the Market village example)
+**Try it: https://tinypixeltown.com** (it opens the Market village example)
 
 ![The Market village example: a storybook market town with cobbled streets, striped stalls, timber houses, a pond with a waterfall and a forest all round](docs/market-village.png)
 
@@ -91,7 +91,7 @@ fully transparent replaces the generated one when the page loads, so regeneratin
 3. Map format, renderer and an example map (done)
 4. The editor: paint, height, stairs, entities, undo, save/open, export PNG (done)
 5. Polish the example town
-6. Publish on GitHub Pages (done)
+6. Publish it (done: tinypixeltown.com)
 
 ## Ideas, next up
 
