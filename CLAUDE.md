@@ -57,7 +57,7 @@ Code MIT (`LICENSE`), art CC BY 4.0 (`LICENSE-art`). Read `README.md` for the us
   Anchors (`ax`, `ay`) and footprints (`foot`) live in `tiles/iso/props.json`; aliases map old names to new ones so old
   maps keep working. Trees: `art/iso_trees.py` (many kinds, varied per seed); the editor groups them by name regex.
 * **Editor** (`js/editor.js`): one state object `S` (projection `"iso"` or top-down, view `S.V`). One active tool,
-  `S.tool` (`select hand brush rect fill plot pick area place scatter stamp`); `S.place` / `S.pasting` are only what
+  `S.tool` (`brush rect fill plot pick area place scatter stamp`, or `select`: no tool, clicks select and drags move or pan); `S.place` / `S.pasting` are only what
   `place` / `stamp` put down, and `setTool` clears the rest. Painting just past the edge grows the map (`grow` in
   `tools.js`); `rebuildView(dc, dr)` keeps the screen still when the view changes shape. A view abstraction
   (`pt`, `feet`, `cellPoly`, `pick`, `border`) keeps tools projection-free. Undo is snapshots; autosave in

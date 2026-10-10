@@ -77,8 +77,8 @@ kbd { font: 11px var(--mono); border: 1px solid var(--line); border-bottom-width
 .stage.fold-left { --lw: 0px; }
 .stage.fold-right { --rw: 0px; }
 .stage > canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; cursor: crosshair; }
-.stage[data-tool="select"] > canvas { cursor: default; }
-.stage[data-tool="hand"] > canvas, .stage.pan > canvas { cursor: grab; }
+.stage[data-tool="select"] > canvas { cursor: grab; }
+.stage.pan > canvas { cursor: grabbing !important; }
 .stage[data-tool="place"] > canvas, .stage[data-tool="stamp"] > canvas { cursor: copy; }
 
 .panel { position: absolute; top: 12px; max-height: calc(100% - 96px); display: flex; flex-direction: column; background: var(--panel);
@@ -154,7 +154,7 @@ details.sec > summary small { margin-left: auto; color: var(--muted); text-trans
 .proj button:disabled { opacity: .4; cursor: default; }
 
 /* the selection card, anchored beside what's selected */
-.selcard { position: absolute; z-index: 5; width: 232px; max-height: calc(100% - 24px); overflow: auto; background: var(--panel); border: 1px solid var(--line);
+.selcard { position: absolute; z-index: 5; width: 210px; max-height: calc(100% - 24px); overflow: auto; background: var(--panel); border: 1px solid var(--line);
   border-radius: 12px; box-shadow: var(--shadow); padding: 10px; --ay: 30px; }
 .selcard::before { content: ""; position: absolute; top: calc(var(--ay) - 7px); width: 12px; height: 12px; background: var(--panel); transform: rotate(45deg); }
 .selcard[data-side="right"]::before { left: -7px; border-left: 1px solid var(--line); border-bottom: 1px solid var(--line); }
@@ -305,8 +305,8 @@ dialog::backdrop { background: rgba(20, 24, 32, 0.5); }
     <div class="checks" id="show"></div>
     <h3>Keys</h3>
     <div class="keys">
-      <kbd>V H</kbd><span>move and select, hand (or hold Space and drag)</span>
-      <kbd>B R F T I S</kbd><span>brush, box, fill, plot (a fenced yard), pick, area</span>
+      <kbd>B R F T I S</kbd><span>brush, box, fill, plot (a fenced yard), pick, area; press again or Esc to put the tool down</span>
+      <kbd>Click</kbd><span>with no tool: select an object, drag it to move it, drag the ground to look around</span>
       <kbd>E</kbd><span>erase on or off (right-click erases too)</span>
       <kbd>1–9</kbd><span>swatches, in order</span>
       <kbd>[ ]</kbd><span>brush size</span>
@@ -315,7 +315,7 @@ dialog::backdrop { background: rgba(20, 24, 32, 0.5); }
       <kbd>Ctrl C X V</kbd><span>copy, cut, paste an area</span>
       <kbd>Arrows</kbd><span>nudge the selected object a cell (Shift: a pixel)</span>
       <kbd>Del</kbd><span>delete the selection</span>
-      <kbd>Esc</kbd><span>stop placing, clear the selection</span>
+      <kbd>Esc</kbd><span>clear the selection, then put the tool down</span>
       <kbd>Enter</kbd><span>walk around (arrows or WASD, Esc stops)</span>
       <kbd>+ −</kbd><span>zoom (or pinch, Ctrl+wheel)</span>
       <kbd>Shift 1 / 0</kbd><span>fit the map / 100%</span>

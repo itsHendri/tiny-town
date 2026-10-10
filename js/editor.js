@@ -32,8 +32,6 @@ function el(tag, attrs = {}, ...kids) {
 
 // Line icons, 24x24, drawn with the current text colour.
 const ICONS = {
-  select: '<path d="M6 3.5l12.5 6.2-5.6 1.8-2 5.8z"/>',
-  hand: '<path d="M8.5 12.5V6a1.4 1.4 0 0 1 2.8 0v5.5M11.3 11V4.6a1.4 1.4 0 0 1 2.8 0V11M14.1 11V6a1.4 1.4 0 0 1 2.8 0v7.5c0 4-2.4 6.8-5.8 6.8-2.6 0-4-1.4-5.4-3.7l-2.2-3.7a1.4 1.4 0 0 1 2.3-1.6l1.7 2.2"/>',
   brush: '<path d="M14.5 4.5l5 5-8.5 8.5H6v-5z"/><path d="M12.5 6.5l5 5"/>',
   rect: '<rect x="4.5" y="4.5" width="15" height="15" rx="1.5"/><path d="M4.5 12h15M12 4.5v15" opacity=".35"/>',
   fill: '<path d="M4.5 11.5l6.5-6.5 7.5 7.5-6.5 6.5z"/><path d="M4.5 11.5h14"/><path d="M20 15.5c.7 1.2 1.2 2 1.2 2.7a1.2 1.2 0 0 1-2.4 0c0-.7.5-1.5 1.2-2.7z"/>',
@@ -60,11 +58,12 @@ function icon(name) {
 
 // ---------- state ----------
 
-// One tool is active at a time. `place`, `scatter` and `stamp` carry what they put down in S.place and S.pasting.
+// One tool is active at a time. "select" means no tool: a click selects an object, a drag moves it or pans the map.
+// `place`, `scatter` and `stamp` carry what they put down in S.place and S.pasting.
 const PAINT_TOOLS = ["brush", "rect", "fill", "plot", "pick"];
 const S = {
   map: null, ts: null, sprites: {}, spriteNames: [], fileName: "town.ldtk",
-  tool: "brush", paintTool: "brush", size: 1, brush: { layer: "Terrain", v: 1 }, eraseMode: false,
+  tool: "select", paintTool: "brush", size: 1, brush: { layer: "Terrain", v: 1 }, eraseMode: false,
   place: null, selected: null, scatter: { on: false, density: 0.35 }, scatterStroke: null,
   sel: null, selFrom: null, clip: null, pasting: null, stamps: [], walk: null, walkView: null, longPress: null,
   fx: [], squash: new Map(), isoTs: null, projection: "iso", V: null,
@@ -84,7 +83,7 @@ const PALETTE = [
   { group: "Features", layer: "Features", items: LAYERS.Features.values.map((x) => ({ v: x.v, label: x.label, key: x.id })) },
   { group: "Decoration", layer: "Deco", items: LAYERS.Deco.values.map((x) => ({ v: x.v, label: x.label, key: x.id })) },
 ];
-const TOOLS = [["select", "Move", "V"], ["hand", "Hand", "H"], null, ["brush", "Brush", "B"], ["rect", "Box", "R"], ["fill", "Fill", "F"], ["plot", "Plot", "T"], ["pick", "Pick", "I"], ["area", "Area", "S"]];
+const TOOLS = [["brush", "Brush", "B"], ["rect", "Box", "R"], ["fill", "Fill", "F"], ["plot", "Plot", "T"], ["pick", "Pick", "I"], ["area", "Area", "S"]];
 
 // A 2x2-cell scene that shows what a palette item paints.
 function swatch(key, color, mark) {
@@ -198,7 +197,7 @@ function setTool(id) {
   if (id !== "stamp") S.pasting = null;
   if (id !== "area") { S.sel = null; S.selFrom = null; }
   if (["brush", "rect", "fill"].includes(id)) S.paintTool = id;
-  if (id !== "select" && id !== "hand" && S.selected) S.selected = null;
+  if (id !== "select" && S.selected) S.selected = null;
   sync();
 }
 
@@ -231,7 +230,8 @@ function buildToolbox() {
   for (const t of TOOLS) {
     if (!t) { kids.push(el("span", { class: "tdiv" })); continue; }
     const [id, label, key] = t;
-    kids.push(el("button", { class: id === "hand" || id === "pick" ? "tbtn desk" : "tbtn", type: "button", "aria-pressed": String(S.tool === id), title: `${label} (${key})`, onclick: () => setTool(id) }, icon(id), el("span", { text: label })));
+    kids.push(el("button", { class: id === "pick" ? "tbtn desk" : "tbtn", type: "button", "aria-pressed": String(S.tool === id), title: `${label} (${key}). Click again or Esc to put it down.`,
+      onclick: () => setTool(S.tool === id ? "select" : id) }, icon(id), el("span", { text: label })));
   }
   kids.push(el("span", { class: "tdiv" }),
     el("button", { class: "tbtn erase", type: "button", "aria-pressed": String(S.eraseMode), title: "Erase (E). Right-click erases too.", onclick: toggleErase }, icon("erase"), el("span", { text: "Erase" })),
@@ -269,8 +269,6 @@ function options() {
     case "plot": return [el("span", { text: "Drag a yard; the gate faces the nearest path" })];
     case "pick": return [el("span", { text: "Click to pick what's there" })];
     case "area": return [el("span", { text: S.sel ? "Ctrl C / X to copy or cut" : "Drag to select an area" })];
-    case "select": return S.selected ? [] : [el("span", { text: "Click an object; drag to move" })];
-    case "hand": return [el("span", { text: "Drag to look around" })];
     case "stamp": return [el("span", { text: "Click to stamp · Esc stops" })];
     case "place":
     case "scatter": {
@@ -652,10 +650,6 @@ function drawFx(g, now) {
 
 // ---------- the selection card ----------
 
-const fmtPoint = (p) => (p ? `${p[0]},${p[1]}` : "");
-const parsePoint = (s) => { const m = String(s).trim().match(/^(-?\d+)\s*[, ]\s*(-?\d+)$/); return m ? [+m[1], +m[2]] : null; };
-const parsePoints = (s) => String(s).split(/[;\n]+|\s{2,}|\)\s*\(|\s(?=-?\d+\s*,)/).map(parsePoint).filter(Boolean);
-
 function select(e) { S.selected = e; sync(); }
 
 function edit(fn) {
@@ -694,32 +688,10 @@ function buildCard(force = false) {
   const head = el("div", { class: "inspect-head" },
     e.type === "Prop" ? propThumb(e.fields.sprite, 36) : e.type === "Character" ? charThumb(e.fields.sprite, 36) : dataIcon(e.type === "Path" ? "path" : "region"),
     el("div", {}, el("b", { text: ENTITIES[e.type].label }), el("small", { text: e.fields.sprite || e.fields.name || "" })), close);
-  const field = (id, label, input) => el("div", { class: "field" }, el("label", { for: id, text: label }), input);
   const rows = [head];
-  const xy = el("div", { class: "pair" },
-    field("f-x", "x (px)", el("input", { id: "f-x", type: "number", value: e.x, onchange: edit((v) => { e.x = Math.round(+v); }) })),
-    field("f-y", "y (px)", el("input", { id: "f-y", type: "number", value: e.y, onchange: edit((v) => { e.y = Math.round(+v); }) })));
-  if (e.type === "Prop") {
-    const sel = el("select", { id: "f-sprite", onchange: edit((v) => { e.fields.sprite = v; }) }, ...Object.keys(propSet().props).filter((n) => !n.startsWith("_")).map((n) => el("option", { value: n, text: n, selected: n === e.fields.sprite })));
-    rows.push(field("f-sprite", "sprite", sel), xy);
-  } else if (e.type === "Character") {
-    const sel = el("select", { id: "f-sprite", onchange: edit((v) => { e.fields.sprite = v; }) }, ...S.spriteNames.map((n) => el("option", { value: n, text: n, selected: n === e.fields.sprite })));
-    rows.push(
-      field("f-id", "id (what it stands for)", el("input", { id: "f-id", value: e.fields.id || "", onchange: edit((v) => { e.fields.id = v.trim(); }) })),
-      field("f-sprite", "sprite", sel), xy,
-      field("f-perch", "perch (cell: col,row)", el("input", { id: "f-perch", value: fmtPoint(e.fields.perch), placeholder: "e.g. 3,7", onchange: edit((v) => { e.fields.perch = parsePoint(v); }) })),
-      field("f-flyTo", "fly to (cell)", el("input", { id: "f-flyTo", value: fmtPoint(e.fields.flyTo), placeholder: "e.g. 15,12", onchange: edit((v) => { e.fields.flyTo = parsePoint(v); }) })),
-      field("f-path", "walks along (cells, one per line)", el("textarea", { id: "f-path", rows: "3", onchange: edit((v) => { e.fields.path = parsePoints(v); }) }, (e.fields.path || []).map(fmtPoint).join("\n"))));
-  } else if (e.type === "Path") {
-    rows.push(
-      field("f-name", "name", el("input", { id: "f-name", value: e.fields.name || "", onchange: edit((v) => { e.fields.name = v.trim(); }) })),
-      field("f-points", "points (cells, one per line)", el("textarea", { id: "f-points", rows: "5", onchange: edit((v) => { e.fields.points = parsePoints(v); }) }, (e.fields.points || []).map(fmtPoint).join("\n"))));
-  } else {
-    rows.push(
-      field("f-name", "name", el("input", { id: "f-name", value: e.fields.name || "", onchange: edit((v) => { e.fields.name = v.trim(); }) })), xy,
-      el("div", { class: "pair" },
-        field("f-w", "width (px)", el("input", { id: "f-w", type: "number", min: "1", value: e.w, onchange: edit((v) => { e.w = Math.max(1, Math.round(+v)); }) })),
-        field("f-h", "height (px)", el("input", { id: "f-h", type: "number", min: "1", value: e.h, onchange: edit((v) => { e.h = Math.max(1, Math.round(+v)); }) }))));
+  if (e.type === "Path" || e.type === "Region") {
+    rows.push(el("div", { class: "field" }, el("label", { for: "f-name", text: "name" }),
+      el("input", { id: "f-name", value: e.fields.name || "", onchange: edit((v) => { e.fields.name = v.trim(); }) })));
   }
   rows.push(el("div", { class: "row" },
     el("button", { class: "btn quiet", type: "button", onclick: duplicate }, icon("dup"), "Duplicate"),
@@ -1123,7 +1095,7 @@ canvas.addEventListener("pointerdown", (ev) => {
   if (S.walk) return;
   if (phone()) sheet(null);
   let p = toMap(ev);
-  if (ev.button === 1 || S.spaceDown || S.tool === "hand") { S.panning = { x: ev.clientX, y: ev.clientY, ox: S.ox, oy: S.oy }; $("stage").classList.add("pan"); return; }
+  if (ev.button === 1 || S.spaceDown) { S.panning = { x: ev.clientX, y: ev.clientY, ox: S.ox, oy: S.oy }; $("stage").classList.add("pan"); return; }
   const tool = S.tool;
   if (tool === "stamp") {
     if (ev.button === 2) { setTool("select"); return; }
@@ -1150,12 +1122,15 @@ canvas.addEventListener("pointerdown", (ev) => {
     const what = S.place;
     if (placeFrom(ev, what)) { if (ev.shiftKey) { S.place = what; sync(); } else { setTool("select"); select(S.selected); } }
   } else {
-    const e = hit(p);
+    const e = ev.button === 0 ? hit(p) : null;
     if (e) {
       select(e);
       history.push(S.map);
       S.drag = { e, start: p, x: e.x, y: e.y, points: e.fields.points ? structuredClone(e.fields.points) : null, moved: false };
-    } else select(null);
+    } else {                                                  // empty ground: let go of the selection and pan
+      select(null);
+      S.panning = { x: ev.clientX, y: ev.clientY, ox: S.ox, oy: S.oy }; $("stage").classList.add("pan");
+    }
   }
   S.needsDraw = true;
 });
@@ -1175,6 +1150,7 @@ canvas.addEventListener("pointermove", (ev) => {
   let p = toMap(ev);
   if (S.stroke && ["brush", "rect", "plot"].includes(S.tool)) p = growFor(ev, p);
   S.hover = p;
+  canvas.style.cursor = S.tool === "select" && !S.drag && !S.panning && hit(p) ? "pointer" : "";   // over an object: it can be picked up
   if (S.longPress && Math.hypot(ev.clientX - S.longPress.at.x, ev.clientY - S.longPress.at.y) > 6) { clearTimeout(S.longPress.timer); S.longPress = null; }
   if (S.panning) { S.ox = S.panning.ox + ev.clientX - S.panning.x; S.oy = S.panning.oy + ev.clientY - S.panning.y; S.needsDraw = true; return; }
   if (S.selFrom) {
@@ -1267,7 +1243,7 @@ window.addEventListener("keydown", (ev) => {
   if (ev.shiftKey && (ev.code === "Digit1")) { fit(); return; }
   if (ev.shiftKey && (ev.code === "Digit0")) { zoomActual(); return; }
   if (k === "r" && ev.shiftKey) { S.show.raw = !S.show.raw; buildShow(); S.needsDraw = true; return; }
-  const keyTool = { v: "select", h: "hand", b: "brush", r: "rect", f: "fill", i: "pick", s: "area", t: "plot" }[k];
+  const keyTool = { v: "select", b: "brush", r: "rect", f: "fill", i: "pick", s: "area", t: "plot" }[k];
   if (keyTool) { setTool(keyTool); return; }
   if (k === "e") { toggleErase(); return; }
   if (/^[1-9]$/.test(ev.key)) {
@@ -1285,8 +1261,8 @@ window.addEventListener("keydown", (ev) => {
   if ((k === "delete" || k === "backspace") && S.selected) { ev.preventDefault(); removeSelected(); return; }
   if ((k === "delete" || k === "backspace") && S.sel) { ev.preventDefault(); deleteSel(); return; }
   if (k === "escape") {
-    if (["place", "scatter", "stamp"].includes(S.tool)) { setTool("select"); return; }
-    S.sel = null; select(null);
+    if (S.selected || S.sel) { S.sel = null; select(null); return; }
+    setTool("select");
   }
 });
 window.addEventListener("keyup", (ev) => {
