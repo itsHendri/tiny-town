@@ -42,7 +42,6 @@ const ICONS = {
   undo: '<path d="M9 6.5L4.5 11 9 15.5"/><path d="M4.5 11h10a5 5 0 0 1 0 10H12"/>',
   redo: '<path d="M15 6.5l4.5 4.5-4.5 4.5"/><path d="M19.5 11h-10a5 5 0 0 0 0 10H12"/>',
   cog: '<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/><circle cx="12" cy="12" r="6.6"/>',
-  walk: '<path d="M8 5.5v13l10.5-6.5z"/>',
   chev: '<path d="M7 10l5 5 5-5"/>',
   dup: '<rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/>',
   trash: '<path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 12.5h9l1-12.5"/>',
@@ -65,7 +64,7 @@ const S = {
   map: null, ts: null, sprites: {}, spriteNames: [], fileName: "town.ldtk",
   tool: "select", size: 1, brush: { layer: "Terrain", v: 1 },
   place: null, selected: null, scatter: { on: false, density: 0.35 }, scatterStroke: null,
-  sel: null, selFrom: null, pasting: null, stamps: [], walk: null, walkView: null, longPress: null,
+  sel: null, selFrom: null, pasting: null, stamps: [], stroll: null, longPress: null,
   fx: [], squash: new Map(), isoTs: null, projection: "iso", V: null,
   zoom: 2, ox: 0, oy: 0,
   show: { terrain: true, props: true, characters: true, data: true, raw: false, grid: false, margin: true },
@@ -226,7 +225,6 @@ const pasteAt = (hv) => [hv.c - Math.floor(S.pasting.clip.cols / 2), hv.r - Math
 // ---------- tools ----------
 
 function setTool(id) {
-  if (S.walk) return;
   S.tool = id;
   if (id !== "place" && id !== "scatter") S.place = null;
   if (id !== "stamp") S.pasting = null;
@@ -404,7 +402,7 @@ function dataIcon(kind) {
 // Pointer events rather than HTML drag and drop, so the map can show the object where it will land.
 
 function dndStart(ev, p, canvas) {
-  if (ev.button !== 0 || ev.pointerType === "touch" || S.walk) return;
+  if (ev.button !== 0 || ev.pointerType === "touch") return;
   ev.preventDefault();                                     // no text selection while dragging
   S.dnd = { p, x: ev.clientX, y: ev.clientY, live: false, done: false, src: canvas.toDataURL(), was: { tool: S.tool, place: S.place, pasting: S.pasting } };
 }
@@ -743,7 +741,7 @@ function placeCard() {
     const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
     b = [Math.min(...xs), Math.min(...ys), Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)];
   } else return;
-  const busy = S.drag?.moved || S.stroke || S.panning || S.pinch || S.walk;
+  const busy = S.drag?.moved || S.stroke || S.panning || S.pinch;
   box.style.visibility = busy ? "hidden" : "";
   const st = $("stage"), sw = st.clientWidth, sh = st.clientHeight, W = box.offsetWidth, H = box.offsetHeight;
   const cs = getComputedStyle(st), lw = phone() ? 0 : parseFloat(cs.getPropertyValue("--lw")) || 0, rw = phone() ? 0 : parseFloat(cs.getPropertyValue("--rw")) || 0;
@@ -873,15 +871,12 @@ function draw() {
 
   const sprites = S.map.entities.filter((e) => (e.type === "Prop" && S.show.props && !V.iso) || (e.type === "Character" && S.show.characters))
     .sort((a, b) => (V.iso ? (a.x + a.y) - (b.x + b.y) : a.y - b.y));
-  if (S.walk) {
-    const [wu, wv] = S.walk.feet(), depth = (e) => (V.iso ? e.x + e.y : e.y), wd = V.iso ? wu + wv : wv;
-    drawSprites(ctx, sprites.filter((e) => depth(e) <= wd)); drawWalker(ctx); drawSprites(ctx, sprites.filter((e) => depth(e) > wd));
-  } else drawSprites(ctx, sprites);
+  drawSprites(ctx, sprites);
   if (S.fx.length) drawFx(ctx, performance.now());
   if (S.fx.length || S.squash.size) S.needsDraw = true;
 
   const line = (w) => { ctx.lineWidth = w / S.zoom; };
-  if (S.show.data && !S.walk) {
+  if (S.show.data) {
     for (const e of S.map.entities) {
       if (e.type === "Region") {
         ctx.strokeStyle = ENTITIES.Region.color; line(1.5); ctx.setLineDash([4 / S.zoom, 3 / S.zoom]);
@@ -914,7 +909,7 @@ function draw() {
   }
 
   // what the next click will do
-  if (hv && !S.panning && !S.pinch && !S.walk) {
+  if (hv && !S.panning && !S.pinch) {
     if (S.tool === "select" && !S.drag) {
       const e = hit(hv);
       if (e && e !== sel) { const [x, y, w, h] = bounds(e); ctx.strokeStyle = "rgba(232,103,58,0.55)"; line(1.5); ctx.strokeRect(x - 1, y - 1, w + 2, h + 2); }
@@ -958,7 +953,7 @@ function draw() {
     ctx.fillStyle = "rgba(58,118,240,0.12)"; poly(ctx, area4(c0, r0, c1, r1)); ctx.fill();
     ctx.strokeStyle = "#3a76f0"; line(2); ctx.setLineDash([4 / S.zoom, 3 / S.zoom]); ctx.stroke(); ctx.setLineDash([]);
   }
-  if (S.tool === "stamp" && S.pasting && hv && !S.walk) {
+  if (S.tool === "stamp" && S.pasting && hv) {
     const [c0, r0] = pasteAt(hv), clip = S.pasting.clip;
     ctx.globalAlpha = 0.8;
     if (!V.iso) ctx.drawImage(S.pasting.canvas, c0 * T, r0 * T);
@@ -1012,7 +1007,7 @@ function loop(now) {
   if (S.map && S.ts) {
     if (S.terrainDirty) { bake(); S.needsDraw = true; }
     else if (S.restDirty && !S.stroke && !S.drag && !S.scatterStroke) { S.restDirty = false; S.terrainDirty = true; }
-    if (S.walk) walkFrame();
+    if (S.stroll) strollFrame();
     if (S.show.terrain && !reduceMotion && now - lastTick > S.ts.frameMs) { lastTick = now; S.frame = (S.frame + 1) % S.ts.frames; S.needsDraw = true; }
     if (S.needsDraw) draw();
   }
@@ -1154,6 +1149,7 @@ function endPaint(p) {
 
 // Put the map back as the last snapshot had it, keeping the screen still if the map shrinks back.
 function restore(fn) {
+  S.stroll = null;                                           // a walk in progress is already one undo step; let it go
   const s0 = S.map.shift || [0, 0];
   if (!fn()) return false;
   const s1 = S.map.shift || [0, 0];
@@ -1183,7 +1179,6 @@ canvas.addEventListener("pointerdown", (ev) => {
     return;
   }
   if (S.pointers.size > 2) return;
-  if (S.walk) return;
   if (phone()) sheet(null);
   let p = toMap(ev);
   if (ev.button === 1 || S.spaceDown) { S.panning = { x: ev.clientX, y: ev.clientY, ox: S.ox, oy: S.oy }; $("stage").classList.add("pan"); return; }
@@ -1299,14 +1294,9 @@ window.addEventListener("keydown", (ev) => {
   if (mod && ev.key.toLowerCase() === "s") { ev.preventDefault(); save(); return; }
   if (mod && ev.key.toLowerCase() === "o") { ev.preventDefault(); openMap(); return; }
   if (typing()) return;
-  if (S.walk) {
-    const dir = WALK_KEYS[ev.key.toLowerCase()];
-    if (dir) { ev.preventDefault(); S.walk.press(dir); }
-    if (ev.key === "Escape" || ev.key === "Enter") walkStop();
-    return;
-  }
   if (!$("file-menu").hidden) return;
-  if (ev.key === "Enter" && !mod && document.activeElement?.tagName !== "BUTTON") { ev.preventDefault(); walkStart(); return; }
+  const dir = !mod && S.selected?.type === "Character" && WALK_KEYS[ev.key.toLowerCase()];
+  if (dir) { ev.preventDefault(); strollKey(dir); return; }
   if (mod && ev.key.toLowerCase() === "z") { ev.preventDefault(); ev.shiftKey ? redo() : undo(); return; }
   if (mod && ev.key.toLowerCase() === "y") { ev.preventDefault(); redo(); return; }
   if (mod && ev.key === "\\") { ev.preventDefault(); foldBoth(); return; }
@@ -1339,7 +1329,7 @@ window.addEventListener("keydown", (ev) => {
   }
 });
 window.addEventListener("keyup", (ev) => {
-  if (S.walk) { const dir = WALK_KEYS[ev.key.toLowerCase()]; if (dir) S.walk.release(dir); }
+  if (S.stroll) { const dir = WALK_KEYS[ev.key.toLowerCase()]; if (dir) S.stroll.w.release(dir); }
   if (ev.key === " ") { S.spaceDown = false; if (!S.panning) $("stage").classList.remove("pan"); }
   if (ev.key === "Shift" && S.hover) { S.hover.free = false; S.needsDraw = true; }
 });
@@ -1469,7 +1459,7 @@ $("code-go").addEventListener("click", async () => {
 });
 
 function useMap(m, name, note) {
-  walkStop();
+  strollEnd();
   S.V = null;
   S.map = m; S.fileName = name; S.selected = null; S.sel = null;
   sync(); fit(); S.terrainDirty = true; updateUndo();
@@ -1543,67 +1533,47 @@ function setProjection(p) {
 $("proj-iso").addEventListener("click", () => setProjection("iso"));
 $("proj-top").addEventListener("click", () => setProjection("ortho"));
 
-// ---------- walk mode ----------
+// ---------- a selected character walks with the arrow keys (or WASD) ----------
+// Cell by cell, with a little hop: water, fences and buildings block it, stairs take it up and down (js/walk.js).
+// One walk is one undo step.
 
 const WALK_KEYS = { arrowup: "up", w: "up", arrowdown: "down", s: "down", arrowleft: "left", a: "left", arrowright: "right", d: "right" };
 
-function walkStart() {
-  const m = S.map;
-  const startRegion = m.entities.find((e) => e.type === "Region" && e.fields.name === "start");
-  const cat = m.entities.find((e) => e.type === "Character" && e.fields.id === "cat");
-  const at = startRegion ? [Math.floor(startRegion.x / T), Math.floor(startRegion.y / T)]
-    : cat ? [Math.floor(cat.x / T), Math.floor((cat.y - 1) / T)] : [Math.floor(m.cols / 2), Math.floor(m.rows / 2)];
-  S.walk = new Walker(m, (S.V?.iso ? S.isoTs : S.ts).props, at, { faces: !S.V?.iso });
-  S.walkView = { zoom: S.zoom, ox: S.ox, oy: S.oy };
-  S.zoom = 3; showZoom();
-  S.sel = null; S.selected = null; buildCard();
-  $("walk").setAttribute("aria-pressed", "true"); $("pad").hidden = false; $("walking").hidden = false; $("stage").classList.add("walk");
-  S.needsDraw = true;
+function strollKey(dir) {
+  const e = S.selected;
+  if (!S.stroll || S.stroll.e !== e) {
+    strollEnd();
+    history.push(S.map);
+    const w = new Walker(S.map, propSet().props, [Math.floor(e.x / T), Math.floor((e.y - 1) / T)], { faces: !S.V?.iso });
+    S.stroll = { e, w, moved: false };
+  }
+  S.stroll.w.press(dir);
 }
 
-function walkStop() {
-  if (!S.walk) return;
-  S.walk = null;
-  Object.assign(S, S.walkView); showZoom();
-  $("walk").setAttribute("aria-pressed", "false"); $("pad").hidden = true; $("walking").hidden = true; $("stage").classList.remove("walk");
-  sync();
-}
-
-$("walk").addEventListener("click", () => (S.walk ? walkStop() : walkStart()));
-for (const b of $("pad").querySelectorAll("button")) {
-  b.addEventListener("pointerdown", (ev) => { ev.preventDefault(); S.walk?.press(b.dataset.dir); });
-  for (const t of ["pointerup", "pointerleave", "pointercancel"]) b.addEventListener(t, () => S.walk?.release(b.dataset.dir));
-}
-
-function walkFrame() {
-  const w = S.walk;
+function strollFrame() {
+  const st = S.stroll, w = st.w;
   w.update();
-  const [x, y] = S.V.feet({ x: w.feet()[0], y: w.feet()[1] }), r = canvas.getBoundingClientRect();
-  const tx = r.width / 2 - x * S.zoom, ty = r.height / 2 - (y - 12) * S.zoom;
-  S.ox += (tx - S.ox) * 0.2; S.oy += (ty - S.oy) * 0.2;
+  const [x, y] = w.feet();
+  if (x !== st.e.x || y !== st.e.y) { st.e.x = Math.round(x); st.e.y = Math.round(y); st.moved = true; }
+  const [fx, fy] = S.V.feet(st.e), r = canvas.getBoundingClientRect(), px = S.ox + fx * S.zoom, py = S.oy + fy * S.zoom, pad = 140;
+  if (px < pad) S.ox += (pad - px) * 0.15; else if (px > r.width - pad) S.ox -= (px - r.width + pad) * 0.15;     // keep it in view
+  if (py < pad) S.oy += (pad - py) * 0.15; else if (py > r.height - pad) S.oy -= (py - r.height + pad) * 0.15;
   S.needsDraw = true;
+  if (!w.held.length && !w.from && !w.queued) strollEnd();
 }
 
-function drawWalker(g) {
-  const w = S.walk, im = S.sprites["cat-walk"] || S.sprites["cat-sit"] || S.sprites[S.spriteNames[0]];
-  const [u, v] = w.feet(), [x, y] = S.V.feet({ x: u, y: v });
-  g.fillStyle = "rgba(38, 48, 63, 0.28)";
-  g.beginPath(); g.ellipse(x, y - 1, 6, 2.2, 0, 0, Math.PI * 2); g.fill();
-  if (!im) { g.fillStyle = "#e8673a"; g.fillRect(x - 5, y - 12, 10, 12); return; }
-  g.save();
-  g.translate(Math.round(x), Math.round(y));
-  if (w.facing === "left") g.scale(-1, 1);
-  g.drawImage(im, -Math.round(im.width / 2), -im.height);
-  g.restore();
+function strollEnd() {
+  const st = S.stroll;
+  if (!st) return;
+  S.stroll = null;
+  if (st.moved) changed(false); else history.drop();
 }
 
 // ---------- start ----------
 
 async function start() {
   $("undo").append(icon("undo")); $("redo").append(icon("redo")); $("settings").append(icon("cog")); $("file-btn").append(icon("chev"));
-  $("walk").append(icon("walk"), el("span", { text: "Walk" }));
-  $("walk").querySelector("svg").style.fill = "currentColor";
-  for (const side of ["left", "right"]) { let f = false; try { f = localStorage.getItem(`tiny-town/fold-${side}`) === "1"; } catch { /* fine */ } if (f) setFold(side, true); }
+    for (const side of ["left", "right"]) { let f = false; try { f = localStorage.getItem(`tiny-town/fold-${side}`) === "1"; } catch { /* fine */ } if (f) setFold(side, true); }
   try {
     S.ts = await loadTileset("tiles/");
   } catch (e) {

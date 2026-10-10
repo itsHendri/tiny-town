@@ -58,7 +58,6 @@ kbd { font: 11px var(--mono); border: 1px solid var(--line); border-bottom-width
 .btn.pri { background: var(--fg); border-color: var(--fg); color: var(--panel); }
 .btn.pri:hover { background: var(--fg); opacity: .9; }
 .btn svg.i { width: 16px; height: 16px; }
-#walk[aria-pressed="true"] { background: var(--on); border-color: var(--on); color: var(--panel); }
 .split { display: inline-flex; position: relative; }
 .split > .btn:first-child { border-radius: 8px 0 0 8px; }
 .split > .btn.more { border-radius: 0 8px 8px 0; padding: 0 7px; border-left: 1px solid color-mix(in srgb, var(--panel) 30%, var(--fg)); }
@@ -182,16 +181,6 @@ details.sec > summary small { margin-left: auto; color: var(--muted); text-trans
 .drag-ghost { position: fixed; z-index: 50; pointer-events: none; width: 48px; height: 48px; image-rendering: pixelated; transform: translate(-50%, -70%); opacity: .9;
   filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3)); }
 
-.pad { position: absolute; left: 12px; bottom: 16px; display: grid; grid-template-columns: repeat(3, 48px); grid-template-rows: repeat(3, 48px); gap: 4px; touch-action: none; z-index: 6; }
-.pad button { border: 1.5px solid var(--fg); background: var(--panel); color: var(--fg); border-radius: 10px; font-size: 16px; cursor: pointer; opacity: .92; }
-.pad button:active { background: var(--on-bg); }
-.pad [data-dir="up"] { grid-column: 2; grid-row: 1; }
-.pad [data-dir="left"] { grid-column: 1; grid-row: 2; }
-.pad [data-dir="right"] { grid-column: 3; grid-row: 2; }
-.pad [data-dir="down"] { grid-column: 2; grid-row: 3; }
-@media (hover: hover) and (pointer: fine) { .pad { display: none; } }
-.walking { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: var(--on); color: var(--panel); font: 600 12px var(--mono); padding: 6px 12px; border-radius: 8px; pointer-events: none; z-index: 6; }
-.stage.walk .panel, .stage.walk .tab, .stage.walk .dock, .stage.walk .selcard, .stage.walk .zoom { display: none !important; }
 .toast { position: absolute; left: 50%; top: 60px; transform: translateX(-50%); background: var(--fg); color: var(--panel); padding: 6px 12px; border-radius: 8px; font-size: 13px;
   pointer-events: none; max-width: calc(100% - 32px); z-index: 40; }
 
@@ -216,9 +205,7 @@ dialog::backdrop { background: rgba(20, 24, 32, 0.5); }
   .top-right { gap: 2px; }
   .brand { font-size: 18px; }
   .top .ib { width: 30px; }
-  #walk { padding: 0 9px; }
   .split > .btn:first-child { padding: 0 10px; }
-  #walk span { display: none; }
   .stage, .stage.fold-left, .stage.fold-right { --lw: 0px; --rw: 0px; }
   .panel.left, .panel.right { display: none; left: 8px; right: 8px; width: auto; top: auto; bottom: 78px; height: auto; max-height: 55%; }
   .stage .panel.open { display: flex !important; }
@@ -242,7 +229,6 @@ dialog::backdrop { background: rgba(20, 24, 32, 0.5); }
   <span class="top-right">
     <button class="ib" type="button" id="undo" title="Undo (Ctrl+Z)" aria-label="Undo"></button>
     <button class="ib" type="button" id="redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo"></button>
-    <button class="btn quiet" type="button" id="walk" aria-pressed="false" title="Walk around your town (Enter)"></button>
     <span class="split">
       <button class="btn pri" type="button" id="save" title="Save the map (Ctrl+S)">Save</button>
       <button class="btn pri more" type="button" id="file-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="file-menu" aria-label="More file actions"></button>
@@ -255,7 +241,6 @@ dialog::backdrop { background: rgba(20, 24, 32, 0.5); }
         <button type="button" role="menuitem" data-act="open-code">Open a share code…</button>
         <div class="label">Examples</div>
         <button type="button" role="menuitem" data-act="example" data-url="maps/market-village.ldtk">Market village</button>
-        <button type="button" role="menuitem" data-act="example" data-url="maps/town-v5.ldtk">CuriousCat town</button>
         <hr>
         <button type="button" role="menuitem" data-act="new">New map</button>
       </div>
@@ -296,13 +281,6 @@ dialog::backdrop { background: rgba(20, 24, 32, 0.5); }
   </div>
   <div class="selcard" id="selcard" role="dialog" aria-label="Selection" hidden></div>
   <div class="toast" id="toast" role="status" hidden></div>
-  <div class="pad" id="pad" hidden aria-label="Walk controls">
-    <button type="button" data-dir="up" aria-label="Up">▲</button>
-    <button type="button" data-dir="left" aria-label="Left">◀</button>
-    <button type="button" data-dir="right" aria-label="Right">▶</button>
-    <button type="button" data-dir="down" aria-label="Down">▼</button>
-  </div>
-  <div class="walking" id="walking" hidden>Walking · arrows or WASD · Esc to stop</div>
 </main>
 <img class="drag-ghost" id="ghost" alt="" hidden>
 
@@ -320,9 +298,8 @@ dialog::backdrop { background: rgba(20, 24, 32, 0.5); }
       <kbd>[ ]</kbd><span>brush size (fences, gates and stairs are always one cell)</span>
       <kbd>Shift click</kbd><span>straight line from the last stroke; with an object, keep placing</span>
       <kbd>Alt click</kbd><span>take the swatch of what's under the cursor</span>
-      <kbd>Arrows</kbd><span>nudge the selected object a cell (Shift: a pixel)</span>
+      <kbd>Arrows</kbd><span>a selected character walks (or WASD); any other object nudges a cell (Shift: a pixel)</span>
       <kbd>Del</kbd><span>delete the selected object</span>
-      <kbd>Enter</kbd><span>walk around (arrows or WASD, Esc stops)</span>
       <kbd>+ −</kbd><span>zoom (or pinch, Ctrl+wheel)</span>
       <kbd>Shift 1</kbd><span>fit the map (that is 100%)</span>
       <kbd>Ctrl \</kbd><span>fold or unfold the panels</span>

@@ -1,4 +1,4 @@
-# tiny-town
+# tiny pixel town
 
 A small map builder for pixel towns, isometric or top-down, made for drawing your own little world. It runs in the
 browser with no install and no build step, and every tile, house, tree and stall is drawn in code (and can be
@@ -15,7 +15,7 @@ repainted by hand).
   paint anywhere and the map grows.
 * **Place** houses, market stalls, trees and more: drag them in from the Objects panel on the right. Scatter sprinkles
   trees and flowers.
-* **Walk** (Enter) your town with the arrow keys, then go straight back to building.
+* **Walk** a character: select the cat (or any character) and steer it with the arrow keys.
 * **Save** a `.ldtk` map (it also opens in [LDtk](https://ldtk.io)). The arrow beside Save holds the rest: save a PNG,
   copy a **share code** (the whole map as one line of text to send to a friend), open a file or a code, examples.
 * Switch **Iso / Top** in the middle of the top bar. Your map is kept in your browser as you work.
@@ -38,7 +38,7 @@ then visit http://localhost:8000. Your map is kept in the browser as you work; *
 | Place | Drag a prop or character from the Objects panel onto the map, or click it and then the map (Shift keeps placing). With no tool active (Esc, or click the active tool again): click an object to select it, drag to move it, arrows nudge; the card beside it has Duplicate and Delete. Pick Few, Some or Lots under Scatter and drag to sprinkle trees or bushes; right-drag clears them. |
 | Reuse | New stamp (in Stamps): drag over part of the map, name it, save. Pick a stamp to place it again; Esc stops. |
 | Share | The arrow beside Save: Copy share code (the whole map as one line of text, a few KB), or Open a share code. |
-| Walk | Walk (or Enter): walk the town with the arrows or WASD; stairs climb, water and fences block. Esc stops. |
+| Walk | Select a character and use the arrows or WASD: it walks cell by cell, stairs take it up and down, water, fences and buildings block it. One undo puts it back. |
 | Phone | Paint and Objects open as sheets from the toolbox. Hold still to pick. |
 | Move around | Wheel or two fingers to pan, Ctrl+wheel or pinch to zoom, drag the ground with no tool active, or hold Space and drag. Shift+1 fits the map. |
 | Settings | The cog: what to show (props, grid, the forest round the edge) and every shortcut. Shift+R shows the raw grid, like LDtk. |
@@ -62,7 +62,7 @@ so they can also be opened in LDtk and read by its loaders.
 |---|---|
 | `art/` | Python (Pillow) that draws the art: `dualgrid.py` (tile shapes), `styles.py` (every look), `props.py`, `tiles.py` (builds the sheets), `preview.py` (style comparisons), `ldtk.py` (writes maps), `builtin_stamps.py` (the ready-made stamps) |
 | `tiles/` | The tile sheet (`tileset.png` + `tileset.json`), the prop atlas (`props.png` + `props.json`), and `tileset.edited.png`, your hand edits (they win) |
-| `index.html`, `js/` | The editor: `editor.js` (the page), `tools.js` (painting, fill, height, plots, undo), `stamps.js` (copy, paste, stamps), `share.js` (share codes), `walk.js` (walk mode), `files.js` (open, save, autosave), `registry.js` (what can be painted and placed), `format.js` (load/save maps), `render.js` (draws a map) |
+| `index.html`, `js/` | The editor: `editor.js` (the page), `tools.js` (painting, height, growing the map, undo), `stamps.js` (stamps), `share.js` (share codes), `walk.js` (a character walking), `files.js` (open, save, autosave), `registry.js` (what can be painted and placed), `format.js` (load/save maps), `render.js` (draws a map) |
 | `maps/` | Example maps |
 | `sprites/` | Example characters (one PNG each, feet at the bottom centre) |
 
@@ -97,7 +97,7 @@ fully transparent replaces the generated one when the page loads, so regeneratin
 
 The builder draws isometric (32x16 diamonds, levels 16 px high) or top-down; the Market village example rebuilds a
 storybook reference picture from these parts. Done from research and that reference: height levels, Shift-lines,
-scatter, stamps, plots, share codes, walk mode, a phone tool bar, isometric houses (storybook look), market stalls,
+scatter, stamps, share codes, characters that walk, a phone tool bar, isometric houses (storybook look), market stalls,
 lamps, fences, bridges, stairs, flower beds, dirt, details, a light wood round the town, chimney smoke.
 
 Still open:

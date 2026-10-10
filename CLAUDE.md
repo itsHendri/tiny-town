@@ -73,9 +73,10 @@ Code MIT (`LICENSE`), art CC BY 4.0 (`LICENSE-art`). Read `README.md` for the us
   `tools.js`); `rebuildView(dc, dr)` keeps the screen still when the view changes shape. A view abstraction
   (`pt`, `feet`, `cellPoly`, `pick`, `border`) keeps tools projection-free. Undo is snapshots; autosave in
   localStorage; `window.tinyTown = { state, history }` for debugging in the console.
-* Other modules: `tools.js` (brush, line, rect, fill, height shaping, plots, resize, History), `stamps.js`,
+* Other modules: `tools.js` (brush, line, height shaping, resize, grow, History), `stamps.js`,
   `share.js` (share codes: gzip + base64url, prefix `tinytown1:`), `files.js` (save picker, then a download fallback),
-  `walk.js` (walk mode; props with a `foot` block their cells), `format.js` (parse/build `.ldtk`).
+  `walk.js` (a selected character walks with the arrows; props with a `foot` block their cells), `format.js`
+  (parse/build `.ldtk`).
 
 ## Map format (keep it stable)
 
@@ -122,7 +123,7 @@ existing values. If the format must change, bump `tinyTownVersion` in `js/format
 
   Extend `art/parity_ref.py` when you add something the test map doesn't cover (fences, stairs, bridges, dirt).
 * In the browser pane: paint each terrain, raise and lower, stairs, place and move a prop, undo/redo, save and reopen,
-  walk mode, both projections, and phone width.
+  walking a character, both projections, and phone width.
 * Gotchas: the page caches modules (reload, or fetch with `cache: "reload"`); a hidden browser pane pauses
   `requestAnimationFrame`, so test logic directly instead of waiting on animation.
 

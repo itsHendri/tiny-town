@@ -9,7 +9,7 @@
   "url": "https://ldtk.io"
  },
  "tinyTownVersion": 1,
- "iid": "4519e71f-60d1-5b1e-97b8-a713191bd71d",
+ "iid": "80301e03-dbda-5a51-b5f2-445cbce86bee",
  "jsonVersion": "1.5.3",
  "appBuildId": 473702,
  "nextUid": 100,
@@ -793,7 +793,7 @@
  "levels": [
   {
    "identifier": "Town",
-   "iid": "6e82c2da-63e8-52b2-8225-0c07bce53c69",
+   "iid": "4519e71f-60d1-5b1e-97b8-a713191bd71d",
    "uid": 0,
    "worldX": 0,
    "worldY": 0,
@@ -823,7 +823,7 @@
      "__pxTotalOffsetY": 0,
      "__tilesetDefUid": null,
      "__tilesetRelPath": null,
-     "iid": "8b8234c2-3346-57fe-b6e2-1758bf59545d",
+     "iid": "4e083803-b461-5d17-bc24-76f2cea4b730",
      "levelId": 0,
      "layerDefUid": 1,
      "pxOffsetX": 0,
@@ -9404,47 +9404,6 @@
          ]
         }
        ]
-      },
-      {
-       "__identifier": "Region",
-       "__grid": [
-        14,
-        33
-       ],
-       "__pivot": [
-        0,
-        0
-       ],
-       "__tags": [],
-       "__tile": null,
-       "__smartColor": "#3a76f0",
-       "iid": "4e083803-b461-5d17-bc24-76f2cea4b730",
-       "width": 16,
-       "height": 16,
-       "defUid": 40,
-       "px": [
-        224,
-        528
-       ],
-       "__worldX": 224,
-       "__worldY": 528,
-       "fieldInstances": [
-        {
-         "__identifier": "name",
-         "__type": "String",
-         "__tile": null,
-         "defUid": 41,
-         "__value": "start",
-         "realEditorValues": [
-          {
-           "id": "V_String",
-           "params": [
-            "start"
-           ]
-          }
-         ]
-        }
-       ]
       }
      ]
     },
@@ -9459,7 +9418,7 @@
      "__pxTotalOffsetY": 0,
      "__tilesetDefUid": null,
      "__tilesetRelPath": null,
-     "iid": "841b0ed6-4913-5132-97b1-3a945c9f0a82",
+     "iid": "8b8234c2-3346-57fe-b6e2-1758bf59545d",
      "levelId": 0,
      "layerDefUid": 2,
      "pxOffsetX": 0,
@@ -9525,7 +9484,7 @@
      "__pxTotalOffsetY": 0,
      "__tilesetDefUid": null,
      "__tilesetRelPath": null,
-     "iid": "4af6e323-ea44-523a-b8bf-79439a0b9504",
+     "iid": "841b0ed6-4913-5132-97b1-3a945c9f0a82",
      "levelId": 0,
      "layerDefUid": 3,
      "pxOffsetX": 0,
@@ -9591,7 +9550,7 @@
      "__pxTotalOffsetY": 0,
      "__tilesetDefUid": null,
      "__tilesetRelPath": null,
-     "iid": "fa5175aa-d5e5-56bc-a7fc-12fa45e39433",
+     "iid": "4af6e323-ea44-523a-b8bf-79439a0b9504",
      "levelId": 0,
      "layerDefUid": 4,
      "pxOffsetX": 0,
@@ -9657,7 +9616,7 @@
      "__pxTotalOffsetY": 0,
      "__tilesetDefUid": null,
      "__tilesetRelPath": null,
-     "iid": "80301e03-dbda-5a51-b5f2-445cbce86bee",
+     "iid": "fa5175aa-d5e5-56bc-a7fc-12fa45e39433",
      "levelId": 0,
      "layerDefUid": 5,
      "pxOffsetX": 0,
@@ -9717,5 +9676,5 @@
   }
  ],
  "worlds": [],
- "dummyWorldIid": "ffa4f984-8288-5059-a698-ce732d9ca864"
+ "dummyWorldIid": "6e82c2da-63e8-52b2-8225-0c07bce53c69"
 }

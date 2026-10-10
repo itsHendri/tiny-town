@@ -182,7 +182,6 @@ def build(palette="earthy", look="storybook"):
     p.set_intgrid("Deco", [1 if f else D_.get(d, 0) for f, d in zip(flat(m.fence), flat(m.deco))])
     for name, c, r in objects:
         p.add_entity("Prop", c * 16 + 8, (r + 1) * 16, {"sprite": name})
-    p.add_entity("Region", (8 + PAD) * 16, (27 + PAD) * 16, {"name": "start"}, w=16, h=16)
     p.save(ROOT / "maps" / "market-village.ldtk")
     return iso.render(m, 0, margin=6, woods=False)
 
