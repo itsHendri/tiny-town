@@ -1394,12 +1394,10 @@ function changed(terrain) {
   S.needsDraw = true;
   updateUndo();
   buildCard(true);
-  setState("Unsaved changes · kept in this browser");
   clearTimeout(autosaveTimer);
-  autosaveTimer = setTimeout(() => { if (!writeAutosave(S.fileName, stringifyMap(S.map))) setState("Unsaved changes · this browser can't keep them, save to a file"); }, 600);
+  autosaveTimer = setTimeout(() => { if (!writeAutosave(S.fileName, stringifyMap(S.map))) toast("This browser can't keep the map; save it to a file"); }, 600);
 }
 
-function setState(text) { $("state").textContent = text; }
 function toast(text) {
   const t = $("toast");
   t.textContent = text; t.hidden = false;
@@ -1426,7 +1424,7 @@ async function save() {
   try {
     const r = await saveFile(blob, S.fileName, { fallbackName: S.fileName.replace(/\.ldtk$/, "") + ".json",
       types: [{ description: "Map (LDtk)", accept: { "application/json": [".ldtk"] } }] });
-    if (r === "saved") { setState(`Saved ${S.fileName}`); toast("Saved"); }
+    if (r === "saved") toast("Saved");
   } catch (e) { toast(`Couldn't save: ${e.message}`); }
 }
 $("save").addEventListener("click", save);
@@ -1475,7 +1473,6 @@ function useMap(m, name, note) {
   walkStop();
   S.V = null;
   S.map = m; S.fileName = name; S.selected = null; S.sel = null;
-  $("file-name").textContent = name;
   sync(); fit(); S.terrainDirty = true; updateUndo();
   if (note) toast(note);
 }
@@ -1611,7 +1608,7 @@ async function start() {
   try {
     S.ts = await loadTileset("tiles/");
   } catch (e) {
-    $("file-name").textContent = "Couldn't load the tiles. Open this page through a web server (see README).";
+    toast("Couldn't load the tiles. Open this page through a web server (see README).");
     return;
   }
   S.isoTs = await loadIsoTileset("tiles/iso/").catch(() => null);
@@ -1640,7 +1637,6 @@ async function start() {
     try { m = parseMap(await (await fetch(EXAMPLE)).json()); } catch { m = newMap(40, 50); name = "town.ldtk"; }
   }
   useMap(m, name, note);
-  setState(saved ? "Restored from this browser" : "Example town · changes are kept in this browser");
   requestAnimationFrame(loop);
 }
 start();

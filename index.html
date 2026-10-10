@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Tiny Town Builder</title>
+<title>Tiny Pixel Town</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -45,8 +45,6 @@ kbd { font: 11px var(--mono); border: 1px solid var(--line); border-bottom-width
 /* ---------- top bar ---------- */
 .top { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 10px; padding: 0 12px 0 16px; height: 52px; border-bottom: 1px solid var(--line); background: var(--panel); position: relative; z-index: 20; }
 .brand { font: 700 22px/1 var(--display); letter-spacing: .01em; white-space: nowrap; }
-.file-name { font: 13px var(--mono); color: var(--muted); max-width: 28ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.state { font: 12px var(--mono); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .top-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .top-right { justify-self: end; display: flex; align-items: center; gap: 6px; }
 .ib { width: 34px; height: 34px; display: grid; place-items: center; border: 0; border-radius: 8px; background: transparent; cursor: pointer; color: var(--fg); }
@@ -82,10 +80,10 @@ kbd { font: 11px var(--mono); border: 1px solid var(--line); border-bottom-width
 .stage.pan > canvas { cursor: grabbing !important; }
 .stage[data-tool="place"] > canvas, .stage[data-tool="stamp"] > canvas { cursor: copy; }
 
-.panel { position: absolute; top: 12px; max-height: calc(100% - 96px); display: flex; flex-direction: column; background: var(--panel);
+.panel { position: absolute; top: 12px; height: calc(100% - 24px); display: flex; flex-direction: column; background: var(--panel);
   border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); z-index: 4; overflow: hidden; }
 .panel.left { left: 12px; width: 236px; }
-.panel.right { right: 12px; width: 256px; height: calc(100% - 96px); }
+.panel.right { right: 12px; width: 256px; }
 .stage.fold-left .panel.left, .stage.fold-right .panel.right { display: none; }
 .phead { display: flex; align-items: center; gap: 6px; padding: 10px 8px 6px 14px; }
 .phead h2 { font: 700 17px/1 var(--display); margin: 0; }
@@ -119,7 +117,7 @@ details.sec > summary small { margin-left: auto; color: var(--muted); text-trans
 .hint { font-size: 12.5px; color: var(--muted); margin: 2px 0 6px; }
 
 /* the floating toolbox */
-.dock { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 6; display: flex; align-items: center; gap: 10px; max-width: calc(100% - 24px); }
+.dock { position: absolute; left: calc(var(--lw) + (100% - var(--lw) - var(--rw)) / 2); bottom: 12px; transform: translateX(-50%); z-index: 6; display: flex; align-items: center; gap: 10px; max-width: calc(100% - var(--lw) - var(--rw) - 24px); }
 .toolbox, .eraser { display: flex; align-items: center; gap: 2px; background: var(--panel); border-radius: 14px; padding: 5px; box-shadow: var(--shadow), 0 0 0 1px var(--line); }
 .toolbox { min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .eraser { flex: none; }
@@ -149,7 +147,7 @@ details.sec > summary small { margin-left: auto; color: var(--muted); text-trans
 .seg button svg rect { fill: var(--line); }
 .seg button svg rect.on { fill: var(--fg); }
 
-.zoom { position: absolute; left: 50%; transform: translateX(-50%); top: 12px; display: flex; gap: 2px; align-items: center; background: var(--panel); border: 1px solid var(--line);
+.zoom { position: absolute; left: calc(var(--lw) + (100% - var(--lw) - var(--rw)) / 2); transform: translateX(-50%); top: 12px; display: flex; gap: 2px; align-items: center; background: var(--panel); border: 1px solid var(--line);
   border-radius: 10px; padding: 3px; font: 12px var(--mono); z-index: 3; box-shadow: 0 2px 8px rgba(38, 48, 63, 0.12); }
 .zoom .ib { width: 28px; height: 28px; font-size: 16px; }
 .zoom #zoom-fit { width: auto; padding: 0 7px; font: 12px var(--body); }
@@ -220,7 +218,7 @@ dialog::backdrop { background: rgba(20, 24, 32, 0.5); }
   .top .ib { width: 30px; }
   #walk { padding: 0 9px; }
   .split > .btn:first-child { padding: 0 10px; }
-  .file-name, .state, #walk span { display: none; }
+  #walk span { display: none; }
   .stage, .stage.fold-left, .stage.fold-right { --lw: 0px; --rw: 0px; }
   .panel.left, .panel.right { display: none; left: 8px; right: 8px; width: auto; top: auto; bottom: 78px; height: auto; max-height: 55%; }
   .stage .panel.open { display: flex !important; }
@@ -238,9 +236,7 @@ dialog::backdrop { background: rgba(20, 24, 32, 0.5); }
 <body>
 <header class="top">
   <span class="top-left">
-    <span class="brand">tiny-town</span>
-    <span class="file-name" id="file-name">Loading…</span>
-    <span class="state" id="state"></span>
+    <span class="brand">tiny pixel town</span>
   </span>
   <span class="proj" role="group" aria-label="View"><button type="button" id="proj-iso" aria-pressed="true" title="Isometric view">Iso</button><button type="button" id="proj-top" aria-pressed="false" title="Top-down view">Top</button></span>
   <span class="top-right">
