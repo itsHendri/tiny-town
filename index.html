@@ -119,8 +119,10 @@ details.sec > summary small { margin-left: auto; color: var(--muted); text-trans
 .hint { font-size: 12.5px; color: var(--muted); margin: 2px 0 6px; }
 
 /* the floating toolbox */
-.toolbox { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 6; display: flex; align-items: center; gap: 2px; max-width: calc(100% - 24px);
-  background: var(--panel); border-radius: 14px; padding: 5px; box-shadow: var(--shadow), 0 0 0 1px var(--line); overflow-x: auto; scrollbar-width: none; }
+.dock { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 6; display: flex; align-items: center; gap: 10px; max-width: calc(100% - 24px); }
+.toolbox, .eraser { display: flex; align-items: center; gap: 2px; background: var(--panel); border-radius: 14px; padding: 5px; box-shadow: var(--shadow), 0 0 0 1px var(--line); }
+.toolbox { min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.eraser { flex: none; }
 .toolbox::-webkit-scrollbar { display: none; }
 .tbtn { flex: none; width: 48px; height: 50px; display: grid; justify-items: center; align-content: center; gap: 1px; border: 0; background: transparent; border-radius: 9px;
   font: 600 10.5px var(--body); color: var(--fg); cursor: pointer; padding: 0; }
@@ -191,7 +193,7 @@ details.sec > summary small { margin-left: auto; color: var(--muted); text-trans
 .pad [data-dir="down"] { grid-column: 2; grid-row: 3; }
 @media (hover: hover) and (pointer: fine) { .pad { display: none; } }
 .walking { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: var(--on); color: var(--panel); font: 600 12px var(--mono); padding: 6px 12px; border-radius: 8px; pointer-events: none; z-index: 6; }
-.stage.walk .panel, .stage.walk .tab, .stage.walk .toolbox, .stage.walk .selcard, .stage.walk .zoom { display: none !important; }
+.stage.walk .panel, .stage.walk .tab, .stage.walk .dock, .stage.walk .selcard, .stage.walk .zoom { display: none !important; }
 .toast { position: absolute; left: 50%; top: 60px; transform: translateX(-50%); background: var(--fg); color: var(--panel); padding: 6px 12px; border-radius: 8px; font-size: 13px;
   pointer-events: none; max-width: calc(100% - 32px); z-index: 40; }
 
@@ -225,7 +227,7 @@ dialog::backdrop { background: rgba(20, 24, 32, 0.5); }
   .tab { display: none !important; }
   .tbtn.sheet { display: grid; }
   .zoom { top: 8px; }
-  .toolbox { bottom: 8px; }
+  .dock { bottom: 8px; gap: 6px; max-width: calc(100% - 16px); }
   .tbtn { width: 44px; }
   .tbtn.desk { display: none; }
   .chip > span:last-child { display: none; }
@@ -292,7 +294,10 @@ dialog::backdrop { background: rgba(20, 24, 32, 0.5); }
     <button class="ib" type="button" id="zoom-out" aria-label="Zoom out" title="Zoom out (−)">−</button><span id="zoom-level">100%</span><button class="ib" type="button" id="zoom-in" aria-label="Zoom in" title="Zoom in (+)">+</button>
     <button class="ib" type="button" id="zoom-fit" title="Fit the map (Shift+1)">Fit</button>
   </div>
-  <div class="toolbox" id="toolbox" role="toolbar" aria-label="Tools"></div>
+  <div class="dock">
+    <div class="toolbox" id="toolbox" role="toolbar" aria-label="Tools"></div>
+    <div class="eraser"><button class="tbtn erase" type="button" id="erase" aria-pressed="false" title="Eraser (E): takes away everything it touches, whole objects too. Right-click erases while painting."><span>Erase</span></button></div>
+  </div>
   <div class="selcard" id="selcard" role="dialog" aria-label="Selection" hidden></div>
   <div class="toast" id="toast" role="status" hidden></div>
   <div class="pad" id="pad" hidden aria-label="Walk controls">
@@ -315,7 +320,7 @@ dialog::backdrop { background: rgba(20, 24, 32, 0.5); }
       <kbd>1–9</kbd><span>swatches, in order; choosing a swatch picks up the brush</span>
       <kbd>Esc</kbd><span>clear the selection, then put the brush (or object, or stamp) down</span>
       <kbd>Click</kbd><span>with nothing in hand: select an object, drag it to move it, drag the ground to look around</span>
-      <kbd>E</kbd><span>erase on or off (right-click erases too)</span>
+      <kbd>E</kbd><span>eraser: takes away everything it touches (ground, fences, stairs, hills and pits, whole objects); right-click erases too</span>
       <kbd>[ ]</kbd><span>brush size (fences, gates and stairs are always one cell)</span>
       <kbd>Shift click</kbd><span>straight line from the last stroke; with an object, keep placing</span>
       <kbd>Alt click</kbd><span>take the swatch of what's under the cursor</span>

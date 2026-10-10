@@ -2,7 +2,7 @@
 
 import { newMap, parseMap, stringifyMap } from "./format.js";
 import { drawProp, drawTerrain, loadTileset } from "./render.js";
-import { bakeIso, isoView, loadIsoTileset } from "./iso.js";
+import { bakeIso, groundLevel, isoView, loadIsoTileset } from "./iso.js";
 import { ENTITIES, LAYERS, MAX_LEVEL, value } from "./registry.js";
 import { History, brushCells, grow, inside, lineCells, paint, shapeHeight } from "./tools.js";
 import { loadAutosave, openFile, saveFile, writeAutosave } from "./files.js";
@@ -63,7 +63,7 @@ function icon(name) {
 // S.pasting; "area" picks the part of the map a new stamp keeps.
 const S = {
   map: null, ts: null, sprites: {}, spriteNames: [], fileName: "town.ldtk",
-  tool: "select", size: 1, brush: { layer: "Terrain", v: 1 }, eraseMode: false,
+  tool: "select", size: 1, brush: { layer: "Terrain", v: 1 },
   place: null, selected: null, scatter: { on: false, density: 0.35 }, scatterStroke: null,
   sel: null, selFrom: null, pasting: null, stamps: [], walk: null, walkView: null, longPress: null,
   fx: [], squash: new Map(), isoTs: null, projection: "iso", V: null,
@@ -159,7 +159,7 @@ function choosePaint(layer, it) {
 
 // Fences, gates and stairs are drawn a cell at a time; a 2x2 block of fence makes no sense.
 const ONE_CELL = new Set(["Deco:1", "Deco:4", "Features:1"]);
-const brushSize = () => (ONE_CELL.has(brushKey(S.brush)) ? 1 : S.size);
+const brushSize = () => (S.tool === "brush" && ONE_CELL.has(brushKey(S.brush)) ? 1 : S.size);
 const STAIRS_KEY = "Features:1";
 
 // Stairs only show at the foot of a cliff that faces you: on the cell just south or just east of ground one level up.
@@ -263,8 +263,7 @@ function buildToolbox() {
   kids.push(chip());
   const opts = options();
   if (opts.length) kids.push(el("span", { class: "tdiv" }), el("span", { class: "opts" }, ...opts));
-  kids.push(el("span", { class: "tdiv" }),
-    el("button", { class: "tbtn erase", type: "button", "aria-pressed": String(S.eraseMode), title: "Erase (E): the brush takes away what it would paint. Right-click erases too.", onclick: toggleErase }, icon("erase"), el("span", { text: "Erase" })));
+  $("erase").setAttribute("aria-pressed", String(S.tool === "erase"));
   $("toolbox").replaceChildren(...kids);
 }
 
@@ -278,6 +277,8 @@ function chip() {
     const c = S.pasting.canvas;
     pic = thumb((g, x, y, w, h) => g.drawImage(c, x, y, w, h), c.width, c.height, 32);
     text = S.pasting.name || "Clipboard";
+  } else if (S.tool === "erase") {
+    pic = el("span", { class: "chip-empty" }, icon("erase")); text = "Eraser";
   } else if (S.tool === "area") {
     pic = el("span", { class: "chip-empty" }, icon("area")); text = "New stamp";
   } else if (S.tool === "brush") {
@@ -300,6 +301,8 @@ function options() {
       if (brushKey(S.brush) === STAIRS_KEY) return [el("span", { text: "At the foot of a cliff that faces you" })];
       if (ONE_CELL.has(brushKey(S.brush))) return [el("span", { text: "One cell at a time" })];
       return ["Size", seg([1, 2, 3].map((n) => [n, sizeIcon(n), `${n}×${n} cells ([ and ]). Shift-click draws a line.`]), S.size, (n) => { S.size = n; sync(); }, "Brush size")];
+    case "erase":
+      return ["Size", seg([1, 2, 3].map((n) => [n, sizeIcon(n), `${n}×${n} cells ([ and ])`]), S.size, (n) => { S.size = n; sync(); }, "Eraser size")];
     case "area": return [el("span", { text: S.sel ? "Name it in the card, then save" : "Drag over the part to keep · Esc cancels" })];
     case "stamp": return [el("span", { text: "Click to stamp · Esc stops" })];
     case "place":
@@ -316,10 +319,9 @@ function options() {
   }
 }
 
-function toggleErase() {
-  S.eraseMode = !S.eraseMode;
-  if (S.tool !== "brush") setTool("brush"); else sync();
-}
+function toggleErase() { setTool(S.tool === "erase" ? "select" : "erase"); }
+$("erase").prepend(icon("erase"));
+$("erase").addEventListener("click", toggleErase);
 
 // ---------- the object catalog ----------
 
@@ -914,20 +916,24 @@ function draw() {
     if (S.tool === "select" && !S.drag) {
       const e = hit(hv);
       if (e && e !== sel) { const [x, y, w, h] = bounds(e); ctx.strokeStyle = "rgba(232,103,58,0.55)"; line(1.5); ctx.strokeRect(x - 1, y - 1, w + 2, h + 2); }
-    } else if (S.tool === "brush") {
-      const n = brushSize(), shiftLine = !S.stroke && hv.free && S.lastCell;
+    } else if (S.tool === "brush" || S.tool === "erase") {
+      const n = brushSize(), shiftLine = !S.stroke && hv.free && S.lastCell, erasing = S.tool === "erase";
       let cells = shiftLine ? lineCells(S.lastCell[0], S.lastCell[1], hv.c, hv.r).flatMap(([c, r]) => brushCells(S.map, c, r, n))
         : inside(S.map, hv.c, hv.r) ? brushCells(S.map, hv.c, hv.r, n) : [];
       let off = false, bad = false;
-      if (!S.stroke && !inside(S.map, hv.c, hv.r) && near(hv.c, hv.r)) {      // past the edge: this grows the map
+      if (!S.stroke && !erasing && !inside(S.map, hv.c, hv.r) && near(hv.c, hv.r)) {      // past the edge: this grows the map
         const [c0, r0, c1, r1] = footprint(hv.c, hv.r);
         cells = []; off = true;
         for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) cells.push([c, r]);
-      } else if (brushKey(S.brush) === STAIRS_KEY && !S.eraseMode && cells.length) {   // where the stairs will land, or red where they can't
+      } else if (!erasing && brushKey(S.brush) === STAIRS_KEY && cells.length) {   // where the stairs will land, or red where they can't
         const at = stairsCell(hv.c, hv.r);
         if (at) cells = [at]; else bad = true;
       }
-      ctx.strokeStyle = bad ? "rgba(232,72,58,0.95)" : S.eraseMode ? "rgba(240,138,98,0.95)" : "rgba(255,255,255,0.9)"; line(1.5);
+      ctx.strokeStyle = bad ? "rgba(232,72,58,0.95)" : erasing ? "rgba(240,138,98,0.95)" : "rgba(255,255,255,0.9)"; line(1.5);
+      if (erasing && !S.stroke) {                                                // what goes with it: whole objects, outlined
+        const set = new Set(cells.map(([c, r]) => `${c},${r}`)), under = hit(hv);
+        for (const e of S.map.entities) if ((e.type === "Prop" || e.type === "Character") && (e === under || cellsOf(e).some(([c, r]) => set.has(`${c},${r}`)))) { const [x, y, w, h] = bounds(e); ctx.strokeRect(x - 1, y - 1, w + 2, h + 2); }
+      }
       if (off || bad) ctx.setLineDash([3 / S.zoom, 3 / S.zoom]);
       for (const [c, r] of cells) { poly(ctx, V.cellPoly(c, r)); ctx.stroke(); }
       ctx.setLineDash([]);
@@ -1051,17 +1057,45 @@ function beginPaint(ev, erase, pick, line) {
   let p = toMap(ev);
   if (pick) { pickAt(p); return; }
   history.push(S.map);
-  const op = S.brush.op && (erase ? { raise: "lower", lower: "raise", flat: "lower" }[S.brush.op] : S.brush.op);
-  S.stroke = { v: erase ? 0 : S.brush.v, op, target: 0, touched: new Set(), changed: false, roomed: false };
-  p = growFor(ev, p);
+  S.stroke = erase ? { erase: true, ground: groundLevel(S.map), touched: new Set(), changed: false }
+    : { v: S.brush.v, op: S.brush.op, target: 0, touched: new Set(), changed: false, roomed: false };
+  if (!erase) p = growFor(ev, p);
   S.stroke.target = inside(S.map, p.c, p.r) ? S.map.layers.Height[p.r * S.map.cols + p.c] : 0;
   if (line && S.lastCell) S.stroke.last = S.lastCell;      // Shift: a straight line from the last stroke
   applyStroke(p);
 }
 
+// The cells an object stands on: a building's whole footprint (ending at its front cell), or the cell at its feet.
+function cellsOf(e) {
+  const c = Math.floor(e.x / T), r = Math.floor((e.y - 1) / T), foot = e.type === "Prop" && propSet().props[e.fields.sprite]?.foot;
+  if (!foot) return [[c, r]];
+  const out = [];
+  for (let rr = r - foot[1] + 1; rr <= r; rr++) for (let cc = c - foot[0] + 1; cc <= c; cc++) out.push([cc, rr]);
+  return out;
+}
+
+// The eraser takes everything from these cells: ground, fences, stairs, hills and pits (back to the ground level), and
+// every prop or character standing on them, all of it. Paths and regions are data and stay.
+function eraseCells(cells, at) {
+  const st = S.stroke, m = S.map;
+  let ch = false;
+  for (const L of ["Terrain", "Features", "Deco"]) ch = paint(m, L, 0, cells) || ch;
+  ch = shapeHeight(m, cells, "flat", st.ground, MAX_LEVEL, st.touched) || ch;
+  const hitCells = new Set(cells.map(([c, r]) => `${c},${r}`)), under = at && hit(at);
+  const keep = m.entities.filter((e) => {
+    if (e.type !== "Prop" && e.type !== "Character") return true;
+    const gone = e === under || cellsOf(e).some(([c, r]) => hitCells.has(`${c},${r}`));
+    if (gone) puff(e.x, e.y);
+    return !gone;
+  });
+  if (keep.length !== m.entities.length) { m.entities = keep; ch = true; if (S.selected && !keep.includes(S.selected)) S.selected = null; }
+  return ch;
+}
+
 // Paint cells with the brush's value, or shape the height.
-function apply(cells) {
+function apply(cells, at) {
   const st = S.stroke, m = S.map, H = m.layers.Height;
+  if (st.erase) return eraseCells(cells, at);
   if (st.op === "lower" && !st.roomed && cells.some(([c, r]) => !H[r * m.cols + c])) {
     // digging below the bottom level: lift the whole map one level first (it looks the same; the meadow round it
     // follows the ground), so the dug cells can go down to where the ground was
@@ -1078,7 +1112,7 @@ function apply(cells) {
 
 function applyStroke(p) {
   if (!S.stroke) return;
-  if (apply(strokeCells(p))) { S.stroke.changed = true; S.terrainDirty = true; }
+  if (apply(strokeCells(p), p)) { S.stroke.changed = true; S.terrainDirty = true; }
   if (S.stroke.roomed) S.terrainDirty = true;
 }
 
@@ -1087,7 +1121,7 @@ function endPaint(p) {
   if (!st) return;
   S.stroke = null;
   const H = S.map.layers.Height, low = Math.min(...H);
-  if (st.op && low > 0) { for (let i = 0; i < H.length; i++) H[i] -= low; st.changed = true; }   // nothing left down at 0: settle back, keeping room to dig
+  if ((st.op || st.erase) && low > 0) { for (let i = 0; i < H.length; i++) H[i] -= low; st.changed = true; }   // nothing left down at 0: settle back, keeping room to dig
   if (p) S.lastCell = [p.c, p.r];
   if (st.changed) changed(true); else history.drop();
 }
@@ -1138,8 +1172,8 @@ canvas.addEventListener("pointerdown", (ev) => {
     changed(true);
   } else if (tool === "area") {
     S.selFrom = [p.c, p.r]; S.sel = inside(S.map, p.c, p.r) ? area(S.selFrom, S.selFrom) : null; sync();
-  } else if (tool === "brush") {
-    beginPaint(ev, ev.button === 2 || S.eraseMode, ev.altKey, ev.shiftKey);
+  } else if (tool === "brush" || tool === "erase") {
+    beginPaint(ev, ev.button === 2 || tool === "erase", ev.altKey && tool === "brush", ev.shiftKey);
     if (ev.pointerType === "touch") {                                // hold still to pick instead of paint
       const at = { x: ev.clientX, y: ev.clientY };
       S.longPress = { at, timer: setTimeout(() => { cancelStroke(); pickAt(toMap(ev)); toast("Picked what was there"); S.longPress = null; }, 500) };
@@ -1179,7 +1213,7 @@ canvas.addEventListener("pointermove", (ev) => {
     return;
   }
   let p = toMap(ev);
-  if (S.stroke) p = growFor(ev, p);
+  if (S.stroke && !S.stroke.erase) p = growFor(ev, p);
   S.hover = p;
   canvas.style.cursor = S.tool === "select" && !S.drag && !S.panning && hit(p) ? "pointer" : "";   // over an object: it can be picked up
   if (S.longPress && Math.hypot(ev.clientX - S.longPress.at.x, ev.clientY - S.longPress.at.y) > 6) { clearTimeout(S.longPress.timer); S.longPress = null; }
