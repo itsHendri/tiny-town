@@ -1,7 +1,7 @@
 """The look lab: candidate looks for one thing at a time, each drawn by the real renderer on the market village,
 plus a picker page with a pick and a note per option: out/lab/<round>/index.html.
 
-    python art/lab.py <round>          # rounds: palette
+    python art/lab.py <round>          # rounds: palette, outline
     python art/lab.py <round> <key>    # draw one option (each runs in its own process: drawers cache by palette)
 
 Serve the repo (python3 -m http.server 8000) and open http://localhost:8000/out/lab/<round>/.
@@ -63,11 +63,54 @@ ROUNDS = {
 }
 
 
+def outlines(style="solid", double=True, beam=None):
+    """Setup for the outline round: Sprite.outline's style, 2 px or 1 px on buildings, the storybook timber colour."""
+    def setup():
+        import iso_props
+        from sprites import OUTLINE
+        OUTLINE.update(style=style, double=double)
+        if beam:
+            iso_props.LOOKS["storybook"]["beam"] = beam
+    return setup
+
+
+OUTLINE_ROUND = {
+    "title": "Outlines",
+    "lead": "The same village in the new palette, with different outlines on houses, trees, stalls and props. "
+            "Selective outline: the lit sides (top, left) get a dark shade of the colour inside instead of the "
+            "dark line, so shapes look lit rather than drawn. Compare at 1x and in the zoomed detail.",
+    "options": [
+        ("today", "Solid, 2 px on houses (today)", "Dark line all round; houses get a double line.", None, outlines()),
+        ("thin", "Solid, 1 px", "The same line, single on houses too. Lighter, crisper buildings.", None,
+         outlines(double=False)),
+        ("selout", "Selective, 2 px on houses", "Dark line on the shadow sides, a dark local colour on the lit "
+         "sides.", None, outlines("selout")),
+        ("selout-thin", "Selective, 1 px", "Selective outline, single line everywhere.", None,
+         outlines("selout", False)),
+        ("selout-wood", "Selective, 1 px, wood timbers", "As above, and the house timbers in dark wood instead "
+         "of the outline colour, so the walls read lighter.", None, outlines("selout", False, "k3")),
+        ("soft", "Soft, 1 px", "A dark local colour all round; the dark line only along the bottom, where things "
+         "meet the ground.", None, outlines("soft", False)),
+        ("soft-wood", "Soft, 1 px, wood timbers", "Soft outline plus dark wood timbers: the gentlest look.", None,
+         outlines("soft", False, "k3")),
+        ("thin-wood", "Solid, 1 px, wood timbers", "Today's line but single, with wood timbers.", None,
+         outlines(double=False, beam="k3")),
+    ],
+}
+
+
+ROUNDS["outline"] = OUTLINE_ROUND
+
+
 def draw(round_name, key):
+    """An option is (key, name, note, palette, setup): palette() returns a palette dict (None: the default),
+    setup() then changes drawing settings before anything is drawn."""
     rd = ROUNDS[round_name]
-    opt = next(o for o in rd["options"] if o[0] == key)
-    palettes.PALETTES["lab"] = opt[3]()
+    key, _, _, pal, *setup = next(o for o in rd["options"] if o[0] == key)
+    palettes.PALETTES["lab"] = pal() if pal else palettes.PALETTES[palettes.DEFAULT]
     palettes.use("lab")
+    for fn in setup:
+        fn()
     import iso
     from render_map import load_map
     from reference_town import full_bleed
@@ -100,7 +143,7 @@ def main(round_name):
     for key, *_ in rd["options"]:
         subprocess.run([sys.executable, __file__, round_name, key], check=True)
         print("drew", key)
-    cards = [{"key": k, "name": n, "note": t} for k, n, t, _ in rd["options"]]
+    cards = [{"key": k, "name": n, "note": t} for k, n, t, *_ in rd["options"]]
     page = PAGE.replace("__TITLE__", rd["title"]).replace("__LEAD__", rd["lead"]) \
         .replace("__ROUND__", round_name).replace("__CARDS__", json.dumps(cards)) \
         .replace("__RAMPS__", "true" if round_name == "palette" else "false")

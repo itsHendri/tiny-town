@@ -48,6 +48,20 @@ PAL = {
 }
 RGB = {k: tuple(int(v[i:i + 2], 16) for i in (1, 3, 5)) + (255,) for k, v in PAL.items()}
 CLEAR = (0, 0, 0, 0)
+OUTLINE = {"style": "solid", "double": True}      # Sprite.outline's style; double: buildings get a 2 px line
+_DARK = {}
+
+
+def local_dark(rgba):
+    """A darker, cooler shade of a colour, for outline pixels next to it (selective outlining)."""
+    if rgba not in _DARK:
+        from palettes import hexof, oklch
+        L, C, H = oklch("#%02x%02x%02x" % rgba[:3])
+        o = RGB["out"]
+        oL = oklch("#%02x%02x%02x" % o[:3])[0]
+        h = hexof(oL + (L - oL) * 0.38, C * 0.8, H + max(-14, min(14, (275 - H + 540) % 360 - 180)))
+        _DARK[rgba] = tuple(int(h[i:i + 2], 16) for i in (1, 3, 5)) + (255,)
+    return _DARK[rgba]
 
 
 def rng(*seed):
@@ -81,14 +95,28 @@ class Sprite:
                     self.put(i, j, c)
 
     def outline(self, c="out"):
-        """A 1-pixel outline around everything opaque (the reference art's navy line)."""
+        """A 1-pixel outline around everything opaque, in the style OUTLINE["style"] says:
+        solid: all `out` (the reference art's line). selout: lit sides (top, left) get a dark shade of the colour
+        inside, shadow sides keep `out`. soft: a dark shade all round, `out` only along the bottom."""
+        style = OUTLINE["style"]
         edge = []
         for y in range(self.h):
             for x in range(self.w):
-                if self.px[x, y][3] == 0 and any(self.get(x + dx, y + dy)[3] for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
-                    edge.append((x, y))
-        for x, y in edge:
-            self.put(x, y, c)
+                if self.px[x, y][3] == 0:
+                    n = [(dx, dy) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)) if self.get(x + dx, y + dy)[3]]
+                    if n:
+                        edge.append((x, y, n))
+        for x, y, n in edge:
+            if style == "solid":
+                self.put(x, y, c)
+                continue
+            shadow_side = any(d in n for d in ((0, -1), (-1, 0)))     # the shape is above or left of this pixel
+            bottom = (0, -1) in n
+            if (style == "selout" and shadow_side) or (style == "soft" and bottom):
+                self.put(x, y, c)
+            else:
+                dx, dy = n[0]
+                self.put(x, y, local_dark(self.get(x + dx, y + dy)))
         return self
 
 

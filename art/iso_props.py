@@ -14,7 +14,7 @@ import sys
 from PIL import Image
 
 from dualgrid import h
-from sprites import RGB, Sprite
+from sprites import OUTLINE, RGB, Sprite
 
 
 def proj(X, Y, Z):
@@ -231,7 +231,8 @@ def house(fw=2, fd=2, wall=22, roof="shingle", ridge="x", colour="r", chimney=Tr
     out = Sprite(spr.w + 2, spr.h + 2)
     out.im.paste(spr.im, (1, 1))
     out.px = out.im.load()
-    out.outline()
+    if OUTLINE["double"]:
+        out.outline()
     out.anchor = (round(ax), round(ay))
     out.smoke = (round(smoke[0]), round(smoke[1])) if smoke else None
     return out, out.anchor, (fw, fd)
