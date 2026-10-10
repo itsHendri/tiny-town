@@ -27,6 +27,14 @@ export async function loadIsoTileset(base) {
 const ihash = (...xs) => { let v = 0; for (const x of xs) v = Math.imul((v ^ (x >>> 0)) >>> 0, 2654435761) >>> 0; return v / 4294967296; };
 const phase = (dx, dy) => `${((dx - dy) % 4 + 4) % 4},${((dx + dy) % 4 + 4) % 4}`;
 
+// The map's ground level: the height most of its edge stands at (a tie goes to the lower one). The meadow round the
+// map sits on it, and anything lower is a pit dug into the map. Same rule in art/iso.py.
+export function groundLevel(m) {
+  const n = [0, 0, 0, 0, 0, 0, 0, 0], H = m.layers.Height;
+  for (let r = 0; r < m.rows; r++) for (let c = 0; c < m.cols; c++) if (r === 0 || c === 0 || r === m.rows - 1 || c === m.cols - 1) n[H[r * m.cols + c]]++;
+  return n.indexOf(Math.max(...n));
+}
+
 // `margin` cells of meadow and darker forest are drawn round the map so it fills the frame.
 export function isoView(m, { margin = 0 } = {}) {
   let top = 0;
@@ -147,6 +155,7 @@ export function bakeIso(m, ts, view, { objects = true, frames: only = null } = {
   const { cols, rows } = m, H = m.layers.Height, TER = m.layers.Terrain, FEAT = m.layers.Features, D = m.layers.Deco;
   const idx = (r, c) => Math.min(rows - 1, Math.max(0, r)) * cols + Math.min(cols - 1, Math.max(0, c));
   const STAIRS = value("Features", "stairs"), TALL = value("Deco", "tallgrass");
+  const B = groundLevel(m);
   const onLevel = (i, L) => H[i] === L || (FEAT[i] === STAIRS && H[i] === L - 1);
   const sets = ts.json.sets;
 
@@ -210,7 +219,7 @@ export function bakeIso(m, ts, view, { objects = true, frames: only = null } = {
   // further in agree), and only up to 3 cells out; past that the forest takes over
   function runOnFor(o) {
     const vs = o.ids.map((id) => value("Terrain", id));
-    const has = (i) => vs.includes(TER[i]) && H[i] === 0;
+    const has = (i) => vs.includes(TER[i]) && H[i] === B;
     return (r, c) => {
       if (r >= 0 && c >= 0 && r < rows && c < cols) return has(r * cols + c);
       const rc = Math.min(rows - 1, Math.max(0, r)), cc = Math.min(cols - 1, Math.max(0, c));
@@ -229,7 +238,7 @@ export function bakeIso(m, ts, view, { objects = true, frames: only = null } = {
       const o = canvas(view.W, view.H), og = o.getContext("2d");
       for (let r = -M; r < rows + M; r++) for (let c = -M; c < cols + M; c++) {
         if (c >= 0 && r >= 0 && c < cols && r < rows) continue;
-        const xy = ts.json.grass[phase(c, r)], [x, y] = view.cellTop(c, r);
+        const xy = ts.json.grass[phase(c, r)], [x, y] = view.cellTop(c, r, B);
         og.drawImage(ts.sheet, xy[0], xy[1], 32, 16, x - 16, y, 32, 16);
       }
       for (const o of OVERLAYS) {                           // roads and rivers run on out into the forest
@@ -241,7 +250,7 @@ export function bakeIso(m, ts, view, { objects = true, frames: only = null } = {
           const A = (r, c) => at(cl(r, -M, rows + M - 1), cl(c, -M, cols + M - 1));
           const mask = (A(dy - 1, dx - 1) ? 1 : 0) | (A(dy - 1, dx) ? 2 : 0) | (A(dy, dx - 1) ? 4 : 0) | (A(dy, dx) ? 8 : 0);
           if (!mask) continue;
-          const frames = tiles[mask][phase(dx, dy)], xy = frames[frame % frames.length], [x, y] = view.cellTop(dx, dy, 0);
+          const frames = tiles[mask][phase(dx, dy)], xy = frames[frame % frames.length], [x, y] = view.cellTop(dx, dy, B);
           og.drawImage(ts.sheet, xy[0], xy[1], 32, 16, x - 16, y - 8, 32, 16);
         }
       }
@@ -256,6 +265,7 @@ export function bakeIso(m, ts, view, { objects = true, frames: only = null } = {
     }
     overlays(gg, 0, frame);
     clipToMap(gg, m, view, 0);
+    if (B) clipToMap(gg, m, view, B);                     // below the ground level it only shows inside the pits
     g.drawImage(ground, 0, 0);
 
     const levels = [];
@@ -265,8 +275,11 @@ export function bakeIso(m, ts, view, { objects = true, frames: only = null } = {
       dual(lg, "raised_fill", high, L, frame);
       overlays(lg, L, frame);
       dual(lg, "raised_edge", high, L, frame);
-      dual(fg, "raised_fill", high, L, frame);
-      clipToMap(lg, m, view, L); clipToMap(fg, m, view, L);
+      // up to the ground level the fill runs on past the edge, so the map's edge gets no wall
+      dual(fg, "raised_fill", high, L, frame, L <= B ? Math.max(M, 1) : 0);
+      clipToMap(lg, m, view, L);
+      if (L < B) clipToMap(lg, m, view, B);
+      if (L > B) clipToMap(fg, m, view, L);
       walls(lay, fill, ts.json.colors, frame);
       levels[L] = lay;
     }
@@ -300,7 +313,7 @@ export function bakeIso(m, ts, view, { objects = true, frames: only = null } = {
         }
       } else {
         const e = it[2], c = Math.floor(e.x / 16), r = Math.floor((e.y - 1) / 16);
-        const L = H[idx(r, c)];
+        const L = c >= 0 && r >= 0 && c < cols && r < rows ? H[r * cols + c] : B;      // the forest round the edge stands on the ground level
         const [x, y] = view.feet(e, L);
         drawProp(g, ts, e.fields.sprite, x, y);
         const p = ts.props[e.fields.sprite];

@@ -3,10 +3,10 @@
 import { newMap, parseMap, stringifyMap } from "./format.js";
 import { drawProp, drawTerrain, loadTileset } from "./render.js";
 import { bakeIso, isoView, loadIsoTileset } from "./iso.js";
-import { ENTITIES, LAYERS, MAX_LEVEL, value } from "./registry.js";
-import { History, brushCells, floodCells, grow, inside, lineCells, paint, plotCells, rectCells, shapeHeight } from "./tools.js";
+import { ENTITIES, LAYERS, MAX_LEVEL } from "./registry.js";
+import { History, brushCells, grow, inside, lineCells, paint, shapeHeight } from "./tools.js";
 import { loadAutosave, openFile, saveFile, writeAutosave } from "./files.js";
-import { area, clearArea, copyArea, drawClip, loadBuiltinStamps, loadStamps, pasteArea, saveStamps } from "./stamps.js";
+import { area, copyArea, drawClip, loadBuiltinStamps, loadStamps, pasteArea, saveStamps } from "./stamps.js";
 import { codeToMap, mapToCode } from "./share.js";
 import { Walker } from "./walk.js";
 
@@ -59,13 +59,13 @@ function icon(name) {
 // ---------- state ----------
 
 // One tool is active at a time. "select" means no tool: a click selects an object, a drag moves it or pans the map.
-// `place`, `scatter` and `stamp` carry what they put down in S.place and S.pasting.
-const PAINT_TOOLS = ["brush", "rect", "fill", "plot", "pick"];
+// "brush" is on while a swatch is chosen. `place`, `scatter` and `stamp` carry what they put down in S.place and
+// S.pasting; "area" picks the part of the map a new stamp keeps.
 const S = {
   map: null, ts: null, sprites: {}, spriteNames: [], fileName: "town.ldtk",
-  tool: "select", paintTool: "brush", size: 1, brush: { layer: "Terrain", v: 1 }, eraseMode: false,
+  tool: "select", size: 1, brush: { layer: "Terrain", v: 1 }, eraseMode: false,
   place: null, selected: null, scatter: { on: false, density: 0.35 }, scatterStroke: null,
-  sel: null, selFrom: null, clip: null, pasting: null, stamps: [], walk: null, walkView: null, longPress: null,
+  sel: null, selFrom: null, pasting: null, stamps: [], walk: null, walkView: null, longPress: null,
   fx: [], squash: new Map(), isoTs: null, projection: "iso", V: null,
   zoom: 2, ox: 0, oy: 0,
   show: { terrain: true, props: true, characters: true, data: true, raw: false, grid: false, margin: true },
@@ -83,7 +83,6 @@ const PALETTE = [
   { group: "Features", layer: "Features", items: LAYERS.Features.values.map((x) => ({ v: x.v, label: x.label, key: x.id })) },
   { group: "Decoration", layer: "Deco", items: LAYERS.Deco.values.map((x) => ({ v: x.v, label: x.label, key: x.id })) },
 ];
-const TOOLS = [["brush", "Brush", "B"], ["rect", "Box", "R"], ["fill", "Fill", "F"], ["plot", "Plot", "T"], ["pick", "Pick", "I"], ["area", "Area", "S"]];
 
 // A 2x2-cell scene that shows what a palette item paints.
 function swatch(key, color, mark) {
@@ -120,10 +119,27 @@ function buildPaintPanel() {
     })))));
 }
 
+// Choosing a swatch picks up the brush; choosing it again puts the brush down.
 function choosePaint(layer, it) {
-  S.brush = it.op ? { layer, op: it.op } : { layer, v: it.v };
-  if (!["brush", "rect", "fill"].includes(S.tool)) setTool(S.paintTool);
-  else sync();
+  const b = it.op ? { layer, op: it.op } : { layer, v: it.v };
+  if (S.tool === "brush" && brushKey(b) === brushKey(S.brush)) { setTool("select"); return; }
+  S.brush = b;
+  setTool("brush");
+}
+
+// Fences, gates and stairs are drawn a cell at a time; a 2x2 block of fence makes no sense.
+const ONE_CELL = new Set(["Deco:1", "Deco:4", "Features:1"]);
+const brushSize = () => (ONE_CELL.has(brushKey(S.brush)) ? 1 : S.size);
+const STAIRS_KEY = "Features:1";
+
+// Stairs only show at the foot of a cliff that faces you: on the cell just south or just east of ground one level up.
+// Painting on the top of that cliff steps down to its foot. Returns the cell, or null if no stairs can go here.
+function stairsCell(c, r) {
+  const m = S.map, H = (cc, rr) => m.layers.Height[rr * m.cols + cc];
+  const ok = (cc, rr) => inside(m, cc, rr) && ((rr > 0 && H(cc, rr - 1) === H(cc, rr) + 1) || (cc > 0 && H(cc - 1, rr) === H(cc, rr) + 1));
+  if (ok(c, r)) return [c, r];
+  for (const [dc, dr] of [[0, 1], [1, 0]]) if (inside(m, c, r) && ok(c + dc, r + dr) && H(c + dc, r + dr) === H(c, r) - 1) return [c + dc, r + dr];
+  return null;
 }
 
 // A 3x3 grid of cells with the brush's footprint filled in.
@@ -159,34 +175,23 @@ function clipPicture(clip) {
 
 function buildStamps() {
   const box = $("stamps");
-  if (!S.stamps.length) { box.replaceChildren(el("p", { class: "hint", text: "None yet. Use Area (S) to select part of the map, then Save as stamp. Your stamps are kept in this browser." })); return; }
+  const add = el("button", { class: "swatch new-stamp", type: "button", "aria-pressed": String(S.tool === "area"), title: "Drag over part of the map to keep it as a stamp",
+    onclick: () => setTool(S.tool === "area" ? "select" : "area") }, el("span", { class: "plus", text: "+" }), el("span", { text: "New stamp" }));
   box.replaceChildren(el("div", { class: "swatches" }, ...S.stamps.map((st, i) => {
     const c = clipPicture(st.clip);
     const t = thumb((g, x, y, w, h) => g.drawImage(c, x, y, w, h), c.width, c.height, 40);
     return el("div", { class: "stamp" },
       el("button", { class: "swatch", type: "button", title: `Stamp: ${st.name}`, "data-stamp": st.name, onclick: () => startPaste(st.clip, st.name) }, t, el("span", { text: st.name })),
       st.builtin ? "" : el("button", { class: "remove", type: "button", title: `Remove ${st.name}`, "aria-label": `Remove ${st.name}`, onclick: () => { S.stamps.splice(i, 1); saveStamps(S.stamps); buildStamps(); sync(); } }, "×"));
-  })));
+  }), add));
 }
 
-function startPaste(clip, name = null) {
+function startPaste(clip, name) {
   S.pasting = { clip, name, canvas: drawClip(clip, S.ts, S.sprites) };
   setTool("stamp");
 }
 
 const pasteAt = (hv) => [hv.c - Math.floor(S.pasting.clip.cols / 2), hv.r - Math.floor(S.pasting.clip.rows / 2)];
-
-function copySel(cut) {
-  if (!S.sel) return;
-  S.clip = copyArea(S.map, S.sel);
-  if (cut) { history.push(S.map); clearArea(S.map, S.sel); changed(true); }
-  toast(`${cut ? "Cut" : "Copied"} ${S.clip.cols} × ${S.clip.rows} cells. Ctrl+V to paste.`);
-}
-
-function deleteSel() {
-  if (!S.sel) return;
-  history.push(S.map); clearArea(S.map, S.sel); changed(true);
-}
 
 // ---------- tools ----------
 
@@ -196,7 +201,6 @@ function setTool(id) {
   if (id !== "place" && id !== "scatter") S.place = null;
   if (id !== "stamp") S.pasting = null;
   if (id !== "area") { S.sel = null; S.selFrom = null; }
-  if (["brush", "rect", "fill"].includes(id)) S.paintTool = id;
   if (id !== "select" && S.selected) S.selected = null;
   sync();
 }
@@ -207,15 +211,14 @@ function arm(p) {
   setTool(p.type === "Prop" && S.scatter.on ? "scatter" : "place");
 }
 
-const isPaint = () => PAINT_TOOLS.includes(S.tool);
-
 // The toolbox, its context options, the pressed states in both panels, and the selection card.
 function sync() {
   buildToolbox();
-  const paintOn = ["brush", "rect", "fill", "pick"].includes(S.tool);
+  const paintOn = S.tool === "brush";
   for (const b of $("palette").querySelectorAll("[data-brush]")) b.setAttribute("aria-pressed", String(paintOn && b.dataset.brush === brushKey(S.brush)));
   for (const b of $("catalog").querySelectorAll("[data-obj]")) b.setAttribute("aria-pressed", String(!!S.place && b.dataset.obj === objKey(S.place)));
   for (const b of $("stamps").querySelectorAll("[data-stamp]")) b.setAttribute("aria-pressed", String(S.tool === "stamp" && S.pasting?.name === b.dataset.stamp));
+  $("stamps").querySelector(".new-stamp")?.setAttribute("aria-pressed", String(S.tool === "area"));
   $("stage").dataset.tool = S.tool;
   buildCard();
   S.needsDraw = true;
@@ -227,17 +230,11 @@ function buildToolbox() {
     el("button", { class: "tbtn sheet", type: "button", "aria-pressed": String($("objects-panel").classList.contains("open")), onclick: () => sheet("right") }, icon("objects"), el("span", { text: "Objects" })),
     el("span", { class: "tdiv sheet-div", hidden: !phone() }),
   ];
-  for (const t of TOOLS) {
-    if (!t) { kids.push(el("span", { class: "tdiv" })); continue; }
-    const [id, label, key] = t;
-    kids.push(el("button", { class: id === "pick" ? "tbtn desk" : "tbtn", type: "button", "aria-pressed": String(S.tool === id), title: `${label} (${key}). Click again or Esc to put it down.`,
-      onclick: () => setTool(S.tool === id ? "select" : id) }, icon(id), el("span", { text: label })));
-  }
-  kids.push(el("span", { class: "tdiv" }),
-    el("button", { class: "tbtn erase", type: "button", "aria-pressed": String(S.eraseMode), title: "Erase (E). Right-click erases too.", onclick: toggleErase }, icon("erase"), el("span", { text: "Erase" })),
-    el("span", { class: "tdiv" }), chip());
+  kids.push(chip());
   const opts = options();
   if (opts.length) kids.push(el("span", { class: "tdiv" }), el("span", { class: "opts" }, ...opts));
+  kids.push(el("span", { class: "tdiv" }),
+    el("button", { class: "tbtn erase", type: "button", "aria-pressed": String(S.eraseMode), title: "Erase (E): the brush takes away what it would paint. Right-click erases too.", onclick: toggleErase }, icon("erase"), el("span", { text: "Erase" })));
   $("toolbox").replaceChildren(...kids);
 }
 
@@ -251,12 +248,17 @@ function chip() {
     const c = S.pasting.canvas;
     pic = thumb((g, x, y, w, h) => g.drawImage(c, x, y, w, h), c.width, c.height, 32);
     text = S.pasting.name || "Clipboard";
-  } else {
+  } else if (S.tool === "area") {
+    pic = el("span", { class: "chip-empty" }, icon("area")); text = "New stamp";
+  } else if (S.tool === "brush") {
     const it = brushItem();
     pic = it ? swatch(it.key, LAYERS[S.brush.layer].values.find((x) => x.v === S.brush.v)?.color, it.mark) : el("canvas", { width: 32, height: 32 });
     text = it?.label || "Paint";
+  } else {
+    pic = el("span", { class: "chip-empty" }, icon("brush")); text = "Pick a swatch";
   }
-  return el("button", { class: "chip", type: "button", title: side === "left" ? "What you're painting (opens Paint)" : "What you're placing (opens Objects)", onclick: () => reveal(side) }, pic, el("span", { text }));
+  const title = side === "right" ? "What you're placing (opens Objects)" : S.tool === "brush" ? "What you're painting (opens Paint). Esc puts the brush down." : "Choose what to paint (opens Paint)";
+  return el("button", { class: S.tool === "select" ? "chip off" : "chip", type: "button", title, onclick: () => reveal(side) }, pic, el("span", { text }));
 }
 
 // Only the options that apply to the active tool.
@@ -265,10 +267,10 @@ function options() {
     el("button", { type: "button", "aria-pressed": String(cur === v), title, onclick: () => set(v) }, kids)));
   switch (S.tool) {
     case "brush":
+      if (brushKey(S.brush) === STAIRS_KEY) return [el("span", { text: "At the foot of a cliff that faces you" })];
+      if (ONE_CELL.has(brushKey(S.brush))) return [el("span", { text: "One cell at a time" })];
       return ["Size", seg([1, 2, 3].map((n) => [n, sizeIcon(n), `${n}×${n} cells ([ and ]). Shift-click draws a line.`]), S.size, (n) => { S.size = n; sync(); }, "Brush size")];
-    case "plot": return [el("span", { text: "Drag a yard; the gate faces the nearest path" })];
-    case "pick": return [el("span", { text: "Click to pick what's there" })];
-    case "area": return [el("span", { text: S.sel ? "Ctrl C / X to copy or cut" : "Drag to select an area" })];
+    case "area": return [el("span", { text: S.sel ? "Name it in the card, then save" : "Drag over the part to keep · Esc cancels" })];
     case "stamp": return [el("span", { text: "Click to stamp · Esc stops" })];
     case "place":
     case "scatter": {
@@ -286,7 +288,7 @@ function options() {
 
 function toggleErase() {
   S.eraseMode = !S.eraseMode;
-  if (!isPaint() || S.tool === "pick" || S.tool === "plot") setTool(S.paintTool); else sync();
+  if (S.tool !== "brush") setTool("brush"); else sync();
 }
 
 // ---------- the object catalog ----------
@@ -551,8 +553,8 @@ function growTo(c0, r0, c1, r1) {
 
 // The cells a brush of the current size covers around (c, r), even off the map.
 function footprint(c, r) {
-  const lo = -Math.floor((S.size - 1) / 2);
-  return [c + lo, r + lo, c + lo + S.size - 1, r + lo + S.size - 1];
+  const n = brushSize(), lo = -Math.floor((n - 1) / 2);
+  return [c + lo, r + lo, c + lo + n - 1, r + lo + n - 1];
 }
 
 // Grow for the pointer if it's just off the map with a tool that paints there; returns the fresh map point.
@@ -665,24 +667,21 @@ function buildCard(force = false) {
   cardFor = key;
   if (!key) { box.hidden = true; box.replaceChildren(); return; }
   box.hidden = false;
-  const close = el("button", { class: "ib", type: "button", "aria-label": "Close", title: "Close (Esc)", onclick: () => { S.sel = null; select(null); } }, icon("x"));
+  const close = el("button", { class: "ib", type: "button", "aria-label": "Close", title: "Close (Esc)", onclick: () => { if (S.tool === "area") setTool("select"); else select(null); } }, icon("x"));
   if (!S.selected) {
     const w = S.sel.c1 - S.sel.c0 + 1, h = S.sel.r1 - S.sel.r0 + 1;
     const name = el("input", { id: "stamp-name", placeholder: "e.g. house with yard", value: "" });
     box.replaceChildren(
-      el("div", { class: "inspect-head" }, el("div", {}, el("b", { text: "Area" }), el("small", { text: `${w} × ${h} cells` })), close),
-      el("div", { class: "row" },
-        el("button", { class: "btn quiet", type: "button", text: "Copy", onclick: () => copySel(false) }),
-        el("button", { class: "btn quiet", type: "button", text: "Cut", onclick: () => copySel(true) }),
-        el("button", { class: "btn danger", type: "button", text: "Clear", onclick: deleteSel })),
-      el("div", { class: "field", style: "margin-top:10px" }, el("label", { for: "stamp-name", text: "Save as a stamp" }), name),
-      el("div", { class: "row" }, el("button", { class: "btn", type: "button", text: "Save as stamp", onclick: () => {
+      el("div", { class: "inspect-head" }, el("div", {}, el("b", { text: "New stamp" }), el("small", { text: `${w} × ${h} cells` })), close),
+      el("div", { class: "field" }, el("label", { for: "stamp-name", text: "name" }), name),
+      el("div", { class: "row" }, el("button", { class: "btn pri", type: "button", text: "Save stamp", onclick: () => {
         const n = name.value.trim() || `stamp ${S.stamps.length + 1}`;
         S.stamps.push({ name: n, clip: copyArea(S.map, S.sel) });
         toast(saveStamps(S.stamps) ? `Saved the stamp "${n}"` : "This browser can't keep stamps; it will be gone after a reload");
-        buildStamps(); sync();
+        buildStamps(); setTool("select");
       } })));
     placeCard();
+    name.focus();
     return;
   }
   const head = el("div", { class: "inspect-head" },
@@ -885,25 +884,21 @@ function draw() {
     if (S.tool === "select" && !S.drag) {
       const e = hit(hv);
       if (e && e !== sel) { const [x, y, w, h] = bounds(e); ctx.strokeStyle = "rgba(232,103,58,0.55)"; line(1.5); ctx.strokeRect(x - 1, y - 1, w + 2, h + 2); }
-    } else if (["brush", "rect", "fill", "plot", "pick"].includes(S.tool)) {
-      if (S.stroke?.plot) {
-        const { fence, gate } = plotCells(S.map, S.stroke.rectFrom[0], S.stroke.rectFrom[1], hv.c, hv.r, value("Terrain", "path"));
-        ctx.strokeStyle = "rgba(255,255,255,0.9)"; line(1.5);
-        for (const [c, r] of fence) { poly(ctx, V.cellPoly(c, r)); ctx.stroke(); }
-        if (gate) { ctx.strokeStyle = "#f2c94c"; line(2.5); poly(ctx, V.cellPoly(gate[0], gate[1])); ctx.stroke(); }
-      }
-      const shiftLine = !S.stroke && hv.free && S.tool === "brush" && S.lastCell;
-      let cells = S.stroke?.plot ? [] : S.stroke?.rectFrom ? rectCells(S.map, S.stroke.rectFrom[0], S.stroke.rectFrom[1], hv.c, hv.r)
-        : shiftLine ? lineCells(S.lastCell[0], S.lastCell[1], hv.c, hv.r).flatMap(([c, r]) => brushCells(S.map, c, r, S.size))
-        : inside(S.map, hv.c, hv.r) ? (S.tool === "brush" ? brushCells(S.map, hv.c, hv.r, S.size) : [[hv.c, hv.r]]) : [];
-      let off = false;
-      if (!S.stroke && !inside(S.map, hv.c, hv.r) && near(hv.c, hv.r) && ["brush", "rect", "plot"].includes(S.tool)) {    // past the edge: this grows the map
-        const [c0, r0, c1, r1] = S.tool === "brush" ? footprint(hv.c, hv.r) : [hv.c, hv.r, hv.c, hv.r];
+    } else if (S.tool === "brush") {
+      const n = brushSize(), shiftLine = !S.stroke && hv.free && S.lastCell;
+      let cells = shiftLine ? lineCells(S.lastCell[0], S.lastCell[1], hv.c, hv.r).flatMap(([c, r]) => brushCells(S.map, c, r, n))
+        : inside(S.map, hv.c, hv.r) ? brushCells(S.map, hv.c, hv.r, n) : [];
+      let off = false, bad = false;
+      if (!S.stroke && !inside(S.map, hv.c, hv.r) && near(hv.c, hv.r)) {      // past the edge: this grows the map
+        const [c0, r0, c1, r1] = footprint(hv.c, hv.r);
         cells = []; off = true;
         for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) cells.push([c, r]);
+      } else if (brushKey(S.brush) === STAIRS_KEY && !S.eraseMode && cells.length) {   // where the stairs will land, or red where they can't
+        const at = stairsCell(hv.c, hv.r);
+        if (at) cells = [at]; else bad = true;
       }
-      ctx.strokeStyle = S.eraseMode ? "rgba(240,138,98,0.95)" : "rgba(255,255,255,0.9)"; line(1.5);
-      if (off) ctx.setLineDash([3 / S.zoom, 3 / S.zoom]);
+      ctx.strokeStyle = bad ? "rgba(232,72,58,0.95)" : S.eraseMode ? "rgba(240,138,98,0.95)" : "rgba(255,255,255,0.9)"; line(1.5);
+      if (off || bad) ctx.setLineDash([3 / S.zoom, 3 / S.zoom]);
       for (const [c, r] of cells) { poly(ctx, V.cellPoly(c, r)); ctx.stroke(); }
       ctx.setLineDash([]);
     } else if (S.tool === "scatter") {
@@ -1006,13 +1001,12 @@ function toMap(ev) {
 }
 
 function strokeCells(p) {
-  if (S.tool === "fill") return floodCells(S.map, S.brush.layer, p.c, p.r);
-  if (S.tool !== "brush") return [];
   const [c0, r0] = S.stroke.last || [p.c, p.r];
   S.stroke.last = [p.c, p.r];
-  return lineCells(c0, r0, p.c, p.r).flatMap(([c, r]) => brushCells(S.map, c, r, S.size));
+  return lineCells(c0, r0, p.c, p.r).flatMap(([c, r]) => brushCells(S.map, c, r, brushSize()));
 }
 
+// Alt-click (or a long press): the swatch for what's in that cell.
 function pickAt(p) {
   if (!inside(S.map, p.c, p.r)) return;
   for (const g of [...PALETTE].reverse()) {
@@ -1020,44 +1014,51 @@ function pickAt(p) {
     if (v && g.items.some((it) => it.v === v)) { S.brush = { layer: g.layer, v }; break; }
     if (g.layer === "Terrain") S.brush = { layer: "Terrain", v: 0 };
   }
-  setTool(S.tool === "pick" || !isPaint() ? S.paintTool : S.tool);
+  setTool("brush");
 }
 
 function beginPaint(ev, erase, pick, line) {
   let p = toMap(ev);
-  if (pick || S.tool === "pick") { pickAt(p); return; }
-  if (S.tool === "fill" && !inside(S.map, p.c, p.r)) return;
+  if (pick) { pickAt(p); return; }
   history.push(S.map);
   const op = S.brush.op && (erase ? { raise: "lower", lower: "raise", flat: "lower" }[S.brush.op] : S.brush.op);
-  S.stroke = { v: erase ? 0 : S.brush.v, op, target: 0, touched: new Set(), changed: false, rectFrom: null, plot: S.tool === "plot" };
+  S.stroke = { v: erase ? 0 : S.brush.v, op, target: 0, touched: new Set(), changed: false, roomed: false };
   p = growFor(ev, p);
   S.stroke.target = inside(S.map, p.c, p.r) ? S.map.layers.Height[p.r * S.map.cols + p.c] : 0;
-  if (S.tool === "rect" || S.tool === "plot") S.stroke.rectFrom = [p.c, p.r];
-  if (line && S.tool === "brush" && S.lastCell) S.stroke.last = S.lastCell;      // Shift: a straight line from the last stroke
-  if (!S.stroke.rectFrom) applyStroke(p);
+  if (line && S.lastCell) S.stroke.last = S.lastCell;      // Shift: a straight line from the last stroke
+  applyStroke(p);
 }
 
 // Paint cells with the brush's value, or shape the height.
 function apply(cells) {
-  const st = S.stroke;
-  return st.op ? shapeHeight(S.map, cells, st.op, st.target, MAX_LEVEL, st.touched) : paint(S.map, S.brush.layer, st.v, cells);
+  const st = S.stroke, m = S.map, H = m.layers.Height;
+  if (st.op === "lower" && !st.roomed && cells.some(([c, r]) => !H[r * m.cols + c])) {
+    // digging below the bottom level: lift the whole map one level first (it looks the same; the meadow round it
+    // follows the ground), so the dug cells can go down to where the ground was
+    st.roomed = true;
+    if (Math.max(...H) < MAX_LEVEL) { for (let i = 0; i < H.length; i++) H[i]++; st.target++; st.changed = true; }
+    else toast("No room to dig: the highest ground is already at the top level");
+  }
+  if (!st.op && st.v && brushKey(S.brush) === STAIRS_KEY) {          // stairs step to the foot of the cliff
+    const seen = new Set();
+    cells = cells.map(([c, r]) => stairsCell(c, r)).filter((at) => at && !seen.has(at.join()) && seen.add(at.join()));
+  }
+  return st.op ? shapeHeight(m, cells, st.op, st.target, MAX_LEVEL, st.touched) : paint(m, S.brush.layer, st.v, cells);
 }
 
 function applyStroke(p) {
-  if (!S.stroke || S.stroke.rectFrom) return;
+  if (!S.stroke) return;
   if (apply(strokeCells(p))) { S.stroke.changed = true; S.terrainDirty = true; }
+  if (S.stroke.roomed) S.terrainDirty = true;
 }
 
 function endPaint(p) {
   const st = S.stroke;
   if (!st) return;
-  if (st.plot && p) {
-    const { fence, gate } = plotCells(S.map, st.rectFrom[0], st.rectFrom[1], p.c, p.r, value("Terrain", "path"));
-    const ch1 = paint(S.map, "Deco", value("Deco", "fence"), fence), ch2 = gate ? paint(S.map, "Deco", value("Deco", "gate"), [gate]) : false;
-    if (ch1 || ch2) { st.changed = true; S.terrainDirty = true; }
-  } else if (st.rectFrom && p && apply(rectCells(S.map, st.rectFrom[0], st.rectFrom[1], p.c, p.r))) { st.changed = true; S.terrainDirty = true; }
   S.stroke = null;
-  if (p && S.tool === "brush") S.lastCell = [p.c, p.r];
+  const H = S.map.layers.Height, low = Math.min(...H);
+  if (st.op && low > 0) { for (let i = 0; i < H.length; i++) H[i] -= low; st.changed = true; }   // nothing left down at 0: settle back, keeping room to dig
+  if (p) S.lastCell = [p.c, p.r];
   if (st.changed) changed(true); else history.drop();
 }
 
@@ -1107,9 +1108,9 @@ canvas.addEventListener("pointerdown", (ev) => {
     changed(true);
   } else if (tool === "area") {
     S.selFrom = [p.c, p.r]; S.sel = inside(S.map, p.c, p.r) ? area(S.selFrom, S.selFrom) : null; sync();
-  } else if (isPaint()) {
+  } else if (tool === "brush") {
     beginPaint(ev, ev.button === 2 || S.eraseMode, ev.altKey, ev.shiftKey);
-    if (ev.pointerType === "touch" && S.tool !== "pick") {           // hold still to pick instead of paint
+    if (ev.pointerType === "touch") {                                // hold still to pick instead of paint
       const at = { x: ev.clientX, y: ev.clientY };
       S.longPress = { at, timer: setTimeout(() => { cancelStroke(); pickAt(toMap(ev)); toast("Picked what was there"); S.longPress = null; }, 500) };
     }
@@ -1148,7 +1149,7 @@ canvas.addEventListener("pointermove", (ev) => {
     return;
   }
   let p = toMap(ev);
-  if (S.stroke && ["brush", "rect", "plot"].includes(S.tool)) p = growFor(ev, p);
+  if (S.stroke) p = growFor(ev, p);
   S.hover = p;
   canvas.style.cursor = S.tool === "select" && !S.drag && !S.panning && hit(p) ? "pointer" : "";   // over an object: it can be picked up
   if (S.longPress && Math.hypot(ev.clientX - S.longPress.at.x, ev.clientY - S.longPress.at.y) > 6) { clearTimeout(S.longPress.timer); S.longPress = null; }
@@ -1207,7 +1208,7 @@ function updateHud(p) {
   const hud = $("hud");
   if (!p || !S.map) { hud.textContent = S.map ? `${S.map.cols} × ${S.map.rows} cells` : "–"; return; }
   if (!inside(S.map, p.c, p.r)) {
-    hud.textContent = near(p.c, p.r) && ["brush", "rect", "plot", "stamp", "place"].includes(S.tool) ? "Past the edge · this grows the map" : `${S.map.cols} × ${S.map.rows} cells`;
+    hud.textContent = near(p.c, p.r) && ["brush", "stamp", "place"].includes(S.tool) ? "Past the edge · this grows the map" : `${S.map.cols} × ${S.map.rows} cells`;
     return;
   }
   const i = p.r * S.map.cols + p.c;
@@ -1232,9 +1233,6 @@ window.addEventListener("keydown", (ev) => {
   if (ev.key === "Enter" && !mod && document.activeElement?.tagName !== "BUTTON") { ev.preventDefault(); walkStart(); return; }
   if (mod && ev.key.toLowerCase() === "z") { ev.preventDefault(); ev.shiftKey ? redo() : undo(); return; }
   if (mod && ev.key.toLowerCase() === "y") { ev.preventDefault(); redo(); return; }
-  if (mod && ev.key.toLowerCase() === "c" && S.sel) { ev.preventDefault(); copySel(false); return; }
-  if (mod && ev.key.toLowerCase() === "x" && S.sel) { ev.preventDefault(); copySel(true); return; }
-  if (mod && ev.key.toLowerCase() === "v" && S.clip) { ev.preventDefault(); startPaste(S.clip); return; }
   if (mod && ev.key === "\\") { ev.preventDefault(); foldBoth(); return; }
   if (mod && ev.key === "0") { ev.preventDefault(); zoomActual(); return; }
   if (mod) return;
@@ -1243,7 +1241,7 @@ window.addEventListener("keydown", (ev) => {
   if (ev.shiftKey && (ev.code === "Digit1")) { fit(); return; }
   if (ev.shiftKey && (ev.code === "Digit0")) { zoomActual(); return; }
   if (k === "r" && ev.shiftKey) { S.show.raw = !S.show.raw; buildShow(); S.needsDraw = true; return; }
-  const keyTool = { v: "select", b: "brush", r: "rect", f: "fill", i: "pick", s: "area", t: "plot" }[k];
+  const keyTool = { v: "select", b: "brush" }[k];
   if (keyTool) { setTool(keyTool); return; }
   if (k === "e") { toggleErase(); return; }
   if (/^[1-9]$/.test(ev.key)) {
@@ -1259,7 +1257,6 @@ window.addEventListener("keydown", (ev) => {
   const arrow = { arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, -1], arrowdown: [0, 1] }[k];
   if (arrow && S.selected) { ev.preventDefault(); const n = ev.shiftKey ? 1 : T; nudge(arrow[0] * n, arrow[1] * n); return; }
   if ((k === "delete" || k === "backspace") && S.selected) { ev.preventDefault(); removeSelected(); return; }
-  if ((k === "delete" || k === "backspace") && S.sel) { ev.preventDefault(); deleteSel(); return; }
   if (k === "escape") {
     if (S.selected || S.sel) { S.sel = null; select(null); return; }
     setTool("select");

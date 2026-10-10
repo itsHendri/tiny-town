@@ -295,12 +295,24 @@ class IsoMap:
 MARGIN_TREES = ["tree-1-d1", "tree-1-d2", "tree-5-d2", "pine-1", "pine-3", "tree-2-d2", "pine-2", "tree-4-d1", "spruce-2", "oak-3", "pine-5", "tree-4-d2"]   # the same list is in js/iso.js
 
 
+def ground_level(m):
+    """The map's ground level: the height most of its edge stands at (a tie goes to the lower one). The meadow round
+    the map sits on it, and anything lower is a pit dug into the map. Same rule in js/iso.js."""
+    n = [0] * 8
+    for r in range(m.rows):
+        for c in range(m.cols):
+            if r in (0, m.rows - 1) or c in (0, m.cols - 1):
+                n[m.height[r][c]] += 1
+    return n.index(max(n))
+
+
 def render(m, frame=0, objects=True, margin=0):
     """Draw a preview.Map in isometric. Returns an RGBA image. `margin` cells of meadow and darker forest are
     drawn around the map so it fills the frame (they aren't part of the map)."""
     cols, rows = m.cols, m.rows
     top = max(max(row) for row in m.height)
     M = margin
+    B = ground_level(m)
     X0 = (rows + 2 * M) * 16 + 8                             # screen x of map column/row 0's north corner
     Y0 = top * HT + 24 + 16 * M
     W = (cols + rows + 4 * M) * 16 + 16
@@ -332,7 +344,7 @@ def render(m, frame=0, objects=True, margin=0):
             for dx in range(-M, cols + M + 1):
                 mask = cell_mask(ext, dy + M, dx + M)
                 if mask:
-                    cx, cy = cell_top(dx, dy, 0)
+                    cx, cy = cell_top(dx, dy, B)
                     put(layer, iso_tile(name, mask, frame if name in ANIMATED else 0, phase_of(dx, dy)), X0 + cx - 16, Y0 + cy - 8)
 
     def overlays(layer, level):
@@ -359,10 +371,10 @@ def render(m, frame=0, objects=True, margin=0):
             for c in range(-M, cols + M):
                 if 0 <= c < cols and 0 <= r < rows:
                     continue
-                x, y = cell_top(c, r)
+                x, y = cell_top(c, r, B)
                 put(outside, grass_cell(phase_of(c, r)), X0 + x - 16, Y0 + y)
         for name in ("water", "path", "cobbles"):            # roads and rivers run on out into the forest
-            dual_ext(outside, name, margin_cells(m.cells(name, 0), M), M)
+            dual_ext(outside, name, margin_cells(m.cells(name, B), M), M)
         shade = Image.new("RGBA", outside.size, (34, 40, 18, 70))
         outside = Image.composite(Image.alpha_composite(outside, shade), outside, outside.getchannel("A"))
 
@@ -375,6 +387,8 @@ def render(m, frame=0, objects=True, margin=0):
             put(base, grass_cell(phase_of(c, r)), X, Y)
     overlays(base, 0)
     clip_to_map(base, cols, rows, X0, Y0, 0)
+    if B:
+        clip_to_map(base, cols, rows, X0, Y0, B)            # below the ground level it only shows inside the pits
 
     # every level above: its top (grass, overlays, edge) and its wall, on its own layer
     levels = {}
@@ -384,9 +398,13 @@ def render(m, frame=0, objects=True, margin=0):
         dual(lay, "raised_fill", cells, L)
         overlays(lay, L)
         dual(lay, "raised_edge", cells, L)
-        fill = blank(); dual(fill, "raised_fill", cells, L)
+        # up to the ground level the fill runs on past the edge, so the map's edge gets no wall
+        fill = blank(); dual(fill, "raised_fill", cells, L, ext=max(M, 1) if L <= B else 0)
         clip_to_map(lay, cols, rows, X0, Y0, L)
-        clip_to_map(fill, cols, rows, X0, Y0, L)
+        if L < B:
+            clip_to_map(lay, cols, rows, X0, Y0, B)
+        if L > B:
+            clip_to_map(fill, cols, rows, X0, Y0, L)
         walls(lay, fill, m, L, X0, Y0, frame)
         levels[L] = lay
 
@@ -398,7 +416,7 @@ def render(m, frame=0, objects=True, margin=0):
         for c in range(cols):
             if m.height[r][c] > 0:
                 items.append((c + r, 0, "cell", (c, r)))
-    RUNS = [margin_cells(m.cells(n, 0), M) for n in ("water", "path", "cobbles")] if M else []
+    RUNS = [margin_cells(m.cells(n, B), M) for n in ("water", "path", "cobbles")] if M else []
     if objects and M:                                         # the forest round the edge
         from iso_nature import nature
         NAT = _cached(nature)
@@ -409,13 +427,13 @@ def render(m, frame=0, objects=True, margin=0):
                 if any(ext[r + M][c + M] for ext in RUNS):
                     continue                                  # keep the road or river leaving the map clear
                 spr = NAT[MARGIN_TREES[int(ihash(c & 0xffff, r & 0xffff, 13) * len(MARGIN_TREES))]]
-                items.append((c + r, 1, "obj", (spr, c * 16 + 8, (r + 1) * 16, 0)))
+                items.append((c + r, 1, "obj", (spr, c * 16 + 8, (r + 1) * 16, B)))
     for spr, c, r in upright_items(m, UP):                     # fences, gates, bridge rails, stairs
         items.append((c + r, 0.5, "obj", (spr, c * 16 + 8, (r + 1) * 16, m.height[r][c])))
     if objects:
         for k, (spr, u, v) in enumerate(m.objects):
             c, r = int(u // 16), int((v - 1) // 16)
-            items.append((c + r, 1, "obj", (spr, u, v, m.height[min(rows - 1, max(0, r))][min(cols - 1, max(0, c))])))
+            items.append((c + r, 1, "obj", (spr, u, v, m.height[r][c] if 0 <= r < rows and 0 <= c < cols else B)))
     items.sort(key=lambda it: (it[0], it[1]))
     for _, _, kind, data in items:
         if kind == "cell":

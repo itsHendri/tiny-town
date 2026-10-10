@@ -44,6 +44,9 @@ Code MIT (`LICENSE`), art CC BY 4.0 (`LICENSE-art`). Read `README.md` for the us
   corners as a 4-bit mask, 16 shapes per terrain, corners rounded (radius 7). Terrains are layered by priority
   (`OVERLAYS` in `js/registry.js`: dirt, water+bridge, soil, path, cobbles).
 * **Height** 0-4. Neighbouring cells never differ by more than one level (nudged when painting, OpenTTD style).
+  The **ground level** is the height most of the map's edge stands at (`groundLevel` in `js/iso.js`, `ground_level`
+  in `art/iso.py`): the margin sits on it, and lower cells are pits. Lowering a cell at 0 lifts the whole map a level
+  first; a stroke that leaves nothing at 0 settles it back down.
   Cliff walls aren't tiles: each level's fill outline is pushed down 16 px (front-left lit, front-right shaded),
   waterfalls where water meets the edge.
 * **Isometric view:** cell diamond 32x16, level height 16. `screen = (u-v, (u+v)/2 - L*16) + (X0, Y0)`; object feet
@@ -57,7 +60,8 @@ Code MIT (`LICENSE`), art CC BY 4.0 (`LICENSE-art`). Read `README.md` for the us
   Anchors (`ax`, `ay`) and footprints (`foot`) live in `tiles/iso/props.json`; aliases map old names to new ones so old
   maps keep working. Trees: `art/iso_trees.py` (many kinds, varied per seed); the editor groups them by name regex.
 * **Editor** (`js/editor.js`): one state object `S` (projection `"iso"` or top-down, view `S.V`). One active tool,
-  `S.tool` (`brush rect fill plot pick area place scatter stamp`, or `select`: no tool, clicks select and drags move or pan); `S.place` / `S.pasting` are only what
+  `S.tool` (`brush` while a swatch is chosen, `place scatter stamp`, `area` for a new stamp, or `select`: nothing in hand,
+  clicks select and drags move or pan); `S.place` / `S.pasting` are only what
   `place` / `stamp` put down, and `setTool` clears the rest. Painting just past the edge grows the map (`grow` in
   `tools.js`); `rebuildView(dc, dr)` keeps the screen still when the view changes shape. A view abstraction
   (`pt`, `feet`, `cellPoly`, `pick`, `border`) keeps tools projection-free. Undo is snapshots; autosave in
@@ -88,20 +92,23 @@ existing values. If the format must change, bump `tinyTownVersion` in `js/format
 
 ## Checking work
 
-* **Parity** (after any renderer change): run `art/parity_ref.py`, serve the folder, open the editor, and run in the
-  browser console:
+* **Parity** (after any renderer change): run `art/parity_ref.py` (a level-0 map, and a dug map with a margin), serve
+  the folder, open the editor, and run in the browser console:
 
   ```js
   const I = await import("/js/iso.js"), { newMap } = await import("/js/format.js");
-  const ts = tinyTown.state.isoTs || await I.loadIsoTileset("tiles/iso/");
-  const d = await (await fetch("/out/iso-ref.json", { cache: "reload" })).json();
-  const m = newMap(d.cols, d.rows); m.layers.Height.set(d.H); m.layers.Terrain.set(d.T); m.layers.Features.set(d.F); m.layers.Deco.set(d.D);
-  const c = I.bakeIso(m, ts, I.isoView(m), { objects: false })[1];
-  const im = await new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = "/out/iso-ref.png?" + Date.now(); });
-  const c2 = document.createElement("canvas"); c2.width = c.width; c2.height = c.height; c2.getContext("2d").drawImage(im, 0, 0);
-  const A = c.getContext("2d").getImageData(0, 0, c.width, c.height).data, B = c2.getContext("2d").getImageData(0, 0, c.width, c.height).data;
-  let big = 0; for (let i = 0; i < A.length; i += 4) if (Math.max(...[0, 1, 2, 3].map((k) => Math.abs(A[i + k] - B[i + k]))) > 3) big++;
-  big  // must be 0
+  const ts = tinyTown.state.isoTs || await I.loadIsoTileset("tiles/iso/"), res = {};
+  for (const name of ["iso-ref", "iso-ref-dig"]) {
+    const d = await (await fetch(`/out/${name}.json`, { cache: "reload" })).json();
+    const m = newMap(d.cols, d.rows); m.layers.Height.set(d.H); m.layers.Terrain.set(d.T); m.layers.Features.set(d.F); m.layers.Deco.set(d.D);
+    const c = I.bakeIso(m, ts, I.isoView(m, { margin: d.margin || 0 }), { objects: false })[1];
+    const im = await new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = `/out/${name}.png?` + Date.now(); });
+    const c2 = document.createElement("canvas"); c2.width = c.width; c2.height = c.height; c2.getContext("2d").drawImage(im, 0, 0);
+    const A = c.getContext("2d").getImageData(0, 0, c.width, c.height).data, B = c2.getContext("2d").getImageData(0, 0, c.width, c.height).data;
+    let big = 0; for (let i = 0; i < A.length; i += 4) if (Math.max(...[0, 1, 2, 3].map((k) => Math.abs(A[i + k] - B[i + k]))) > 3) big++;
+    res[name] = big;
+  }
+  res  // every count must be 0
   ```
 
   Extend `art/parity_ref.py` when you add something the test map doesn't cover (fences, stairs, bridges, dirt).

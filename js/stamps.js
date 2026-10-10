@@ -1,5 +1,5 @@
-// Copy, cut and paste rectangles of the map (every cell layer plus the objects standing in them), and stamps:
-// saved copies you can place again and again, kept in this browser.
+// Stamps: rectangles of the map (every cell layer plus the objects standing in them) saved to place again and
+// again, kept in this browser.
 
 import { newMap } from "./format.js";
 import { drawProp, drawTerrain } from "./render.js";
@@ -33,11 +33,6 @@ export function copyArea(m, s) {
     layers[k] = out;
   }
   return { cols, rows, layers, entities: m.entities.filter((e) => within(e, s)).map((e) => shifted(e, -s.c0, -s.r0)) };
-}
-
-export function clearArea(m, s) {
-  for (const L of Object.values(m.layers)) for (let r = s.r0; r <= s.r1; r++) for (let c = s.c0; c <= s.c1; c++) L[r * m.cols + c] = 0;
-  m.entities = m.entities.filter((e) => !within(e, s));
 }
 
 // Writes the clip with its top-left cell at (c0, r0); the parts that fall off the map are dropped.

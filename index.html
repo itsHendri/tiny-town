@@ -132,6 +132,11 @@ details.sec > summary small { margin-left: auto; color: var(--muted); text-trans
 .chip:hover { background: color-mix(in srgb, var(--on-bg) 60%, transparent); }
 .chip canvas { width: 32px; height: 32px; image-rendering: pixelated; border-radius: 6px; flex: none; }
 .chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip.off { color: var(--muted); font-weight: 500; }
+.chip .chip-empty { width: 32px; height: 32px; border: 1.5px dashed var(--line); border-radius: 6px; display: grid; place-items: center; flex: none; }
+.chip .chip-empty svg { width: 18px; height: 18px; }
+.new-stamp { border-style: dashed; color: var(--muted); }
+.new-stamp .plus { font-size: 22px; line-height: 32px; height: 32px; }
 .opts { flex: none; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 2px; white-space: nowrap; font-size: 12px; color: var(--muted); }
 .opts b { color: var(--fg); font-weight: 600; }
 .seg { display: inline-flex; gap: 3px; }
@@ -223,6 +228,7 @@ dialog::backdrop { background: rgba(20, 24, 32, 0.5); }
   .toolbox { bottom: 8px; }
   .tbtn { width: 44px; }
   .tbtn.desk { display: none; }
+  .chip > span:last-child { display: none; }
   .selcard { max-height: 45%; }
 }
 </style>
@@ -305,17 +311,15 @@ dialog::backdrop { background: rgba(20, 24, 32, 0.5); }
     <div class="checks" id="show"></div>
     <h3>Keys</h3>
     <div class="keys">
-      <kbd>B R F T I S</kbd><span>brush, box, fill, plot (a fenced yard), pick, area; press again or Esc to put the tool down</span>
-      <kbd>Click</kbd><span>with no tool: select an object, drag it to move it, drag the ground to look around</span>
+      <kbd>1–9</kbd><span>swatches, in order; choosing a swatch picks up the brush</span>
+      <kbd>Esc</kbd><span>clear the selection, then put the brush (or object, or stamp) down</span>
+      <kbd>Click</kbd><span>with nothing in hand: select an object, drag it to move it, drag the ground to look around</span>
       <kbd>E</kbd><span>erase on or off (right-click erases too)</span>
-      <kbd>1–9</kbd><span>swatches, in order</span>
-      <kbd>[ ]</kbd><span>brush size</span>
+      <kbd>[ ]</kbd><span>brush size (fences, gates and stairs are always one cell)</span>
       <kbd>Shift click</kbd><span>straight line from the last stroke; with an object, keep placing</span>
-      <kbd>Alt click</kbd><span>pick what's under the cursor</span>
-      <kbd>Ctrl C X V</kbd><span>copy, cut, paste an area</span>
+      <kbd>Alt click</kbd><span>take the swatch of what's under the cursor</span>
       <kbd>Arrows</kbd><span>nudge the selected object a cell (Shift: a pixel)</span>
-      <kbd>Del</kbd><span>delete the selection</span>
-      <kbd>Esc</kbd><span>clear the selection, then put the tool down</span>
+      <kbd>Del</kbd><span>delete the selected object</span>
       <kbd>Enter</kbd><span>walk around (arrows or WASD, Esc stops)</span>
       <kbd>+ −</kbd><span>zoom (or pinch, Ctrl+wheel)</span>
       <kbd>Shift 1 / 0</kbd><span>fit the map / 100%</span>

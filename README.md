@@ -10,9 +10,9 @@ repainted by hand).
 
 ## Start here
 
-* **Paint** the ground (grass, paths, cobbles, water, dirt, crops), raise and lower hills, add stairs, fences and gates,
-  flowers and tall grass from the Paint panel on the left. Brush, Box, Fill, or Plot (a fenced yard with a gate in one
-  drag) from the toolbox at the bottom. Paint past the edge and the map grows.
+* **Paint** the ground (grass, paths, cobbles, water, dirt, crops), raise hills and dig pits, add stairs, fences and
+  gates, flowers and tall grass: pick a swatch in the Paint panel on the left and brush. Paint past the edge and the
+  map grows.
 * **Place** houses, market stalls, trees and more: drag them in from the Objects panel on the right. Scatter sprinkles
   trees and flowers.
 * **Walk** (Enter) your town with the arrow keys, then go straight back to building.
@@ -32,11 +32,11 @@ then visit http://localhost:8000. Your map is kept in the browser as you work; *
 
 | Do | How |
 |---|---|
-| Paint | Pick a swatch (or keys 1-9). Brush, Box or Fill; `[` `]` change the brush size. Erase (E) or right-click erases, Alt-click picks, Shift-click draws a straight line from the last stroke. Painting just past the edge makes the map bigger. |
-| Height | Raise, Lower and Flatten. Neighbours are nudged so side-by-side cells are never more than one level apart; a cliff face appears under every south edge. Paint Stairs on a cliff face, or on the cell beside a hill's east or west side, to climb it. |
-| Yards | The Plot tool (T): drag a rectangle to fence it, with a gate on the side facing the nearest path. |
+| Paint | Pick a swatch (or keys 1-9) and brush; pick it again or press Esc to put the brush down. The size (1, 2, 3 or `[` `]`) is beside it in the toolbox; fences, gates and stairs are always one cell. Erase (E) or right-click erases, Alt-click takes the swatch under the cursor, Shift-click draws a straight line from the last stroke. Painting just past the edge makes the map bigger. |
+| Height | Raise, Lower and Flatten (to the level where the stroke starts). Lower digs below the ground too: the map lifts a level to make room, so a pit or a sunken pond looks dug in. Neighbours are nudged so side-by-side cells are never more than one level apart. |
+| Stairs | Stairs go at the foot of a cliff that faces you (just south or just east of higher ground); painting on the cliff's top steps down to its foot, and the brush turns red where none can go. |
 | Place | Drag a prop or character from the Objects panel onto the map, or click it and then the map (Shift keeps placing). With no tool active (Esc, or click the active tool again): click an object to select it, drag to move it, arrows nudge; the card beside it has Duplicate and Delete. Pick Few, Some or Lots under Scatter and drag to sprinkle trees or bushes; right-drag clears them. |
-| Reuse | Area (S): drag over part of the map, then Copy, Cut or Save as stamp. Ctrl+V or a stamp places it again; Esc stops. |
+| Reuse | New stamp (in Stamps): drag over part of the map, name it, save. Pick a stamp to place it again; Esc stops. |
 | Share | The arrow beside Save: Copy share code (the whole map as one line of text, a few KB), or Open a share code. |
 | Walk | Walk (or Enter): walk the town with the arrows or WASD; stairs climb, water and fences block. Esc stops. |
 | Phone | Paint and Objects open as sheets from the toolbox. Hold still to pick. |
