@@ -83,7 +83,8 @@ def dressing(m, taken, houses):
                             "detail-pebbles-2", "bush-1", "bush-3", "rock-1", "detail-mushrooms"][int(h("dk", c, r) * 10)]
                     out.append((pick, c, r))
             elif not near_road(r, c, 2) and k < 0.10 and not any((c + dc, r + dr) in houses for dr in range(-3, 3) for dc in range(-3, 3)):
-                out.append((["tree-1", "tree-2", "tree-4", "pine-1", "pine-2", "tree-5", "pine-3"][int(h("tk", c, r) * 7)], c, r))
+                mix = ["tree-1", "birch-1", "tree-4", "pine-1", "oak-2", "tree-2", "pine-2", "maple-1", "poplar-1", "tree-5", "spruce-2", "birch-2", "tree-3", "pine-4", "oak-3", "willow-1"]
+                out.append((mix[int(h("tk", c, r) * len(mix))], c, r))
             elif k > 0.93:
                 out.append((["detail-flowers-1", "detail-tuft-2", "bush-2"][int(h("dk2", c, r) * 3)], c, r))
     return out

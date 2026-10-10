@@ -184,7 +184,8 @@ function propGroups() {
   for (const name of Object.keys(props)) {
     if (props[name].alias) continue;                         // old names kept so old maps still open
     if (name.startsWith("_")) continue;                       // fences, rails and stairs come from the cells
-    const g = name.startsWith("detail") ? "Details" : name.startsWith("tree") ? "Trees" : name.startsWith("pine") ? "Pines" : name.startsWith("bush") ? "Bushes"
+    const g = name.startsWith("detail") ? "Details" : /^(tree|oak|birch|poplar|willow|maple|blossom|fruit)/.test(name) ? "Trees"
+      : /^(pine|spruce|cypress)/.test(name) ? "Pines" : name.startsWith("bush") ? "Bushes"
       : name.startsWith("rock") ? "Rocks" : name.startsWith("stall") || name.startsWith("crate") || name === "flower-cart" || name === "chalkboard" ? "Market"
       : name.startsWith("house") || props[name].foot ? "Houses" : "Things";
     groups[g].push(name);
@@ -209,7 +210,7 @@ function buildCatalog() {
   }
   for (const [g, names] of Object.entries(propGroups())) {
     if (!names.length) continue;
-    sections.push(el("h3", { text: g }), el("div", { class: "swatches" }, ...names.map((n) => item({ type: "Prop", sprite: n }, n.replace(/^(tree|pine|bush|rock|house|detail)-/, ""), propThumb(n, 40)))));
+    sections.push(el("h3", { text: g }), el("div", { class: "swatches" }, ...names.map((n) => item({ type: "Prop", sprite: n }, n.replace(/^(tree|bush|rock|house|detail)-/, ""), propThumb(n, 40)))));
   }
   sections.push(el("h3", { text: "Data" }), el("div", { class: "swatches" },
     item({ type: "Path" }, "Path", dataIcon("path")), item({ type: "Region" }, "Region", dataIcon("region"))));

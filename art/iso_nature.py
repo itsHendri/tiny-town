@@ -169,13 +169,10 @@ def details():
 
 
 def nature():
-    """The isometric versions of the nature props, by their catalog names."""
-    out = {}
-    for dark in (0, 1, 2):
-        for k, size in enumerate((0.95, 1.0, 1.05, 1.1, 1.25, 1.35)):
-            out[f"tree-{k + 1}" + (f"-d{dark}" if dark else "")] = oak(f"o{k}", size, dark)
-    for k, size in enumerate((1.0, 1.1, 1.25, 1.4)):
-        out[f"pine-{k + 1}"] = fir(f"f{k}", size)
+    """The isometric versions of the nature props, by their catalog names: every kind of tree (iso_trees), bushes,
+    rocks and the small details."""
+    from iso_trees import trees
+    out = dict(trees())
     for k in range(3):
         out[f"bush-{k + 1}"] = flower_bush(f"b{k}")
     for k in range(2):
