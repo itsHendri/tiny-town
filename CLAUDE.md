@@ -98,6 +98,8 @@ existing values. If the format must change, bump `tinyTownVersion` in `js/format
   **Path** is the bright gold rounded stones and **Cobbles** the same stones in grey (`STONE`, `grey_cobble_px`).
   Palette swatches are drawn in the current view.
 * Houses: the `storybook` look (`LOOK` in `art/iso_tiles.py`).
+* Outlines: selective (`OUTLINE` in `art/sprites.py`): `out` on the shadow sides, a dark local shade on the lit
+  sides; 2 px on buildings. Clear outlines matter most: they keep objects apart from each other.
 * Trees: lots of variety, no two alike; leaves use hash speckle, not dither stripes.
 * Reference: the market village (`docs/market-village.png`) was rebuilt from a storybook-style picture of a market
   town; it is the quality bar.

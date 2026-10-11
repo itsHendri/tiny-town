@@ -48,7 +48,8 @@ PAL = {
 }
 RGB = {k: tuple(int(v[i:i + 2], 16) for i in (1, 3, 5)) + (255,) for k, v in PAL.items()}
 CLEAR = (0, 0, 0, 0)
-OUTLINE = {"style": "solid", "double": True}      # Sprite.outline's style; double: buildings get a 2 px line
+# Sprite.outline's style, picked 2026-10-11 (outline round): selective, and double = a 2 px line on buildings
+OUTLINE = {"style": "selout", "double": True}
 _DARK = {}
 
 
