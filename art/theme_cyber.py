@@ -67,8 +67,8 @@ PICK = "neon"   # picked 2026-10-11 (cyber palette round): neon night
 # How each hero item is drawn (picked 2026-10-11, cyber and circuit builders: panels, coolant, tiles, random windows,
 # mixed parts for trees, neon blocks). It stays a city: the circuit board is a flavour, not the subject.
 CYBER = {"plaza": "panels", "canal": "coolant", "walkway": "tiles", "windows": "random", "trees": "mixed", "buildings": "blocks",
-         "parts": "v1", "signs": "one", "glow": "off", "roofs": "plain"}
-# Polish switches (neon city polish round): parts v1 / city (city-scale tech), windows random / calm (a colour per
+         "parts": "city", "signs": "varied", "glow": "on", "roofs": "busy"}
+# Polish switches (neon city polish round, picked 2026-10-11: city, random, varied, on, busy): parts v1 / city (city-scale tech), windows random / calm (a colour per
 # floor, half dark), signs one / varied (blade signs, billboards), glow off / on (halos, light spill), roofs plain / busy.
 
 def tweak(P):
