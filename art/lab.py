@@ -5,6 +5,7 @@ plus a picker page with a pick and a note per option: out/lab/<round>/index.html
     python art/lab.py <round> <key>    # draw one option (each runs in its own process: drawers cache by palette)
     python art/lab.py house-builder    # every combination of the house switches on a little street, with toggles
     python art/lab.py cyber-builder    # every combination of the cyber items' choices on a neon street
+    python art/lab.py chip-builder     # the same for the circuit-board concepts
 
 Serve the repo (python3 -m http.server 8000) and open http://localhost:8000/out/lab/<round>/.
 """
@@ -464,51 +465,74 @@ def cyber_street():
     return m, spots
 
 
-def cyber_builder():
+CHIP_GROUPS = [
+    ("plaza", "Board (grass)", [("panels", "Neon panels", "Today's pick: dark panels, some seams glowing."),
+                                ("pcb", "Circuit board", "Dark solder mask, faint traces along the grid, vias."),
+                                ("pcb-green", "Green board", "The classic green circuit board."),
+                                ("silicon", "Silicon die", "A fine grid of cells, the odd one lit.")]),
+    ("walkway", "Traces (path)", [("tiles", "Tiles", "Today's pick: small tiles, a glowing amber curb."),
+                                  ("copper", "Copper", "Copper traces with a bright edge and solder pads."),
+                                  ("glow", "Glowing edge", "Dark traces outlined in neon.")]),
+    ("canal", "Water", [("neon", "Neon reflections", "Today's pick: a canal reflecting the signs."),
+                        ("databus", "Data bus", "Fine lines with light pulses racing along."),
+                        ("coolant", "Coolant", "Glowing cyan coolant, bubbles rising."),
+                        ("fiber", "Fiber optics", "Optical fibres along the grid, coloured pulses.")]),
+    ("trees", "Trees", [("holo", "Holo trees", "Today's pick: cyan hologram trees."),
+                        ("capacitors", "Capacitors", "Every tree a capacitor, sizes and colours varied."),
+                        ("mixed", "Mixed parts", "Capacitors, a transformer, LEDs, a coil, pylons."),
+                        ("stalks", "LED stalks", "LEDs on poles of different heights, glowing."),
+                        ("pylons", "Pylons", "Power pylons with glowing insulators.")]),
+    ("buildings", "Buildings", [("blocks", "Neon blocks", "Today's buildings."),
+                                ("chips", "Chips", "Black chips with silver pins; the tower is a heatsink.")]),
+]
+BUILDERS = {"cyber-builder": ("Cyber builder", CYBER_GROUPS), "chip-builder": ("Circuit builder", CHIP_GROUPS)}
+
+
+def cyber_builder(name="cyber-builder"):
     import itertools
     import subprocess as sp
-    out = OUT / "cyber-builder"
+    title, groups_ = BUILDERS[name]
+    out = OUT / name
     out.mkdir(parents=True, exist_ok=True)
-    combos = list(itertools.product(*[range(len(g[2])) for g in CYBER_GROUPS]))
+    combos = list(itertools.product(*[range(len(g[2])) for g in groups_]))
     procs = 8                                                    # split over processes (drawers cache per look)
-    jobs = [sp.Popen([sys.executable, __file__, "cyber-builder-part", str(k), str(procs)]) for k in range(procs)]
+    jobs = [sp.Popen([sys.executable, __file__, "builder-part", name, str(k), str(procs)]) for k in range(procs)]
     for j in jobs:
         j.wait()
     groups = [{"key": k, "label": l, "options": [{"value": v, "label": vl, "note": n} for v, vl, n in opts]}
-              for k, l, opts in CYBER_GROUPS]
-    (out / "index.html").write_text(CYBER_PAGE.replace("__GROUPS__", json.dumps(groups)))
-    print("wrote out/lab/cyber-builder/index.html", len(combos), "combinations")
+              for k, l, opts in groups_]
+    page = CYBER_PAGE.replace("__GROUPS__", json.dumps(groups)).replace("Cyber builder", title) \
+        .replace("Cyber Builder", title.title()).replace("tiny-town/cyber-builder", "tiny-town/" + name)
+    (out / "index.html").write_text(page)
+    print(f"wrote out/lab/{name}/index.html", len(combos), "combinations")
 
 
-def cyber_builder_part(k, n):
-    """Draw every n-th combination starting at k, each in a fresh look (the drawers are cached)."""
+def cyber_builder_part(name, k, n):
+    """Draw every n-th combination starting at k, each in a fresh process (the drawers are cached)."""
     import itertools
-    combos = list(itertools.product(*[range(len(g[2])) for g in CYBER_GROUPS]))[k::n]
+    combos = list(itertools.product(*[range(len(g[2])) for g in BUILDERS[name][1]]))[k::n]
     for combo in combos:
-        sp_args = [sys.executable, __file__, "cyber-builder-one", "-".join(map(str, combo))]
-        subprocess.run(sp_args, check=True)
+        subprocess.run([sys.executable, __file__, "builder-one", name, "-".join(map(str, combo))], check=True)
 
 
-def cyber_builder_one(key):
-    from PIL import Image
+def cyber_builder_one(name, key):
     import theme_cyber
     combo = list(map(int, key.split("-")))
-    palettes.PALETTES["cyber"] = theme_cyber.palette(**theme_cyber.LOOKS[theme_cyber.PICK])
+    for (gk, _, opts), i in zip(BUILDERS[name][1], combo):
+        theme_cyber.CYBER[gk] = opts[i][0]
+    palettes.PALETTES["cyber"] = theme_cyber.tweak(theme_cyber.palette(**theme_cyber.LOOKS[theme_cyber.PICK]))
     palettes.use("cyber")
     import iso
     import iso_props
-    from iso_nature import nature
     from render_map import props
-    for (gk, _, opts), i in zip(CYBER_GROUPS, combo):
-        theme_cyber.CYBER[gk] = opts[i][0]
     theme_cyber.apply()
     P = props()
     m, spots = cyber_street()
-    for name, c, r in spots:
-        spr = iso_props.house(**iso_props.HOUSES[name])[0] if name in iso_props.HOUSES else P[name]
+    for nm, c, r in spots:
+        spr = iso_props.house(**iso_props.HOUSES[nm])[0] if nm in iso_props.HOUSES else P[nm]
         m.objects.append((spr, c * 16 + 8, (r + 1) * 16))
     im = iso.render(m, 0, margin=1, woods=False)
-    im.crop(im.getbbox()).save(OUT / "cyber-builder" / f"{key}.png")
+    im.crop(im.getbbox()).save(OUT / name / f"{key}.png")
 
 
 TREE_NAMES = r"^(tree|oak|birch|poplar|willow|maple|blossom|fruit|pine|spruce|cypress)"
@@ -837,12 +861,12 @@ document.getElementById("copy").addEventListener("click", async () => {
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "house-builder":
         house_builder()
-    elif len(sys.argv) > 1 and sys.argv[1] == "cyber-builder":
-        cyber_builder()
-    elif len(sys.argv) > 1 and sys.argv[1] == "cyber-builder-part":
-        cyber_builder_part(int(sys.argv[2]), int(sys.argv[3]))
-    elif len(sys.argv) > 1 and sys.argv[1] == "cyber-builder-one":
-        cyber_builder_one(sys.argv[2])
+    elif len(sys.argv) > 1 and sys.argv[1] in BUILDERS:
+        cyber_builder(sys.argv[1])
+    elif len(sys.argv) > 1 and sys.argv[1] == "builder-part":
+        cyber_builder_part(sys.argv[2], int(sys.argv[3]), int(sys.argv[4]))
+    elif len(sys.argv) > 1 and sys.argv[1] == "builder-one":
+        cyber_builder_one(sys.argv[2], sys.argv[3])
     elif len(sys.argv) > 2:
         draw(sys.argv[1], sys.argv[2])
     else:
