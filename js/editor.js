@@ -1,7 +1,7 @@
 // The map builder: paint cells, place objects, undo, save. Plain ES module, no build step.
 
 import { newMap, parseMap, stringifyMap } from "./format.js";
-import { drawProp, drawTerrain, loadTileset } from "./render.js";
+import { drawProp, drawTerrain, loadTileset, topGrass } from "./render.js";
 import { bakeIso, grassPhase, groundLevel, isoView, loadIsoTileset } from "./iso.js";
 import { ENTITIES, LAYERS, MAX_LEVEL, value } from "./registry.js";
 import { History, brushCells, grow, inside, lineCells, paint, shapeHeight } from "./tools.js";
@@ -964,14 +964,13 @@ function draw() {
   placeCard();
 }
 
-// The grass runs on forever round the map: one tile of the grass pattern (in isometric it repeats every grassN
-// cells, 16 * grassN x 8 * grassN px; every 11 cells top-down), laid under the whole screen and lined up with the
-// map's own grass.
+// The grass runs on forever round the map: one tile of the grass pattern (it repeats every grassN cells: in
+// isometric 16 * grassN x 8 * grassN px), laid under the whole screen and lined up with the map's own grass.
 const grassTiles = {};
 function grassPattern(iso) {
   if (grassTiles[iso]) return grassTiles[iso];
-  const ts = iso ? S.isoTs : S.ts, n = iso ? ts.json.grassN || 4 : 0;
-  const c = el("canvas", { width: iso ? 16 * n : 11 * T, height: iso ? 8 * n : 11 * T }), g = c.getContext("2d");
+  const ts = iso ? S.isoTs : S.ts, n = ts.json.grassN || (iso ? 4 : 11);
+  const c = el("canvas", { width: iso ? 16 * n : n * T, height: iso ? 8 * n : n * T }), g = c.getContext("2d");
   if (iso) {
     for (let u = -4; u <= n + 2; u++) for (let v = -4; v <= n + 2; v++) {  // u = c - r, v = c + r: the diamonds round the tile
       if ((u + v) & 1) continue;
@@ -979,8 +978,8 @@ function grassPattern(iso) {
       g.drawImage(ts.sheet, xy[0], xy[1], 32, 16, u * 16 - 16, v * 8, 32, 16);
     }
   } else {
-    for (let r = 0; r < 11; r++) for (let col = 0; col < 11; col++) {
-      const xy = ts.json.grass[Math.floor(((r * 7 + col * 13) % 11) / 11 * 4)];
+    for (let r = 0; r < n; r++) for (let col = 0; col < n; col++) {
+      const xy = topGrass(ts, col, r);
       g.drawImage(ts.sheet, xy[0], xy[1], T, T, col * T, r * T, T, T);
     }
   }

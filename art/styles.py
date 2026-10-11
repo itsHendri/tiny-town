@@ -12,6 +12,7 @@ from functools import lru_cache
 
 from PIL import Image
 
+import ground
 from dualgrid import T, Shape, h, shape_canvas
 from sprites import RGB, Sprite
 
@@ -22,28 +23,6 @@ FACE = 16                                   # cliff height in pixels: one cell
 def gxy(x, y):
     """Map-aligned coordinates inside a display tile (display tiles start half a cell off the cell grid)."""
     return (x + 8) % T, (y + 8) % T
-
-
-# ---------- grass (the base under everything, one tile per cell) ----------
-
-@lru_cache(maxsize=None)
-def grass_tile(variant, raised=False):
-    s = Sprite(T, T)
-    base, tufts = ("gh", ("gh2", "gh2", "g2")) if raised else ("g1", ("g2", "g2", "g3"))
-    s.rect(0, 0, T, T, base)
-    for k in range(4 + variant % 2):
-        x, y = 1 + int(h("tuft", variant, k, 0) * 11), 2 + int(h("tuft", variant, k, 1) * 12)
-        col = tufts[int(h("tuft", variant, k, 2) * 3)]
-        s.put(x, y, col); s.put(x + 2, y, col); s.put(x + 1, y + 1, col)
-        if h("tuft", variant, k, 3) < 0.35:
-            s.put(x + 1, y - 1, "g0")
-    if variant == 3:                                          # one in four has a little flower
-        x, y = 3 + int(h("fl", variant) * 9), 3 + int(h("fl", variant, 1) * 9)
-        col = ["fl_w", "fl_o", "fl_y", "fl_p"][int(h("fl", variant, 2) * 4)]
-        for dx, dy in ((0, -1), (-1, 0), (1, 0), (0, 1)):
-            s.put(x + dx, y + dy, col)
-        s.put(x, y, "fl_y" if col != "fl_y" else "fl_o")
-    return s
 
 
 # ---------- raised ground: the top of a cliff ----------
@@ -286,6 +265,42 @@ def gate_tile(horizontal):
     return outline_in_tile(s)
 
 
+# ---------- shared with isometric (art/ground.py): same materials, drawn for the top-down view ----------
+
+class TopShape:
+    """A top-down Shape with the isometric shapes' interface (dist takes a reach, unused)."""
+
+    def __init__(self, sh):
+        self.sh = sh
+
+    def inside(self, x, y):
+        return self.sh.inside(x, y)
+
+    def dist(self, x, y, k=None):
+        return self.sh.dist(x, y)
+
+
+SHARED = {                                                   # (sh, x, y, gx, gy, frame) -> colour
+    ("path", "stones"): lambda sh, x, y, gx, gy, f: ground.cobble_px(sh, x, y, gx, gy, "top"),
+    ("cobbles", "grey"): lambda sh, x, y, gx, gy, f: ground.grey_cobble_px(sh, x, y, gx, gy, "top"),
+    ("dirt", "trodden"): lambda sh, x, y, gx, gy, f: ground.dirt_px(sh, x, y, gx, gy),
+    ("water", "shared"): ground.water_px,
+    ("raised_fill", "tufts"): lambda sh, x, y, gx, gy, f: ground.grass_px(gx, gy, 1, flat=False) if sh.inside(x, y) else None,
+}
+TOP_PHASES = [(a, b) for b in range(2) for a in range(4)]  # shared textures repeat every 4 x 2 cells (64 x 32 px)
+
+
+@lru_cache(maxsize=None)
+def grass_cell_top(phase):
+    """The flat grass for a cell whose column % 16, row % 16 is `phase` (ground.grass_top)."""
+    a, b = phase
+    s = Sprite(T, T)
+    for y in range(T):
+        for x in range(T):
+            s.put(x, y, ground.grass_top(a * T + x, b * T + y))
+    return s
+
+
 TERRAIN = {
     "raised_shadow": {"grass": raised_shadow},
     "raised_fill": {"grass": raised_fill},
@@ -296,17 +311,27 @@ TERRAIN = {
     "soil": {"tilled": soil},
     "tallgrass": {"meadow": tallgrass},
 }
+for (_name, _style) in SHARED:
+    TERRAIN.setdefault(_name, {})[_style] = None
 ANIMATED = {"water", "tallgrass"}
 
 
 @lru_cache(maxsize=None)
-def terrain_tile(name, style, mask, radius, frame=0, variant=0):
+def terrain_tile(name, style, mask, radius, frame=0, variant=0, phase=None):
+    """One display tile. Shared styles take `phase` (display tile column % 4, row % 2) for their textures."""
     sh = Shape(mask, radius)
+    shared = SHARED.get((name, style))
+    if shared:
+        a, b = phase or (0, 0)
+        ts = TopShape(sh)
     fn = TERRAIN[name][style]
     s = Sprite(T, T)
     for y in range(T):
         for x in range(T):
-            c = fn(sh, x, y, frame, variant)
+            if shared:                                        # display tiles start half a cell off the cell grid
+                c = shared(ts, x, y, a * T - T // 2 + x, b * T - T // 2 + y, frame)
+            else:
+                c = fn(sh, x, y, frame, variant)
             if c is not None:
                 s.put(x, y, c)
     return s

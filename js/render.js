@@ -68,7 +68,7 @@ export function drawTerrain(ctx, m, ts, frame = 0) {
     for (let dy = 0; dy <= rows; dy++) for (let dx = 0; dx <= cols; dx++) {
       const mask = (has(idx(dy - 1, dx - 1)) ? 1 : 0) | (has(idx(dy - 1, dx)) ? 2 : 0) | (has(idx(dy, dx - 1)) ? 4 : 0) | (has(idx(dy, dx)) ? 8 : 0);
       if (!mask) continue;
-      const frames = tiles[mask];
+      const t = tiles[mask], frames = Array.isArray(t) ? t : t[`${dx % 4},${dy % 2}`];   // shared textures: per phase
       tile(frames[frame % frames.length], dx * T - T / 2, dy * T - T / 2);
     }
   }
@@ -114,7 +114,7 @@ export function drawTerrain(ctx, m, ts, frame = 0) {
     }
   }
 
-  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) tile(ts.json.grass[Math.floor(((r * 7 + c * 13) % 11) / 11 * 4)], c * T, r * T);
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) tile(topGrass(ts, c, r), c * T, r * T);
   let top = 0;
   for (let i = 0; i < H.length; i++) if (H[i] > top) top = H[i];
   for (let L = 0; L <= top; L++) {
@@ -127,6 +127,12 @@ export function drawTerrain(ctx, m, ts, frame = 0) {
     singles(L);
     if (L) { dual("raised_edge", (i) => H[i] >= L); faces(L); }
   }
+}
+
+// The flat grass tile for cell (c, r): one per (c % grassN, r % grassN), or one of 4 in older sheets.
+export function topGrass(ts, c, r) {
+  const n = ts.json.grassN;
+  return n ? ts.json.grass[`${(c % n + n) % n},${(r % n + n) % n}`] : ts.json.grass[Math.floor(((r * 7 + c * 13) % 11) / 11 * 4)];
 }
 
 // One prop, feet at (x, y), with a soft ground shadow.

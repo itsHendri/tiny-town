@@ -1,4 +1,5 @@
-"""Ground materials shared by the views, as screen-space pixel functions (gx, gy = map-wide screen pixel).
+"""Ground materials shared by both views (art/iso.py and art/styles.py), as screen-space pixel functions
+(gx, gy = map-wide screen pixel).
 
 Grass, picked 2026-10-11 (clean grass round 2, "soft swells, big repeat"): one green with faint light and shade
 swells in three close greens (g1l, g1, g1d), plus small tufts that get denser and catch the light on the swells.
@@ -60,11 +61,118 @@ def swell(gx, gy, variant=0):
 
 
 def grass_px(gx, gy, variant=0, flat=True):
-    """Meadow grass. flat: the big-repeat swells (flat grass cells); otherwise tufts only (64 x 32 tiles)."""
-    n = swell(gx, gy, variant) if flat else 0.5
+    """Meadow grass at screen pixel (gx, gy). flat: the big-repeat swells (flat grass cells); otherwise tufts only
+    (raised grass, in 64 x 32 tiles)."""
+    return grass_at(swell(gx, gy, variant) if flat else 0.5, gx, gy, variant)
+
+def grass_at(n, gx, gy, variant=0):
+    """Grass colour at a pixel, given its swell n (0 shade .. 1 light): tufts denser and lit where it's light."""
     t = stamps(gx, gy, ("gt", variant), 8, 8, TUFTS, 0.3 + 0.4 * n)
     if t:
         if n > 0.6:
             return "g0" if t == "a" else "gh"
         return "gh" if t == "a" else "g2"
     return "g1l" if n > 0.64 else "g1d" if n < 0.36 else "g1"
+
+
+def grass_top(u, v, variant=0):
+    """Top-down grass at map pixel (u, v): the swells sit where they do in isometric (sampled through the
+    projection), the tufts stand upright on screen. Repeats every 16 cells each way."""
+    return grass_at(swell(u - v, (u + v) // 2, variant), u, v, variant)
+
+
+# ---------- path stones, grey cobbles, dirt, water ----------
+# sh: the dual-grid shape seen from this pixel (inside, and dist to the edge); x, y: the pixel in it;
+# gx, gy: the map-wide screen pixel, for textures. view "iso" squashes stones for the angle, "top" keeps them round.
+
+STONE = {"iso": (8, 4, 5, 3, 1.6), "top": (8, 8, 5, 5, 1.0)}     # grid w, h, jitter x, y, vertical squash
+
+
+def _stone(gx, gy, view="iso"):
+    """Irregular rounded cobbles (a jittered grid of stone centres, repeating every 64 x 32 px): returns the nearest
+    stone's id, the offset from its centre (y squashed), and how close the pixel is to the mortar line."""
+    gw, gh, jx, jy, sq = STONE[view]
+    gx, gy = gx % PX, gy % PY
+    i0, j0 = gx // gw, gy // gh
+    best = second = 99.0
+    sid = off = None
+    for j in range(j0 - 1, j0 + 2):
+        for i in range(i0 - 1, i0 + 2):
+            key = (i % (PX // gw), j % (PY // gh))
+            px_ = i * gw + 1.5 + h("cbx", *key) * jx + (gw // 2 if j % 2 else 0)
+            py_ = j * gh + 0.5 + h("cby", *key) * jy
+            d = math.hypot(gx + 0.5 - px_, (gy + 0.5 - py_) * sq)
+            if d < best:
+                second, best, sid, off = best, d, key, (gx + 0.5 - px_, (gy + 0.5 - py_) * sq)
+            elif d < second:
+                second = d
+    return sid, off, second - best
+
+
+def cobble_px(sh, x, y, gx, gy, view="iso"):
+    """Path: irregular rounded stones lit from the top-left, dark mortar between; at the edge grass tufts creep in
+    and a few loose stones lie out on the grass."""
+    if not sh.inside(x, y):
+        d = sh.dist(x, y, 3)
+        if d <= 2.5 and h("loose", gx % 64, gy % 32) < 0.08:
+            return "cb2"
+        return None
+    d = sh.dist(x, y, 3)
+    if d <= 1.0:
+        return "g3" if h("tuft", gx % 64, gy % 32) < 0.45 else "cb3"
+    if d <= 2.0 and h("tuft2", gx % 64, gy % 32) < 0.15:
+        return "g2"
+    sid, (ox, oy), gap = _stone(gx, gy, view)
+    if gap < 1.0:
+        return "cb3"
+    if ox + oy < -2.2:
+        return "cb0"
+    if ox + oy > 2.0:
+        return "cb2"
+    return "cb2" if h("cbs", *sid) < 0.22 else "cb1"
+
+
+GREY_STONE = {"cb0": "cs0", "cb1": "cs1", "cb2": "cs2", "cb3": "cs3"}
+
+
+def grey_cobble_px(sh, x, y, gx, gy, view="iso"):
+    """Cobbles: the same rounded stones as the path, in cool grey."""
+    c = cobble_px(sh, x, y, gx, gy, view)
+    return GREY_STONE.get(c, c)
+
+
+def dirt_px(sh, x, y, gx, gy):
+    """Trampled earth: warm dirt with pebbles, thinning raggedly into the grass."""
+    if not sh.inside(x, y):
+        return None
+    gx, gy = gx % 64, gy % 32
+    d = sh.dist(x, y, 3)
+    if d <= 1.0 and h("dthin", gx, gy) < 0.55:
+        return None
+    if d <= 2.0 and h("dtuft", gx, gy) < 0.2:
+        return "g3"
+    k = h("dirt", gx // 2, gy, 1)
+    if h("peb", gx, gy) < 0.02:
+        return "s0"
+    return "d2" if k < 0.55 else "k0" if k < 0.8 else "d1"
+
+
+def water_px(sh, x, y, gx, gy, f):
+    """Water: a foam edge, ripple dashes drifting with the frame, the odd sparkle; a dark line and stones on the bank."""
+    if not sh.inside(x, y):
+        d = sh.dist(x, y, 4)
+        if d <= 1.0:
+            return "out"
+        if d <= 2.5:
+            return "s1" if h("bank", (gx % 64) // 2, (gy % 32) // 2) < 0.6 else "s2"
+        if d <= 3.5 and h("bank2", (gx % 64) // 4, (gy % 32) // 2) < 0.35:
+            return "s0"
+        return None
+    d = sh.dist(x, y, 4)
+    if d <= 1.0:
+        return "w0" if (gx + gy + f) % 4 else "w1"
+    if d <= 2.5:
+        return "w2"
+    if gy % 8 == 2 and (gx + (gy // 8) * 7 + f * 5) % 32 < 4:
+        return "w1"
+    return "w0" if h("spark", gx % 64, gy % 32, f) < 0.004 else "w2"

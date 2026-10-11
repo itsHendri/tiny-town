@@ -19,7 +19,7 @@ from PIL import Image, ImageDraw
 
 from dualgrid import Shape, cell_mask, h
 import ground
-from ground import grass_px
+from ground import GREY_STONE, cobble_px, dirt_px, grass_px, grey_cobble_px, water_px  # noqa: F401 (used by SETS and the pickers)
 
 
 def ihash(*xs):
@@ -107,93 +107,6 @@ def sx(x, y, ox, oy):
 
 
 # ---------- colours for each terrain, in screen space (gx, gy = map-wide screen pixel) ----------
-
-def _stone(gx, gy):
-    """Irregular rounded cobbles (a jittered grid of stone centres, repeating every 48 px): returns the nearest
-    stone's id, the offset from its centre, and how close the pixel is to the mortar line."""
-    i0, j0 = gx // 8, gy // 4
-    best = second = 99.0
-    sid = off = None
-    for j in range(j0 - 1, j0 + 2):
-        for i in range(i0 - 1, i0 + 2):
-            key = (i % 8, j % 8)
-            px_ = i * 8 + 1.5 + h("cbx", *key) * 5 + (4 if j % 2 else 0)
-            py_ = j * 4 + 0.5 + h("cby", *key) * 3
-            d = math.hypot(gx + 0.5 - px_, (gy + 0.5 - py_) * 1.6)
-            if d < best:
-                second, best, sid, off = best, d, key, (gx + 0.5 - px_, gy + 0.5 - py_)
-            elif d < second:
-                second = d
-    return sid, off, second - best
-
-
-def cobble_px(sh, x, y, gx, gy):
-    """Cobblestones: irregular rounded stones lit from the top-left, dark mortar between; at the edge grass tufts
-    creep in and a few loose stones lie out on the grass."""
-    if not sh.inside(x, y):
-        d = sh.dist(x, y, 3)
-        if d <= 2.5 and h("loose", gx % 64, gy % 32) < 0.08:
-            return "cb2"
-        return None
-    d = sh.dist(x, y, 3)
-    if d <= 1.0:
-        return "g3" if h("tuft", gx % 64, gy % 32) < 0.45 else "cb3"
-    if d <= 2.0 and h("tuft2", gx % 64, gy % 32) < 0.15:
-        return "g2"
-    sid, (ox, oy), gap = _stone(gx, gy)
-    if gap < 1.0:
-        return "cb3"
-    if ox + oy * 1.6 < -2.2:
-        return "cb0"
-    if ox + oy * 1.6 > 2.0:
-        return "cb2"
-    return "cb2" if h("cbs", *sid) < 0.22 else "cb1"
-
-
-GREY_STONE = {"cb0": "cs0", "cb1": "cs1", "cb2": "cs2", "cb3": "cs3"}
-
-
-def grey_cobble_px(sh, x, y, gx, gy):
-    """Cobbles: the same rounded stones as the path, in cool grey."""
-    c = cobble_px(sh, x, y, gx, gy)
-    return GREY_STONE.get(c, c)
-
-
-def dirt_px(sh, x, y, gx, gy):
-    """Trampled earth: warm dirt with pebbles, thinning raggedly into the grass."""
-    if not sh.inside(x, y):
-        return None
-    gx, gy = gx % 64, gy % 32
-    d = sh.dist(x, y, 3)
-    if d <= 1.0 and h("dthin", gx, gy) < 0.55:
-        return None
-    if d <= 2.0 and h("dtuft", gx, gy) < 0.2:
-        return "g3"
-    k = h("dirt", gx // 2, gy, 1)
-    if h("peb", gx, gy) < 0.02:
-        return "s0"
-    return "d2" if k < 0.55 else "k0" if k < 0.8 else "d1"
-
-
-def water_px(sh, x, y, gx, gy, f):
-    if not sh.inside(x, y):
-        d = sh.dist(x, y, 4)
-        if d <= 1.0:
-            return "out"
-        if d <= 2.5:
-            return "s1" if h("bank", (gx % 64) // 2, (gy % 32) // 2) < 0.6 else "s2"
-        if d <= 3.5 and h("bank2", (gx % 64) // 4, (gy % 32) // 2) < 0.35:
-            return "s0"
-        return None
-    d = sh.dist(x, y, 4)
-    if d <= 1.0:
-        return "w0" if (gx + gy + f) % 4 else "w1"
-    if d <= 2.5:
-        return "w2"
-    if gy % 8 == 2 and (gx + (gy // 8) * 7 + f * 5) % 32 < 4:
-        return "w1"
-    return "w0" if h("spark", gx % 64, gy % 32, f) < 0.004 else "w2"
-
 
 def soil_px(sh, x, y, gx, gy):
     if not sh.inside(x, y):

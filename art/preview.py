@@ -8,14 +8,17 @@ from pathlib import Path
 
 from dualgrid import T, cell_mask
 from sprites import Sprite, bush, house, pine, place, rock, tree
-from styles import ANIMATED, FENCE, bridge_tile, cliff_piece, crop_tile, flower_tile, gate_tile, grass_tile, side_stairs, terrain_tile
+from styles import ANIMATED, FENCE, SHARED, bridge_tile, cliff_piece, crop_tile, flower_tile, gate_tile, grass_cell_top, side_stairs, terrain_tile
 
-DEFAULT = {"radius": 7, "path": "worn", "water": "foam", "cliff": "earth", "fence": "rail", "side": "earth"}   # picked 2026-10-09 (tiles round 1)
+# picked 2026-10-09 (tiles round 1); 2026-10-11: path and water shared with isometric (art/ground.py)
+DEFAULT = {"radius": 7, "path": "stones", "water": "shared", "cliff": "earth", "fence": "rail", "side": "earth"}
 # The dual-grid sets in the tile sheet: (name, which style key picks its look; None = its only style)
-SETS = [("raised_shadow", None), ("raised_fill", None), ("raised_edge", None), ("water", "water"), ("soil", None), ("path", "path"), ("cobbles", None),
-        ("tallgrass", None)]
-OVERLAYS = ["water", "soil", "path", "cobbles"]                  # drawn on each level, in this order
-STYLE_OF = {"raised_shadow": "grass", "raised_fill": "grass", "raised_edge": "grass", "cobbles": "stone", "soil": "tilled", "tallgrass": "meadow"}
+SETS = [("raised_shadow", None), ("raised_fill", None), ("raised_edge", None), ("dirt", None), ("water", "water"), ("soil", None),
+        ("path", "path"), ("cobbles", None), ("tallgrass", None)]
+OVERLAYS = ["dirt", "water", "soil", "path", "cobbles"]          # drawn on each level, in this order (js/registry.js)
+STYLE_OF = {"raised_shadow": "grass", "raised_fill": "tufts", "raised_edge": "grass", "cobbles": "grey", "dirt": "trodden",
+            "soil": "tilled", "tallgrass": "meadow"}
+GRASS_N = 16                     # top-down flat grass repeats every 16 x 16 cells (styles.grass_cell_top)
 FRAMES = 3
 MAX_LEVEL = 4
 
@@ -76,7 +79,9 @@ def render(m, style, frame=0):
             for dx in range(m.cols + 1):
                 mask = cell_mask(cells, dy, dx)
                 if mask:
-                    put(terrain_tile(name, st, mask, style["radius"], frame if name in ANIMATED else 0).im, dx * T - T // 2, dy * T - T // 2)
+                    phase = (dx % 4, dy % 2) if (name, st) in SHARED else None
+                    put(terrain_tile(name, st, mask, style["radius"], frame if name in ANIMATED else 0, 0, phase).im,
+                        dx * T - T // 2, dy * T - T // 2)
 
     def singles(level):
         at = lambda rr, cc: m.terrain[min(m.rows - 1, max(0, rr))][min(m.cols - 1, max(0, cc))]
@@ -129,7 +134,7 @@ def render(m, style, frame=0):
 
     for r in range(m.rows):
         for c in range(m.cols):
-            put(grass_tile(int(((r * 7 + c * 13) % 11) / 11 * 4)).im, c * T, r * T)
+            put(grass_cell_top((c % GRASS_N, r % GRASS_N)).im, c * T, r * T)
     top = max(max(row) for row in m.height)
     for level in range(top + 1):
         if level:

@@ -1,6 +1,7 @@
 """Small test maps drawn by the Python renderer, for checking that the browser draws the same pixels.
 Writes out/iso-ref.png and out/iso-ref.json (a map on level 0), and out/iso-ref-dig.png and out/iso-ref-dig.json
-(a map whose ground is level 1, with a pit dug into it, drawn with a margin). The browser check is in CLAUDE.md.
+(a map whose ground is level 1, with a pit dug into it, drawn with a margin), plus each map top-down
+(out/top-iso-ref*.png, by art/preview.py). The browser check is in CLAUDE.md.
 
     python art/parity_ref.py
 """
@@ -22,10 +23,11 @@ T = {"grass": 0, "path": 1, "cobbles": 2, "water": 3, "soil": 4, "bridge": 5, "d
 
 def write(m, name, margin=0):
     iso.render(m, 1, objects=False, margin=margin).save(ROOT / "out" / f"{name}.png")
+    preview.render(m, preview.DEFAULT, 1).save(ROOT / "out" / f"top-{name}.png")
     json.dump({"cols": m.cols, "rows": m.rows, "margin": margin, "H": sum(m.height, []), "T": [T[t] for t in sum(m.terrain, [])],
                "F": [1 if f == "stairs" else 0 for f in sum(m.feature, [])], "D": [3 if d == "tallgrass" else 0 for d in sum(m.deco, [])]},
               open(ROOT / "out" / f"{name}.json", "w"))
-    print(f"wrote out/{name}.png and out/{name}.json")
+    print(f"wrote out/{name}.png, out/top-{name}.png and out/{name}.json")
 
 
 (ROOT / "out").mkdir(exist_ok=True)
@@ -35,6 +37,7 @@ m.fill("height", 1, 8, 6, 13, 1); m.fill("height", 2, 10, 4, 13, 2)
 m.fill("terrain", 6, 0, 8, 14, "path"); m.fill("terrain", 0, 4, 6, 6, "path")
 m.fill("terrain", 8, 2, 11, 6, "water"); m.fill("terrain", 2, 9, 4, 10, "water"); m.fill("terrain", 1, 1, 4, 3, "soil")
 m.fill("terrain", 3, 12, 6, 13, "water")   # water at the plateau's front edge: a waterfall
+m.fill("terrain", 9, 7, 11, 9, "dirt")
 for r in range(9, 12):
     for c in range(8, 13):
         m.deco[r][c] = "tallgrass"

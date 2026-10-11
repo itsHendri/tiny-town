@@ -41,6 +41,9 @@ Code MIT (`LICENSE`), art CC BY 4.0 (`LICENSE-art`). Read `README.md` for the us
 
 * **Python draws, the browser places.** `art/` draws every tile, prop and tree into PNG sheets plus JSON. The browser
   (`js/`) only places tiles and sprites, so the editor previews live.
+* **Both views share their ground** (`art/ground.py`): grass, path stones, grey cobbles, dirt and water are the same
+  functions in isometric and top-down (`styles.SHARED`; top-down sets with shared textures have 8 tile phases,
+  column % 4 and row % 2, and flat grass repeats every 16 x 16 cells). Top-down props stay as they are.
 * **Python is also the reference renderer** (`art/iso.py` for isometric, `art/preview.py` for top-down). `js/iso.js`
   and `js/render.js` must draw **the same pixels**. Any change to how the ground, walls, margin or uprights are drawn
   goes into both, then run the parity check.
@@ -124,6 +127,17 @@ existing values. If the format must change, bump `tinyTownVersion` in `js/format
     const A = c.getContext("2d").getImageData(0, 0, c.width, c.height).data, B = c2.getContext("2d").getImageData(0, 0, c.width, c.height).data;
     let big = 0; for (let i = 0; i < A.length; i += 4) if (Math.max(...[0, 1, 2, 3].map((k) => Math.abs(A[i + k] - B[i + k]))) > 3) big++;
     res[name] = big;
+  }
+  const R = await import("/js/render.js"), tt = tinyTown.state.ts || await R.loadTileset("tiles/");
+  for (const name of ["iso-ref", "iso-ref-dig"]) {                    // top-down: js/render.js vs art/preview.py
+    const d = await (await fetch(`/out/${name}.json`, { cache: "reload" })).json();
+    const m = newMap(d.cols, d.rows); m.layers.Height.set(d.H); m.layers.Terrain.set(d.T); m.layers.Features.set(d.F); m.layers.Deco.set(d.D);
+    const c = document.createElement("canvas"); c.width = d.cols * 16; c.height = d.rows * 16; R.drawTerrain(c.getContext("2d"), m, tt, 1);
+    const im = await new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = `/out/top-${name}.png?` + Date.now(); });
+    const c2 = document.createElement("canvas"); c2.width = c.width; c2.height = c.height; c2.getContext("2d").drawImage(im, 0, 0);
+    const A = c.getContext("2d").getImageData(0, 0, c.width, c.height).data, B = c2.getContext("2d").getImageData(0, 0, c.width, c.height).data;
+    let big = 0; for (let i = 0; i < A.length; i += 4) if (Math.max(...[0, 1, 2, 3].map((k) => Math.abs(A[i + k] - B[i + k]))) > 3) big++;
+    res["top-" + name] = big;
   }
   res  // every count must be 0
   ```

@@ -12,9 +12,9 @@ from pathlib import Path
 from PIL import Image
 
 from dualgrid import T
-from preview import DEFAULT, FRAMES, SETS, STYLE_OF
+from preview import DEFAULT, FRAMES, GRASS_N, SETS, STYLE_OF
 from props import catalog
-from styles import ANIMATED, FENCE, bridge_tile, cliff_piece, crop_tile, flower_tile, gate_tile, grass_tile, side_stairs, terrain_tile
+from styles import ANIMATED, FENCE, SHARED, TOP_PHASES, bridge_tile, cliff_piece, crop_tile, flower_tile, gate_tile, grass_cell_top, side_stairs, terrain_tile
 
 ROOT = Path(__file__).resolve().parent.parent
 COLS = 16                                                     # sheet width in tiles
@@ -54,7 +54,8 @@ class Sheet:
 def build_tileset(style):
     sh = Sheet()
     meta = {"version": 1, "tileSize": T, "image": "tileset.png", "style": style, "frames": FRAMES, "frameMs": 320}
-    meta["grass"] = [sh.add(grass_tile(v).im) for v in range(4)]
+    meta["grassN"] = GRASS_N                                  # flat grass: a tile per (column % N, row % N)
+    meta["grass"] = {f"{a},{b}": sh.add(grass_cell_top((a, b)).im) for b in range(GRASS_N) for a in range(GRASS_N)}
     meta["crop"] = sh.add(crop_tile().im)
     meta["bridge"] = {}
     for horiz in (True, False):
@@ -67,11 +68,17 @@ def build_tileset(style):
         st = style[key] if key else STYLE_OF[name]
         frames = FRAMES if name in ANIMATED else 1
         tiles = [None] * 16
-        for f in range(frames):
-            for mask in range(1, 16):
-                xy = sh.add(terrain_tile(name, st, mask, style["radius"], f).im)
-                tiles[mask] = (tiles[mask] or []) + [xy]
+        if (name, st) in SHARED:                              # textures shared with isometric: a tile per phase
+            for mask in range(1, 16):                         # (display tile column % 4, row % 2)
+                tiles[mask] = {f"{a},{b}": [sh.add(terrain_tile(name, st, mask, style["radius"], f, 0, (a, b)).im)
+                                            for f in range(frames)] for a, b in TOP_PHASES}
             sh.newline()
+        else:
+            for f in range(frames):
+                for mask in range(1, 16):
+                    xy = sh.add(terrain_tile(name, st, mask, style["radius"], f).im)
+                    tiles[mask] = (tiles[mask] or []) + [xy]
+                sh.newline()
         meta["sets"].append({"name": name, "style": st, "tiles": tiles})
     meta["fence"] = [sh.add(FENCE[style["fence"]](conn).im) for conn in range(16)]
     meta["gate"] = {"h": sh.add(gate_tile(True).im), "v": sh.add(gate_tile(False).im)}
