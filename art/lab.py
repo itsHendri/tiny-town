@@ -1,7 +1,7 @@
 """The look lab: candidate looks for one thing at a time, each drawn by the real renderer on the market village,
 plus a picker page with a pick and a note per option: out/lab/<round>/index.html.
 
-    python art/lab.py <round>          # rounds: palette, outline
+    python art/lab.py <round>          # rounds: palette, outline, ground
     python art/lab.py <round> <key>    # draw one option (each runs in its own process: drawers cache by palette)
 
 Serve the repo (python3 -m http.server 8000) and open http://localhost:8000/out/lab/<round>/.
@@ -102,6 +102,49 @@ OUTLINE_ROUND = {
 ROUNDS["outline"] = OUTLINE_ROUND
 
 
+def with_deep_water():
+    """The default palette plus w4: a deeper water shade for the bank's shadow."""
+    pal = dict(palettes.PALETTES[palettes.DEFAULT])
+    L, C, H = palettes.oklch(pal["w3"])
+    pal["w4"] = palettes.hexof(L - 0.12, C * 0.9, H + 6)
+    return pal
+
+
+def ground(grass, water):
+    def setup():
+        import iso
+        import lab_ground as g
+        if grass:
+            iso.grass_px = getattr(g, "grass_" + grass)
+        if water:
+            iso.SETS["water"] = getattr(g, "water_" + water)
+    return setup
+
+
+ROUNDS["ground"] = {
+    "title": "Grass and water",
+    "lead": "Grass is most of the screen, so it sets how clean the whole map feels. Each card pairs one grass with "
+            "one water; pick a grass and a water separately (they can come from different cards). Today's grass is "
+            "per-pixel speckle; the new ones use soft light/shade patches and drawn tufts instead.",
+    "picks": ["grass", "water"],
+    "options": [
+        ("today", "Today: speckle / flat water", "What the village draws now.", None, ground(None, None)),
+        ("calm", "Calm patches / depth bands", "Grass: big soft light and shade patches, a few tufts. Water: foam "
+         "line, then shallow, mid and deep bands.", with_deep_water, ground("calm", "depth")),
+        ("tufted", "Tufted / bank shadow", "Grass: one flat green with lots of sunlit tufts. Water: depth plus the "
+         "bank's shadow along the top shore.", with_deep_water, ground("tufted", "shade")),
+        ("lush", "Lush meadow / deep", "Grass: three-tone patches, tufts, the odd flower. Water: dark and deep with "
+         "a bright edge.", with_deep_water, ground("lush", "deep")),
+        ("blades", "Combed blades / still pond", "Grass: short slanted blades, a fine even texture. Water: no foam, "
+         "a light rim and long soft streaks.", with_deep_water, ground("blades", "calm")),
+        ("clean", "Clean flat / clear shallows", "Grass: nearly flat with soft light patches, the cleanest. Water: "
+         "wide pale rim, sparkles.", with_deep_water, ground("clean", "clear")),
+        ("clover", "Clover clumps / bank shadow", "Grass: rounded clumps lit from the top-left. Water: as Tufted.",
+         with_deep_water, ground("clover", "shade")),
+    ],
+}
+
+
 def draw(round_name, key):
     """An option is (key, name, note, palette, setup): palette() returns a palette dict (None: the default),
     setup() then changes drawing settings before anything is drawn."""
@@ -145,7 +188,7 @@ def main(round_name):
         print("drew", key)
     cards = [{"key": k, "name": n, "note": t} for k, n, t, *_ in rd["options"]]
     page = PAGE.replace("__TITLE__", rd["title"]).replace("__LEAD__", rd["lead"]) \
-        .replace("__ROUND__", round_name).replace("__CARDS__", json.dumps(cards)) \
+        .replace("__PICKS__", json.dumps(rd.get("picks", ["pick"]))).replace("__ROUND__", round_name).replace("__CARDS__", json.dumps(cards)) \
         .replace("__RAMPS__", "true" if round_name == "palette" else "false")
     (OUT / round_name / "index.html").write_text(page)
     print(f"wrote out/lab/{round_name}/index.html")
@@ -176,6 +219,7 @@ h1 { font: 700 32px/1.1 "Pixelify Sans", monospace; margin: 0 0 6px; }
 .ramps { padding: 8px 12px 0; } .ramps img { image-rendering: pixelated; display: block; }
 .foot { padding: 10px 12px 12px; display: grid; gap: 8px; }
 .foot b { font-weight: 600; } .foot p { margin: 0; color: var(--muted); font-size: 13.5px; }
+.picks { display: flex; gap: 14px; flex-wrap: wrap; }
 .foot label { display: inline-flex; gap: 6px; align-items: center; font: 600 13px inherit; cursor: pointer; }
 textarea { width: 100%; border: 1px solid var(--line); background: var(--bg); color: var(--fg); border-radius: 8px; padding: 6px 8px; font: 13px inherit; min-height: 36px; resize: vertical; }
 .bar { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; gap: 10px; align-items: center; background: var(--fg); color: var(--panel); padding: 8px 10px 8px 16px; border-radius: 12px; font-size: 13.5px; max-width: calc(100% - 32px); }
@@ -194,7 +238,7 @@ textarea { width: 100%; border: 1px solid var(--line); background: var(--bg); co
 </div>
 <div class="bar"><span id="status">Pick one</span><button id="copy" type="button">Copy picks</button></div>
 <script>
-const CARDS = __CARDS__, RAMPS = __RAMPS__, KEY = "tiny-town/lab/__ROUND__";
+const CARDS = __CARDS__, RAMPS = __RAMPS__, PICKS = __PICKS__, KEY = "tiny-town/lab/__ROUND__";
 let S = {}; try { S = JSON.parse(localStorage.getItem(KEY)) || {}; } catch { S = {}; }
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} };
 const grid = document.getElementById("grid");
@@ -202,7 +246,7 @@ for (const c of CARDS) {
   const a = document.createElement("article"); a.className = "card"; a.dataset.key = c.key;
   a.innerHTML = `<div class="pic"><img alt="${c.name}"></div>${RAMPS ? `<div class="ramps"><img src="${c.key}-ramps.png?v=${Date.now()}" alt="${c.name} ramps"></div>` : ""}
     <div class="foot"><b>${c.name}</b><p>${c.note}</p>
-    <label><input type="radio" name="pick" value="${c.key}"> Pick this</label>
+    <div class="picks">${PICKS.map((p) => `<label><input type="radio" name="${p}" value="${c.key}"> ${PICKS.length > 1 ? "Use for " + p : "Pick this"}</label>`).join("")}</div>
     <textarea data-note="${c.key}" placeholder="Note on ${c.name}..."></textarea></div>`;
   grid.append(a);
 }
@@ -219,16 +263,17 @@ function view(v) {
 }
 for (const b of document.querySelectorAll(".tools button")) b.addEventListener("click", () => view(b.dataset.v));
 view(S.view || "1x");
-for (const r of document.querySelectorAll("input[type=radio]")) { r.checked = S.pick === r.value; r.addEventListener("change", () => { S.pick = r.value; save(); sync(); }); }
+for (const r of document.querySelectorAll("input[type=radio]")) { r.checked = S[r.name] === r.value; r.addEventListener("change", () => { S[r.name] = r.value; save(); sync(); }); }
 for (const t of document.querySelectorAll("textarea")) { const k = t.dataset.note || "general"; t.value = S["note:" + k] || ""; t.addEventListener("input", () => { S["note:" + k] = t.value; save(); }); }
 function sync() {
-  for (const a of document.querySelectorAll(".card")) a.classList.toggle("p", S.pick === a.dataset.key);
-  document.getElementById("status").textContent = S.pick ? "Ready to copy" : "Pick one";
+  for (const a of document.querySelectorAll(".card")) a.classList.toggle("p", PICKS.some((p) => S[p] === a.dataset.key));
+  const left = PICKS.filter((p) => !S[p]);
+  document.getElementById("status").textContent = left.length ? (PICKS.length > 1 ? "Pick a " + left.join(" and a ") : "Pick one") : "Ready to copy";
 }
 sync();
 document.getElementById("copy").addEventListener("click", async () => {
   const name = (k) => CARDS.find((c) => c.key === k)?.name || "no pick";
-  const lines = [`__TITLE__ pick: ${name(S.pick)}`];
+  const lines = PICKS.map((p) => `__TITLE__ ${p === "pick" ? "pick" : p}: ${name(S[p])}`);
   for (const c of CARDS) if (S["note:" + c.key]) lines.push(`  ${c.name}: ${S["note:" + c.key]}`);
   if (S["note:general"]) lines.push(`  note: ${S["note:general"]}`);
   const text = lines.join("\\n");
