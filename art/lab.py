@@ -1,7 +1,7 @@
 """The look lab: candidate looks for one thing at a time, each drawn by the real renderer on the market village,
 plus a picker page with a pick and a note per option: out/lab/<round>/index.html.
 
-    python art/lab.py <round>          # rounds: palette, outline, ground, grass, trees (keep / drop)
+    python art/lab.py <round>          # rounds: palette, outline, ground, grass, trees (keep / drop), tree-look
     python art/lab.py <round> <key>    # draw one option (each runs in its own process: drawers cache by palette)
 
 Serve the repo (python3 -m http.server 8000) and open http://localhost:8000/out/lab/<round>/.
@@ -163,6 +163,51 @@ ROUNDS["grass"] = {
 }
 
 
+def tree_look(crown=None, shadow=None):
+    """Setup for the tree round: swap iso_trees.crown and iso.place (the ground shadow)."""
+    def setup():
+        import iso
+        import iso_trees
+        import lab_trees as t
+        if crown:
+            iso_trees.crown = crown
+        if shadow:
+            t.ORIGINAL = iso.place
+            iso.place = t.shadow_place(shadow)
+    return setup
+
+
+def _masses(**kw):
+    import lab_trees
+    return lab_trees.masses(**kw)
+
+
+ROUNDS["tree-look"] = {
+    "title": "Tree look",
+    "lead": "Crowns built from a few big leaf masses with clean light and shadow, instead of many small speckled "
+            "clumps. Pick a crown and a ground shadow (they can come from different cards). The Tree lineup view "
+            "shows all 12 kinds; pines keep their tiers for now (the scots pine's needle clouds do change).",
+    "picks": ["crown", "shadow"],
+    "field": True, "field_label": "Tree lineup (3x)", "lineup": True,
+    "options": [
+        ("today", "Today: small speckled clumps / soft ellipse", "What the village draws now.", None, tree_look()),
+        ("masses", "Big masses / cast shadow", "6-8 big masses, each lit top-left, the crown darker to the "
+         "bottom-right, a dark line where masses overlap. Shadow falls bottom-right, crown-sized.", None,
+         lambda: tree_look(_masses(), "cast")()),
+        ("scalloped", "Leafy edges / contact shadow", "The same masses with bumpy, leafy outlines. Small shadow "
+         "under the foot.", None, lambda: tree_look(_masses(scallop=0.14), "contact")()),
+        ("dabs", "Leaf dabs / pool shadow", "Masses with the lit side broken into small leaf shapes. Shadow with a "
+         "darker core.", None, lambda: tree_look(_masses(scallop=0.1, dabs=True), "pool")()),
+        ("cel", "Flat bands / cast shadow", "Tone from the whole crown's light only (three flat bands), lines "
+         "between masses: graphic, very clean.", None, lambda: tree_look(_masses(cel=True), "cast")()),
+        ("fewer", "Fewest, biggest masses / cast", "Only 4-5 masses, bigger still: the boldest silhouettes.",
+         None, lambda: tree_look(_masses(count=5.5, grow=2.0, scallop=0.08), "cast")()),
+        ("no-rim", "Masses without lines / pool", "Big masses, no dark line between them: softer, rounder.", None,
+         lambda: tree_look(_masses(rim=False, scallop=0.1), "pool")()),
+    ],
+}
+
+
 TREE_NAMES = r"^(tree|oak|birch|poplar|willow|maple|blossom|fruit|pine|spruce|cypress)"
 # one tree per distinct silhouette (the suggestion pre-checked on the page)
 TREE_KEEP = ["oak-3", "tree-1", "maple-1", "birch-2", "blossom-1", "tree-6", "poplar-1", "willow-1", "pine-3",
@@ -238,7 +283,18 @@ def draw(round_name, key):
     im.save(out / f"{key}-1x.png")
     d = im.crop(DETAIL)
     d.resize((d.width * 3, d.height * 3), 0).save(out / f"{key}-zoom.png")
-    if rd.get("field"):
+    if rd.get("lineup"):
+        from PIL import Image
+        import iso_trees
+        ts = list(iso_trees.trees().values())
+        W, H = sum(t.w for t in ts) + 6 * len(ts) + 6, max(t.h for t in ts) + 10
+        im2 = Image.new("RGBA", (W, H), palettes.PAL["g1"])
+        x = 6
+        for t in ts:
+            im2.alpha_composite(t.im, (x, H - 5 - t.h))
+            x += t.w + 6
+        im2.resize((W * 3, H * 3), 0).save(out / f"{key}-field.png")
+    elif rd.get("field"):
         import preview
         f = preview.Map(34, 34)
         f.fill("terrain", 16, 0, 18, 34, "path")
@@ -277,7 +333,8 @@ def main(round_name):
         .replace("__PICKS__", json.dumps(rd.get("picks", ["pick"]))).replace("__ROUND__", round_name).replace("__CARDS__", json.dumps(cards)) \
         .replace("__RAMPS__", "true" if round_name == "palette" else "false") \
         .replace("__FIELD__", "true" if rd.get("field") else "false") \
-        .replace("__KEEP__", json.dumps(rd.get("keep")))
+        .replace("__KEEP__", json.dumps(rd.get("keep"))) \
+        .replace("Open field (2x)", rd.get("field_label", "Open field (2x)"))
     (OUT / round_name / "index.html").write_text(page)
     print(f"wrote out/lab/{round_name}/index.html")
 
