@@ -295,7 +295,9 @@ HOUSES = {
 
 LOOKS = {
     "cosy": {},
-    "storybook": {"beam": "out", "post_gap": 7, "braces": True, "rise": 0.78, "dormer": True},
+    # 2026-10-11 (house builder): ground shadow, eave shadow, roof light steps; windows and flower boxes as before
+    "storybook": {"beam": "out", "post_gap": 7, "braces": True, "rise": 0.78, "dormer": True,
+                  "ground_shadow": True, "eave": 6, "roof_steps": True},
     "stone": {"stone_to": 12, "post_gap": 8, "slate": True, "rise": 0.6},
 }
 

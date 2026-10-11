@@ -103,7 +103,8 @@ existing values. If the format must change, bump `tinyTownVersion` in `js/format
   chroma and contrast). `earthy` itself keeps the **bright road and bright water** (`COBBLE_BRIGHT`, `WATER_BRIGHT`). In isometric,
   **Path** is the bright gold rounded stones and **Cobbles** the same stones in grey (`STONE`, `grey_cobble_px`).
   Palette swatches are drawn in the current view.
-* Houses: the `storybook` look (`LOOK` in `art/iso_tiles.py`).
+* Houses: the `storybook` look (`LOOK` in `art/iso_tiles.py`, `LOOKS` in `art/iso_props.py`), with a baked-in
+  ground shadow, eave shade and roof light steps (house builder, `art/lab.py house-builder`).
 * Outlines: selective (`OUTLINE` in `art/sprites.py`): `out` on the shadow sides, a dark local shade on the lit
   sides; 2 px on buildings. Clear outlines matter most: they keep objects apart from each other.
 * Ground shadows: the "pool" (`iso.SHADOW`, `groundShadow` in `js/render.js`, colour `shade`): a wide ellipse
