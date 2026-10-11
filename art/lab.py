@@ -1,7 +1,7 @@
 """The look lab: candidate looks for one thing at a time, each drawn by the real renderer on the market village,
 plus a picker page with a pick and a note per option: out/lab/<round>/index.html.
 
-    python art/lab.py <round>          # rounds: palette, outline, ground, grass, trees (keep / drop), tree-look
+    python art/lab.py <round>          # rounds: palette, outline, ground, grass, trees (keep / drop), tree-look, house
     python art/lab.py <round> <key>    # draw one option (each runs in its own process: drawers cache by palette)
 
 Serve the repo (python3 -m http.server 8000) and open http://localhost:8000/out/lab/<round>/.
@@ -208,6 +208,41 @@ ROUNDS["tree-look"] = {
 }
 
 
+def house_look(**kw):
+    """Setup for the house round: change the storybook look (iso_props.LOOK keys)."""
+    def setup():
+        import iso_props
+        iso_props.LOOKS["storybook"].update(kw)
+    return setup
+
+
+ALL_HOUSE = dict(ground_shadow=True, eave=6, windows="clean", roof_steps=True)
+ROUNDS["house"] = {
+    "title": "House look",
+    "lead": "Each card changes one thing on the storybook houses (the last two combine them). These add up, so tick "
+            "every change you want to keep. The House lineup view shows all five houses up close.",
+    "keep": [], "keep_label": "Use this", "picks": ["keep"],
+    "field": True, "field_label": "House lineup (3x)", "lineup": "houses",
+    "options": [
+        ("today", "Today", "The houses as they are.", None, house_look()),
+        ("shadow", "Ground shadow", "A thin contact shadow along the wall feet and a short cast shadow off the shaded "
+         "side, so houses sit on the ground.", None, house_look(ground_shadow=True)),
+        ("eave", "Eave shadow", "The roof overhang shades the top of the walls, deeper and darker.", None,
+         house_look(eave=6)),
+        ("windows", "Clean windows", "No glazing bars (they eat the glass at this size): solid glass with a light streak; flower boxes kept.",
+         None, house_look(windows="clean")),
+        ("sills", "Clean windows, sills", "Clean windows with a light sill instead of the flower box.", None,
+         house_look(windows="clean", flower_box=False)),
+        ("roof", "Roof light steps", "Shingles lighter near the ridge, darker toward the eave, a lit ridge line, "
+         "less moss.", None, house_look(roof_steps=True)),
+        ("all", "All together", "Ground shadow, eave shadow, clean windows with flower boxes, roof steps.", None,
+         house_look(**ALL_HOUSE)),
+        ("all-sills", "All together, sills", "As above, with sills instead of flower boxes.", None,
+         house_look(**ALL_HOUSE, flower_box=False)),
+    ],
+}
+
+
 TREE_NAMES = r"^(tree|oak|birch|poplar|willow|maple|blossom|fruit|pine|spruce|cypress)"
 # one tree per distinct silhouette (the suggestion pre-checked on the page)
 TREE_KEEP = ["oak-3", "tree-1", "maple-1", "birch-2", "blossom-1", "tree-6", "poplar-1", "willow-1", "pine-3",
@@ -285,8 +320,13 @@ def draw(round_name, key):
     d.resize((d.width * 3, d.height * 3), 0).save(out / f"{key}-zoom.png")
     if rd.get("lineup"):
         from PIL import Image
-        import iso_trees
-        ts = list(iso_trees.trees().values())
+        if rd["lineup"] == "houses":
+            import iso_props
+            iso_props.use_look("storybook")
+            ts = [iso_props.house(**kw)[0] for kw in iso_props.HOUSES.values()]
+        else:
+            import iso_trees
+            ts = list(iso_trees.trees().values())
         W, H = sum(t.w for t in ts) + 6 * len(ts) + 6, max(t.h for t in ts) + 10
         im2 = Image.new("RGBA", (W, H), palettes.PAL["g1"])
         x = 6
@@ -332,8 +372,8 @@ def main(round_name):
     page = PAGE.replace("__TITLE__", rd["title"]).replace("__LEAD__", rd["lead"]) \
         .replace("__PICKS__", json.dumps(rd.get("picks", ["pick"]))).replace("__ROUND__", round_name).replace("__CARDS__", json.dumps(cards)) \
         .replace("__RAMPS__", "true" if round_name == "palette" else "false") \
-        .replace("__FIELD__", "true" if rd.get("field") else "false") \
-        .replace("__KEEP__", json.dumps(rd.get("keep"))) \
+        .replace("__FIELD__", "true" if rd.get("field") else "false").replace("__CULL__", "true" if rd.get("cull") else "false") \
+        .replace("__KEEP__", json.dumps(rd.get("keep"))).replace("__KEEP_LABEL__", json.dumps(rd.get("keep_label", "Keep"))) \
         .replace("Open field (2x)", rd.get("field_label", "Open field (2x)"))
     (OUT / round_name / "index.html").write_text(page)
     print(f"wrote out/lab/{round_name}/index.html")
@@ -385,16 +425,16 @@ textarea { width: 100%; border: 1px solid var(--line); background: var(--bg); co
 </div>
 <div class="bar"><span id="status">Pick one</span><button id="copy" type="button">Copy picks</button></div>
 <script>
-const CARDS = __CARDS__, RAMPS = __RAMPS__, PICKS = __PICKS__, FIELD = __FIELD__, KEEP = __KEEP__, KEY = "tiny-town/lab/__ROUND__";
+const CARDS = __CARDS__, RAMPS = __RAMPS__, PICKS = __PICKS__, FIELD = __FIELD__, KEEP = __KEEP__, KEEP_LABEL = __KEEP_LABEL__, KEY = "tiny-town/lab/__ROUND__";
 let S = {}; try { S = JSON.parse(localStorage.getItem(KEY)) || {}; } catch { S = {}; }
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} };
 const grid = document.getElementById("grid");
-if (KEEP) grid.classList.add("small");
+if (KEEP && __CULL__) grid.classList.add("small");
 for (const c of CARDS) {
   const a = document.createElement("article"); a.className = "card"; a.dataset.key = c.key;
   a.innerHTML = `<div class="pic"><img alt="${c.name}"></div>${RAMPS ? `<div class="ramps"><img src="${c.key}-ramps.png?v=${Date.now()}" alt="${c.name} ramps"></div>` : ""}
     <div class="foot"><b>${c.name}</b><p>${c.note}</p>
-    <div class="picks">${KEEP ? `<label><input type="checkbox" name="keep" value="${c.key}"> Keep</label>` : PICKS.map((p) => `<label><input type="radio" name="${p}" value="${c.key}"> ${PICKS.length > 1 ? "Use for " + p : "Pick this"}</label>`).join("")}</div>
+    <div class="picks">${KEEP ? `<label><input type="checkbox" name="keep" value="${c.key}"> ${KEEP_LABEL}</label>` : PICKS.map((p) => `<label><input type="radio" name="${p}" value="${c.key}"> ${PICKS.length > 1 ? "Use for " + p : "Pick this"}</label>`).join("")}</div>
     <textarea data-note="${c.key}" placeholder="Note on ${c.name}..."></textarea></div>`;
   grid.append(a);
 }
@@ -411,21 +451,21 @@ function view(v) {
 }
 if (FIELD) document.querySelector("[data-v=field]").hidden = false;
 for (const b of document.querySelectorAll(".tools button")) b.addEventListener("click", () => view(b.dataset.v));
-view(S.view || (KEEP ? "zoom" : "1x"));
+view(S.view || (KEEP && __CULL__ ? "zoom" : "1x"));
 if (KEEP && !S.keep) S.keep = KEEP.slice();
 for (const r of document.querySelectorAll("input[type=checkbox]")) { r.checked = S.keep.includes(r.value); r.addEventListener("change", () => { S.keep = S.keep.filter((k) => k !== r.value); if (r.checked) S.keep.push(r.value); save(); sync(); }); }
 for (const r of document.querySelectorAll("input[type=radio]")) { r.checked = S[r.name] === r.value; r.addEventListener("change", () => { S[r.name] = r.value; save(); sync(); }); }
 for (const t of document.querySelectorAll("textarea")) { const k = t.dataset.note || "general"; t.value = S["note:" + k] || ""; t.addEventListener("input", () => { S["note:" + k] = t.value; save(); }); }
 function sync() {
   for (const a of document.querySelectorAll(".card")) a.classList.toggle("p", KEEP ? S.keep.includes(a.dataset.key) : PICKS.some((p) => S[p] === a.dataset.key));
-  if (KEEP) { document.getElementById("status").textContent = `Keeping ${S.keep.length} of ${CARDS.length}`; return; }
+  if (KEEP) { document.getElementById("status").textContent = __CULL__ ? `Keeping ${S.keep.length} of ${CARDS.length}` : `${S.keep.length} ticked`; return; }
   const left = PICKS.filter((p) => !S[p]);
   document.getElementById("status").textContent = left.length ? (PICKS.length > 1 ? "Pick a " + left.join(" and a ") : "Pick one") : "Ready to copy";
 }
 sync();
 document.getElementById("copy").addEventListener("click", async () => {
   const name = (k) => CARDS.find((c) => c.key === k)?.name || "no pick";
-  const lines = KEEP ? [`__TITLE__ keep (${S.keep.length}): ${CARDS.filter((c) => S.keep.includes(c.key)).map((c) => c.key).join(", ")}`]
+  const lines = KEEP ? [`__TITLE__ ${__CULL__ ? "keep" : "use"} (${S.keep.length}): ${CARDS.filter((c) => S.keep.includes(c.key)).map((c) => __CULL__ ? c.key : c.name).join(", ")}`]
     : PICKS.map((p) => `__TITLE__ ${p === "pick" ? "pick" : p}: ${name(S[p])}`);
   for (const c of CARDS) if (S["note:" + c.key]) lines.push(`  ${c.name}: ${S["note:" + c.key]}`);
   if (S["note:general"]) lines.push(`  note: ${S["note:general"]}`);

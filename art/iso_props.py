@@ -51,7 +51,14 @@ class Canvas3D:
 
 # ---------- surface patterns ----------
 
-LOOK = {"beam": "k3", "post_gap": 10, "braces": False, "stone_to": 3, "rise": 0.55, "dormer": False, "slate": False}
+BASE_LOOK = {"beam": "k3", "post_gap": 10, "braces": False, "stone_to": 3, "rise": 0.55, "dormer": False, "slate": False,
+             "ground_shadow": False, "eave": 3, "windows": "today", "flower_box": True, "roof_steps": False}
+LOOK = dict(BASE_LOOK)
+# ground_shadow: a contact shadow along the wall feet and a short cast shadow off the shaded side (baked in, under the
+# outline). eave: how far the shade under the roof reaches down the walls (map px). windows: "today" or "clean"
+# (no glazing bars at this size: solid glass with a light streak in the top-left corner). flower_box: False puts a
+# light sill under each window instead. roof_steps: shingles lighter near the ridge, darker to the eave, a lit
+# ridge line, less moss.
 
 
 def plaster_wall(width, height, windows, door=None, lit=True, storeys=1):
@@ -68,15 +75,20 @@ def plaster_wall(width, height, windows, door=None, lit=True, storeys=1):
             row = int(z / 3)
             bx = (x + (row % 2) * 2.5) % 5
             return "s3" if (z % 3 < 0.7 or bx < 0.7) and stone_to > 3 else stone if (int(x) // 4 + int(z)) % 2 else stone2   # stone footing
+        clean = LOOK["windows"] == "clean"
         for (wx, wz, ww, wh) in windows:
             if wx - 1 <= x < wx + ww + 1 and wz - 1 <= z < wz + wh + 1:
                 if not (wx <= x < wx + ww and wz <= z < wz + wh):
                     return "k3"                                                       # window frame
+                if clean:                                                             # solid glass, a light streak
+                    return "win2" if (x - wx) + (wz + wh - z) < 2.2 else "win"
                 if abs(x - (wx + ww / 2)) < 0.6 or abs(z - (wz + wh / 2)) < 0.6:
                     return "k2"                                                       # glazing bars
                 return "win2" if (x - wx) < ww * 0.45 and (z - wz) > wh * 0.5 else "win"
-            if wz - 3 <= z < wz - 1 and wx - 1 <= x < wx + ww + 1:                   # a flower box under it
+            if LOOK["flower_box"] and wz - 3 <= z < wz - 1 and wx - 1 <= x < wx + ww + 1:     # a flower box under it
                 return "k1" if z < wz - 2 else ("fl_p" if int(x) % 3 == 0 else "fl_y" if int(x) % 3 == 1 else "t1")
+            if clean and not LOOK["flower_box"] and wz - 2 <= z < wz - 1 and wx - 1.5 <= x < wx + ww + 1.5:
+                return "c0" if lit else "c1"                                          # a light sill
         if door:
             dx_, dw, dh = door
             if dx_ - 1 <= x < dx_ + dw + 1 and 3 <= z < 3 + dh + 1:
@@ -98,7 +110,9 @@ def plaster_wall(width, height, windows, door=None, lit=True, storeys=1):
                 zz = (z - 3) % storey_h
                 if abs((x - (bx - gap)) / gap * storey_h - zz) < 0.9:
                     return beam                                                       # diagonal braces
-        return shade if z > height - 3 else plaster
+        if z > height - LOOK["eave"]:                                             # shade under the roof
+            return ("c2" if lit else "c3") if LOOK["eave"] > 3 and z > height - LOOK["eave"] / 2 else shade
+        return plaster
     return col
 
 
@@ -120,6 +134,14 @@ def shingles(length, slope, lit=True, roof="r"):
             k = 0 if lit else 1
         if tx < 0.7 or ty > 2.2:
             k = min(3, k + 1)
+        if LOOK["roof_steps"]:
+            if d < 1.2:
+                return c[0] if lit else c[1]                                          # the lit ridge line
+            if d > slope * 0.62 and k < 3:
+                k += 1                                                                # darker toward the eave
+            if h("moss", int(x) // 2, row) < 0.008:
+                return "moss" if lit else "moss2"
+            return c[k]
         if h("moss", int(x) // 2, row) < 0.025:
             return "moss" if lit else "moss2"
         return c[k]
@@ -233,9 +255,33 @@ def house(fw=2, fd=2, wall=22, roof="shingle", ridge="x", colour="r", chimney=Tr
     out.px = out.im.load()
     if OUTLINE["double"]:
         out.outline()
+    if LOOK["ground_shadow"]:
+        out = with_ground_shadow(out, X1, Y1, cv.ox + 1, cv.oy + 1)
     out.anchor = (round(ax), round(ay))
     out.smoke = (round(smoke[0]), round(smoke[1])) if smoke else None
     return out, out.anchor, (fw, fd)
+
+
+def with_ground_shadow(spr, X1, Y1, ox, oy):
+    """The house over its ground shadow: a 2 px contact band along both front walls' feet and a 4 px cast shadow
+    off the shaded (+X) side, away from the light. Pixel-exact, in `shade`."""
+    sh = Image.new("RGBA", (spr.w, spr.h), (0, 0, 0, 0))
+    px, col = sh.load(), RGB["shade"][:3]
+    parts = [((X1, 0, 0), (4, 0, 0), (0, Y1 + 2, 0), 70),        # cast, off the right wall
+             ((0, Y1, 0), (X1 + 2, 0, 0), (0, 2, 0), 60)]          # contact, in front of the left wall
+    for (o, a, b, alpha) in parts:
+        (pxo, pyo), (ax, ay), (bx, by) = proj(*o), proj(*a), proj(*b)
+        det = ax * by - ay * bx
+        for y in range(spr.h):
+            for x in range(spr.w):
+                dx, dy = x - ox + 0.5 - pxo, y - oy + 0.5 - pyo
+                s, t = (dx * by - dy * bx) / det, (ax * dy - ay * dx) / det
+                if 0 <= s < 1 and 0 <= t < 1:
+                    px[x, y] = col + (max(alpha, px[x, y][3]),)
+    sh.alpha_composite(spr.im)
+    out = Sprite(spr.w, spr.h)
+    out.im, out.px = sh, sh.load()
+    return out
 
 
 HOUSES = {
@@ -256,7 +302,7 @@ LOOKS = {
 
 def use_look(name):
     LOOK.clear()
-    LOOK.update({"beam": "k3", "post_gap": 10, "braces": False, "stone_to": 3, "rise": 0.55, "dormer": False, "slate": False}, **LOOKS[name])
+    LOOK.update(BASE_LOOK, **LOOKS[name])
 
 
 if __name__ == "__main__":
