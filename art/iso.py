@@ -18,6 +18,8 @@ from functools import lru_cache
 from PIL import Image, ImageDraw
 
 from dualgrid import Shape, cell_mask, h
+import ground
+from ground import grass_px
 
 
 def ihash(*xs):
@@ -105,22 +107,6 @@ def sx(x, y, ox, oy):
 
 
 # ---------- colours for each terrain, in screen space (gx, gy = map-wide screen pixel) ----------
-
-def grass_px(gx, gy, variant=0):
-    """Meadow grass: blades in small strokes, darker clumps, lighter sunny patches, the odd tiny flower."""
-    gx, gy = gx % 64, gy % 32
-    patch = h("gp", gx // 8, gy // 4, variant)                # sunny or shaded patches, 8x4 px
-    k = h("gt", gx // 2, gy // 2, variant)
-    if h("gf", gx, gy, variant) < 0.006:
-        return "fl_w" if h("gfc", gx, gy) < 0.6 else "fl_y"
-    if k < 0.07 or (patch < 0.18 and k < 0.3):
-        return "g3"
-    if k < 0.18:
-        return "g2"
-    if patch > 0.82 and k > 0.6:
-        return "g0"
-    return "g1"
-
 
 def _stone(gx, gy):
     """Irregular rounded cobbles (a jittered grid of stone centres, repeating every 48 px): returns the nearest
@@ -228,7 +214,7 @@ def tallgrass_px(sh, x, y, gx, gy, f):
 
 
 def raised_fill_px(sh, x, y, gx, gy):
-    return grass_px(gx, gy, 1) if sh.inside(x, y) else None
+    return grass_px(gx, gy, 1, flat=False) if sh.inside(x, y) else None
 
 
 def raised_edge_px(sh, x, y, gx, gy):
@@ -282,18 +268,17 @@ def iso_tile(name, mask, frame, phase):
     return im
 
 
-GRASS_N = 4              # flat grass repeats every GRASS_N cells each way (16 * N x 8 * N px); same in js/iso.js
-
-
 def grass_phase(c, r):
-    """Which flat grass tile a cell gets: like phase_of, but over GRASS_N cells, so grass can repeat less often."""
-    return (c - r) % GRASS_N, (c + r) % GRASS_N
+    """Which flat grass tile a cell gets: like phase_of, but over ground.GRASS_N cells, so grass repeats less often.
+    Same in js/iso.js (tileset.json says grassN)."""
+    n = ground.GRASS_N
+    return (c - r) % n, (c + r) % n
 
 
 @lru_cache(maxsize=None)
 def grass_cell(phase):
     a, b = phase
-    ox, oy = (a * 16 - 16) % (16 * GRASS_N), (b * 8) % (8 * GRASS_N)
+    ox, oy = (a * 16 - 16) % (16 * ground.GRASS_N), (b * 8) % (8 * ground.GRASS_N)
     im = Image.new("RGBA", (CW, CH), (0, 0, 0, 0))
     px = im.load()
     for y in range(CH):

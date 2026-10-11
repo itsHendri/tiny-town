@@ -28,7 +28,13 @@ def build(palette):
     sh = Sheet()
     meta = {"version": 1, "projection": "iso", "palette": palette, "cell": [CW, CH], "levelHeight": HT,
             "frames": 3, "frameMs": 320, "image": "tileset.png"}
-    meta["grass"] = {f"{a},{b}": sh.add(grass_cell((a, b))) for a, b in PHASES}
+    from ground import GRASS_N
+    meta["grassN"] = GRASS_N                               # flat grass repeats every grassN cells (js/iso.js)
+    meta["grass"] = {}
+    for a in range(GRASS_N):
+        for b in range(GRASS_N):
+            if (a + b) % 2 == 0:
+                meta["grass"][f"{a},{b}"] = sh.add(grass_cell((a, b)))
     sh.newline()
     meta["sets"] = {}
     for name in ("raised_fill", "raised_edge", "dirt", "water", "soil", "path", "cobbles", "tallgrass"):

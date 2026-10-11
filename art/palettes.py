@@ -141,6 +141,16 @@ PALETTES["rich"] = shift(PALETTES["earthy"], hue=14, chroma=1.35, spread=1.18)
 DEFAULT = "rich"
 
 
+def close_greens(pal):
+    """g1l / g1d: greens a small step lighter / darker than g1, for the grass's soft swells (art/ground.py)."""
+    L, C, H = oklch(pal["g1"])
+    return {**pal, "g1l": hexof(L + 0.03, C * 1.02, H - 3), "g1d": hexof(L - 0.025, C, H + 3)}
+
+
+for _name in PALETTES:
+    PALETTES[_name] = close_greens(PALETTES[_name])
+
+
 def use(name):
     """Swap every colour behind the names (affects everything drawn afterwards)."""
     PAL.clear(); PAL.update(PALETTES[name])

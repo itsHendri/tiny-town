@@ -2,7 +2,7 @@
 
 import { newMap, parseMap, stringifyMap } from "./format.js";
 import { drawProp, drawTerrain, loadTileset } from "./render.js";
-import { bakeIso, groundLevel, isoView, loadIsoTileset } from "./iso.js";
+import { bakeIso, grassPhase, groundLevel, isoView, loadIsoTileset } from "./iso.js";
 import { ENTITIES, LAYERS, MAX_LEVEL, value } from "./registry.js";
 import { History, brushCells, grow, inside, lineCells, paint, shapeHeight } from "./tools.js";
 import { loadAutosave, openFile, saveFile, writeAutosave } from "./files.js";
@@ -964,16 +964,18 @@ function draw() {
   placeCard();
 }
 
-// The grass runs on forever round the map: one tile of the grass pattern (it repeats every 64 x 32 px in isometric,
-// every 11 cells top-down), laid under the whole screen and lined up with the map's own grass.
+// The grass runs on forever round the map: one tile of the grass pattern (in isometric it repeats every grassN
+// cells, 16 * grassN x 8 * grassN px; every 11 cells top-down), laid under the whole screen and lined up with the
+// map's own grass.
 const grassTiles = {};
 function grassPattern(iso) {
   if (grassTiles[iso]) return grassTiles[iso];
-  const ts = iso ? S.isoTs : S.ts, c = el("canvas", { width: iso ? 64 : 11 * T, height: iso ? 32 : 11 * T }), g = c.getContext("2d");
+  const ts = iso ? S.isoTs : S.ts, n = iso ? ts.json.grassN || 4 : 0;
+  const c = el("canvas", { width: iso ? 16 * n : 11 * T, height: iso ? 8 * n : 11 * T }), g = c.getContext("2d");
   if (iso) {
-    for (let u = -4; u <= 6; u++) for (let v = -4; v <= 6; v++) {          // u = c - r, v = c + r: the diamonds round the tile
+    for (let u = -4; u <= n + 2; u++) for (let v = -4; v <= n + 2; v++) {  // u = c - r, v = c + r: the diamonds round the tile
       if ((u + v) & 1) continue;
-      const col = (u + v) / 2, row = (v - u) / 2, xy = ts.json.grass[`${((col - row) % 4 + 4) % 4},${((col + row) % 4 + 4) % 4}`];
+      const col = (u + v) / 2, row = (v - u) / 2, xy = ts.json.grass[grassPhase(ts, col, row)];
       g.drawImage(ts.sheet, xy[0], xy[1], 32, 16, u * 16 - 16, v * 8, 32, 16);
     }
   } else {

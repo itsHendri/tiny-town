@@ -54,7 +54,9 @@ Code MIT (`LICENSE`), art CC BY 4.0 (`LICENSE-art`). Read `README.md` for the us
   Cliff walls aren't tiles: each level's fill outline is pushed down 16 px (front-left lit, front-right shaded),
   waterfalls where water meets the edge.
 * **Isometric view:** cell diamond 32x16, level height 16. `screen = (u-v, (u+v)/2 - L*16) + (X0, Y0)`; object feet
-  use the cell centre (v-8). Ground patterns repeat every 64x32 with 8 lattice phases. Drawing is back to front, per
+  use the cell centre (v-8). Ground patterns repeat every 64x32 with 8 lattice phases; flat grass repeats every
+  `GRASS_N` cells (16: 256x128, `grassN` in tileset.json, `grassPhase` in JS) so its soft swells don't line up.
+  Ground materials shared by both views live in `art/ground.py` (grass so far). Drawing is back to front, per
   cell column, clipped pixel-exactly (1 px row rects in JS, `in_column` in Python; no antialiased clips, they break
   parity). Sort key: cells (c+r, 0), uprights 0.5, objects 1.
 * **Margin and the endless grass:** the same meadow runs on round the map; roads and rivers run on past the edge (at
@@ -100,6 +102,7 @@ existing values. If the format must change, bump `tinyTownVersion` in `js/format
 * Houses: the `storybook` look (`LOOK` in `art/iso_tiles.py`).
 * Outlines: selective (`OUTLINE` in `art/sprites.py`): `out` on the shadow sides, a dark local shade on the lit
   sides; 2 px on buildings. Clear outlines matter most: they keep objects apart from each other.
+* Grass: soft swells in three close greens (`g1l g1 g1d`) with small tufts, lit on the swells; no per-pixel speckle.
 * Trees: lots of variety, no two alike; leaves use hash speckle, not dither stripes.
 * Reference: the market village (`docs/market-village.png`) was rebuilt from a storybook-style picture of a market
   town; it is the quality bar.

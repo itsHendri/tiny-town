@@ -26,6 +26,9 @@ export async function loadIsoTileset(base) {
 
 const ihash = (...xs) => { let v = 0; for (const x of xs) v = Math.imul((v ^ (x >>> 0)) >>> 0, 2654435761) >>> 0; return v / 4294967296; };
 const phase = (dx, dy) => `${((dx - dy) % 4 + 4) % 4},${((dx + dy) % 4 + 4) % 4}`;
+// Flat grass repeats over more cells than the other sets (tileset.json `grassN`, 4 in older sheets). Same as
+// grass_phase in art/iso.py.
+export const grassPhase = (ts, c, r) => { const n = ts.json.grassN || 4; return `${((c - r) % n + n) % n},${((c + r) % n + n) % n}`; };
 
 // The map's ground level: the height most of its edge stands at (a tie goes to the lower one). The meadow round the
 // map sits on it, and anything lower is a pit dug into the map. Same rule in art/iso.py.
@@ -244,7 +247,7 @@ export function bakeIso(m, ts, view, { objects = true, woods = true, frames: onl
       const o = canvas(view.W, view.H), og = o.getContext("2d");
       for (let r = -M; r < rows + M; r++) for (let c = -M; c < cols + M; c++) {
         if (c >= 0 && r >= 0 && c < cols && r < rows) continue;
-        const xy = ts.json.grass[phase(c, r)], [x, y] = view.cellTop(c, r, B);
+        const xy = ts.json.grass[grassPhase(ts, c, r)], [x, y] = view.cellTop(c, r, B);
         og.drawImage(ts.sheet, xy[0], xy[1], 32, 16, x - 16, y, 32, 16);
       }
       for (const o of OVERLAYS) {                           // roads and rivers run on out into the forest
@@ -265,7 +268,7 @@ export function bakeIso(m, ts, view, { objects = true, woods = true, frames: onl
     const ground = canvas(view.W, view.H), gg = ground.getContext("2d");
     gg.imageSmoothingEnabled = false;
     for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-      const xy = ts.json.grass[phase(c, r)], [x, y] = view.cellTop(c, r);
+      const xy = ts.json.grass[grassPhase(ts, c, r)], [x, y] = view.cellTop(c, r);
       gg.drawImage(ts.sheet, xy[0], xy[1], 32, 16, x - 16, y, 32, 16);
     }
     overlays(gg, 0, frame);

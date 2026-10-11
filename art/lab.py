@@ -115,7 +115,8 @@ def ground(grass, water, grass_n=None):
         import iso
         import lab_ground as g
         if grass_n:
-            iso.GRASS_N = grass_n
+            import ground as gr
+            gr.GRASS_N = grass_n
         if grass:
             iso.grass_px = getattr(g, "grass_" + grass)
         if water:
