@@ -1,7 +1,7 @@
 """The look lab: candidate looks for one thing at a time, each drawn by the real renderer on the market village,
 plus a picker page with a pick and a note per option: out/lab/<round>/index.html.
 
-    python art/lab.py <round>          # rounds: palette, outline, ground, grass
+    python art/lab.py <round>          # rounds: palette, outline, ground, grass, trees (keep / drop)
     python art/lab.py <round> <key>    # draw one option (each runs in its own process: drawers cache by palette)
 
 Serve the repo (python3 -m http.server 8000) and open http://localhost:8000/out/lab/<round>/.
@@ -163,6 +163,38 @@ ROUNDS["grass"] = {
 }
 
 
+TREE_NAMES = r"^(tree|oak|birch|poplar|willow|maple|blossom|fruit|pine|spruce|cypress)"
+# one tree per distinct silhouette (the suggestion pre-checked on the page)
+TREE_KEEP = ["oak-3", "tree-1", "maple-1", "birch-2", "blossom-1", "tree-6", "poplar-1", "willow-1", "pine-3",
+             "cypress-2", "pine-2"]
+
+
+def cull_round(title, lead, pattern, keep):
+    """A keep / drop round over props already in tiles/iso/ (no rendering: each card is the sprite)."""
+    import re
+    meta = json.loads((ROOT / "tiles" / "iso" / "props.json").read_text())["props"]
+    names = [n for n in sorted(meta) if re.match(pattern, n) and not meta[n].get("alias")]
+    return {"title": title, "lead": lead, "cull": True, "keep": keep, "picks": ["keep"],
+            "options": [(n, n, "", None) for n in names]}
+
+
+def draw_cull(round_name):
+    from PIL import Image
+    rd, out = ROUNDS[round_name], OUT / round_name
+    out.mkdir(parents=True, exist_ok=True)
+    meta = json.loads((ROOT / "tiles" / "iso" / "props.json").read_text())["props"]
+    sheet = Image.open(ROOT / "tiles" / "iso" / "props.png")
+    W = max(meta[k]["w"] for k, *_ in rd["options"]) + 8
+    H = max(meta[k]["h"] for k, *_ in rd["options"]) + 8
+    for key, *_ in rd["options"]:
+        q = meta[key]
+        spr = sheet.crop((q["x"], q["y"], q["x"] + q["w"], q["y"] + q["h"]))
+        im = Image.new("RGBA", (W, H), palettes.PAL["g1"])
+        im.alpha_composite(spr, ((W - q["w"]) // 2, H - 4 - q["h"]))
+        im.save(out / f"{key}-1x.png")
+        im.resize((W * 4, H * 4), 0).save(out / f"{key}-zoom.png")
+
+
 ROUNDS["ground"] = {
     "title": "Grass and water",
     "lead": "Grass is most of the screen, so it sets how clean the whole map feels. Each card pairs one grass with "
@@ -233,14 +265,19 @@ def swatch(pal):
 
 def main(round_name):
     rd = ROUNDS[round_name]
-    for key, *_ in rd["options"]:
-        subprocess.run([sys.executable, __file__, round_name, key], check=True)
-        print("drew", key)
+    if rd.get("cull"):
+        palettes.use(palettes.DEFAULT)
+        draw_cull(round_name)
+    else:
+        for key, *_ in rd["options"]:
+            subprocess.run([sys.executable, __file__, round_name, key], check=True)
+            print("drew", key)
     cards = [{"key": k, "name": n, "note": t} for k, n, t, *_ in rd["options"]]
     page = PAGE.replace("__TITLE__", rd["title"]).replace("__LEAD__", rd["lead"]) \
         .replace("__PICKS__", json.dumps(rd.get("picks", ["pick"]))).replace("__ROUND__", round_name).replace("__CARDS__", json.dumps(cards)) \
         .replace("__RAMPS__", "true" if round_name == "palette" else "false") \
-        .replace("__FIELD__", "true" if rd.get("field") else "false")
+        .replace("__FIELD__", "true" if rd.get("field") else "false") \
+        .replace("__KEEP__", json.dumps(rd.get("keep")))
     (OUT / round_name / "index.html").write_text(page)
     print(f"wrote out/lab/{round_name}/index.html")
 
@@ -262,6 +299,7 @@ h1 { font: 700 32px/1.1 "Pixelify Sans", monospace; margin: 0 0 6px; }
 .tools button { border: 1.5px solid var(--line); background: var(--panel); color: var(--fg); border-radius: 8px; padding: 5px 12px; font: 600 13px inherit; cursor: pointer; }
 .tools button[aria-pressed=true] { border-color: var(--on); color: var(--on); }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 780px), 1fr)); gap: 18px; }
+.grid.small { grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); }
 .card { background: var(--panel); border: 1.5px solid var(--line); border-radius: 14px; overflow: hidden; display: grid; }
 .card.p { border-color: var(--on); box-shadow: 0 0 0 2px var(--on); }
 .pic { background: #6f8f45; overflow: auto; }
@@ -290,15 +328,16 @@ textarea { width: 100%; border: 1px solid var(--line); background: var(--bg); co
 </div>
 <div class="bar"><span id="status">Pick one</span><button id="copy" type="button">Copy picks</button></div>
 <script>
-const CARDS = __CARDS__, RAMPS = __RAMPS__, PICKS = __PICKS__, FIELD = __FIELD__, KEY = "tiny-town/lab/__ROUND__";
+const CARDS = __CARDS__, RAMPS = __RAMPS__, PICKS = __PICKS__, FIELD = __FIELD__, KEEP = __KEEP__, KEY = "tiny-town/lab/__ROUND__";
 let S = {}; try { S = JSON.parse(localStorage.getItem(KEY)) || {}; } catch { S = {}; }
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} };
 const grid = document.getElementById("grid");
+if (KEEP) grid.classList.add("small");
 for (const c of CARDS) {
   const a = document.createElement("article"); a.className = "card"; a.dataset.key = c.key;
   a.innerHTML = `<div class="pic"><img alt="${c.name}"></div>${RAMPS ? `<div class="ramps"><img src="${c.key}-ramps.png?v=${Date.now()}" alt="${c.name} ramps"></div>` : ""}
     <div class="foot"><b>${c.name}</b><p>${c.note}</p>
-    <div class="picks">${PICKS.map((p) => `<label><input type="radio" name="${p}" value="${c.key}"> ${PICKS.length > 1 ? "Use for " + p : "Pick this"}</label>`).join("")}</div>
+    <div class="picks">${KEEP ? `<label><input type="checkbox" name="keep" value="${c.key}"> Keep</label>` : PICKS.map((p) => `<label><input type="radio" name="${p}" value="${c.key}"> ${PICKS.length > 1 ? "Use for " + p : "Pick this"}</label>`).join("")}</div>
     <textarea data-note="${c.key}" placeholder="Note on ${c.name}..."></textarea></div>`;
   grid.append(a);
 }
@@ -315,18 +354,22 @@ function view(v) {
 }
 if (FIELD) document.querySelector("[data-v=field]").hidden = false;
 for (const b of document.querySelectorAll(".tools button")) b.addEventListener("click", () => view(b.dataset.v));
-view(S.view || "1x");
+view(S.view || (KEEP ? "zoom" : "1x"));
+if (KEEP && !S.keep) S.keep = KEEP.slice();
+for (const r of document.querySelectorAll("input[type=checkbox]")) { r.checked = S.keep.includes(r.value); r.addEventListener("change", () => { S.keep = S.keep.filter((k) => k !== r.value); if (r.checked) S.keep.push(r.value); save(); sync(); }); }
 for (const r of document.querySelectorAll("input[type=radio]")) { r.checked = S[r.name] === r.value; r.addEventListener("change", () => { S[r.name] = r.value; save(); sync(); }); }
 for (const t of document.querySelectorAll("textarea")) { const k = t.dataset.note || "general"; t.value = S["note:" + k] || ""; t.addEventListener("input", () => { S["note:" + k] = t.value; save(); }); }
 function sync() {
-  for (const a of document.querySelectorAll(".card")) a.classList.toggle("p", PICKS.some((p) => S[p] === a.dataset.key));
+  for (const a of document.querySelectorAll(".card")) a.classList.toggle("p", KEEP ? S.keep.includes(a.dataset.key) : PICKS.some((p) => S[p] === a.dataset.key));
+  if (KEEP) { document.getElementById("status").textContent = `Keeping ${S.keep.length} of ${CARDS.length}`; return; }
   const left = PICKS.filter((p) => !S[p]);
   document.getElementById("status").textContent = left.length ? (PICKS.length > 1 ? "Pick a " + left.join(" and a ") : "Pick one") : "Ready to copy";
 }
 sync();
 document.getElementById("copy").addEventListener("click", async () => {
   const name = (k) => CARDS.find((c) => c.key === k)?.name || "no pick";
-  const lines = PICKS.map((p) => `__TITLE__ ${p === "pick" ? "pick" : p}: ${name(S[p])}`);
+  const lines = KEEP ? [`__TITLE__ keep (${S.keep.length}): ${CARDS.filter((c) => S.keep.includes(c.key)).map((c) => c.key).join(", ")}`]
+    : PICKS.map((p) => `__TITLE__ ${p === "pick" ? "pick" : p}: ${name(S[p])}`);
   for (const c of CARDS) if (S["note:" + c.key]) lines.push(`  ${c.name}: ${S["note:" + c.key]}`);
   if (S["note:general"]) lines.push(`  note: ${S["note:general"]}`);
   const text = lines.join("\\n");
@@ -334,6 +377,13 @@ document.getElementById("copy").addEventListener("click", async () => {
 });
 </script></body></html>
 """
+
+ROUNDS["trees"] = cull_round(
+    "Trees", "36 trees today, many near-duplicates (six round trees in three shades each, two cypresses). Keep the ones "
+    "worth refining; dropped names will point at the closest kept tree, so old maps still open. Pre-checked: one per "
+    "distinct shape. Variety within a kind comes back in the refine round (each placed tree drawn a little "
+    "differently). Pines now sit in Trees.", TREE_NAMES, TREE_KEEP)
+
 
 if __name__ == "__main__":
     if len(sys.argv) > 2:

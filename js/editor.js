@@ -345,13 +345,13 @@ const charThumb = (name, box) => {
 const objKey = (p) => `${p.type}:${p.sprite || ""}`;
 
 function propGroups() {
-  const groups = { Houses: [], Market: [], Trees: [], Pines: [], Bushes: [], Rocks: [], Details: [], Things: [] };
+  const groups = { Houses: [], Market: [], Trees: [], Bushes: [], Rocks: [], Details: [], Things: [] };
   const props = propSet().props;
   for (const name of Object.keys(props)) {
     if (props[name].alias) continue;                         // old names kept so old maps still open
     if (name.startsWith("_")) continue;                       // fences, rails and stairs come from the cells
-    const g = name.startsWith("detail") ? "Details" : /^(tree|oak|birch|poplar|willow|maple|blossom|fruit)/.test(name) ? "Trees"
-      : /^(pine|spruce|cypress)/.test(name) ? "Pines" : name.startsWith("bush") ? "Bushes"
+    const g = name.startsWith("detail") ? "Details" : /^(tree|oak|birch|poplar|willow|maple|blossom|fruit|pine|spruce|cypress)/.test(name) ? "Trees"
+      : name.startsWith("bush") ? "Bushes"
       : name.startsWith("rock") ? "Rocks" : name.startsWith("stall") || name.startsWith("crate") || name === "flower-cart" || name === "chalkboard" ? "Market"
       : name.startsWith("house") || props[name].foot ? "Houses" : "Things";
     groups[g].push(name);
