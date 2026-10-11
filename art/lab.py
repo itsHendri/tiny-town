@@ -3,6 +3,7 @@ plus a picker page with a pick and a note per option: out/lab/<round>/index.html
 
     python art/lab.py <round>          # rounds: palette, outline, ground, grass, trees (keep / drop), tree-look, house
     python art/lab.py <round> <key>    # draw one option (each runs in its own process: drawers cache by palette)
+    python art/lab.py house-builder    # every combination of the house switches on a little street, with toggles
 
 Serve the repo (python3 -m http.server 8000) and open http://localhost:8000/out/lab/<round>/.
 """
@@ -241,6 +242,148 @@ ROUNDS["house"] = {
          house_look(**ALL_HOUSE, flower_box=False)),
     ],
 }
+
+
+# ---------- the house builder: every combination of the house switches, flipped live on one page ----------
+
+HOUSE_SWITCHES = [   # (key, label, note, LOOK changes when on)
+    ("shadow", "Ground shadow", "Contact shadow along the wall feet, a short cast shadow off the shaded side.",
+     {"ground_shadow": True}),
+    ("eave", "Eave shadow", "The roof overhang shades the top of the walls.", {"eave": 6}),
+    ("windows", "Clean windows", "Solid glass with a light streak, no glazing bars.", {"windows": "clean"}),
+    ("sills", "Sills, no flower boxes", "A light sill under each clean window instead of the flower box.",
+     {"flower_box": False}),
+    ("roof", "Roof light steps", "Lighter near the ridge, darker toward the eave, a lit ridge line, less moss.",
+     {"roof_steps": True}),
+]
+
+
+def house_street():
+    """All five houses on a little street: grass behind, a path in front, a tree for scale. Returns (map, spots)."""
+    import preview
+    m = preview.Map(25, 7)
+    m.fill("terrain", 4, 0, 6, 25, "path")
+    spots = [("cottage-red", 2, 3), ("cottage-brown", 6, 3), ("tree-1", 8, 1), ("thatch-house", 12, 3),
+             ("townhouse", 16, 3), ("longhouse", 21, 3)]
+    return m, spots
+
+
+def house_builder():
+    import itertools
+    from PIL import Image
+    palettes.use(palettes.DEFAULT)
+    import iso
+    import iso_props
+    from iso_nature import nature
+    out = OUT / "house-builder"
+    out.mkdir(parents=True, exist_ok=True)
+    base = dict(iso_props.LOOKS["storybook"])
+    tree = nature()["tree-1"]
+    box = None
+    for bits in itertools.product((0, 1), repeat=len(HOUSE_SWITCHES)):
+        iso_props.LOOKS["storybook"] = dict(base)
+        for on, (_, _, _, change) in zip(bits, HOUSE_SWITCHES):
+            if on:
+                iso_props.LOOKS["storybook"].update(change)
+        iso_props.use_look("storybook")
+        m, spots = house_street()
+        for name, c, r in spots:
+            spr = tree if name == "tree-1" else iso_props.house(**iso_props.HOUSES[name])[0]
+            m.objects.append((spr, c * 16 + 8, (r + 1) * 16))
+        im = iso.render(m, 0, margin=1, woods=False)
+        box = box or im.getbbox()
+        im.crop(box).save(out / ("".join(map(str, bits)) + ".png"))
+    iso_props.LOOKS["storybook"] = base
+    switches = [{"key": k, "label": l, "note": n} for k, l, n, _ in HOUSE_SWITCHES]
+    (out / "index.html").write_text(BUILDER_PAGE.replace("__SWITCHES__", json.dumps(switches)))
+    print("wrote out/lab/house-builder/index.html", 2 ** len(HOUSE_SWITCHES), "combinations")
+
+
+BUILDER_PAGE = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>House Builder</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@700&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>
+:root { --bg: #efe9dc; --panel: #fffaf1; --fg: #26303f; --muted: #5f6672; --line: #ddd2bd; --on: #2f7448; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #191d24; --panel: #222731; --fg: #eef0f4; --muted: #a9b0bc; --line: #353c4a; --on: #9ad86f; color-scheme: dark; } }
+:root[data-theme="dark"] { --bg: #191d24; --panel: #222731; --fg: #eef0f4; --muted: #a9b0bc; --line: #353c4a; --on: #9ad86f; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 "IBM Plex Sans", system-ui, sans-serif; }
+.page { max-width: 1400px; margin: 0 auto; padding: 24px 16px 110px; display: grid; gap: 16px; }
+h1 { font: 700 32px/1.1 "Pixelify Sans", monospace; margin: 0; }
+.lead { color: var(--muted); margin: 0; max-width: 80ch; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; }
+.sw { display: flex; gap: 10px; align-items: flex-start; background: var(--panel); border: 1.5px solid var(--line); border-radius: 12px; padding: 10px 12px; cursor: pointer; max-width: 300px; }
+.sw:has(input:checked) { border-color: var(--on); box-shadow: 0 0 0 1px var(--on); }
+.sw input { margin-top: 4px; accent-color: var(--on); }
+.sw b { display: block; font-weight: 600; } .sw span { color: var(--muted); font-size: 13px; }
+.bar2 { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.bar2 button { border: 1.5px solid var(--line); background: var(--panel); color: var(--fg); border-radius: 8px; padding: 5px 12px; font: 600 13px inherit; cursor: pointer; }
+.bar2 button[aria-pressed=true] { border-color: var(--on); color: var(--on); }
+.stage { display: grid; gap: 12px; }
+.view { background: var(--panel); border: 1.5px solid var(--line); border-radius: 14px; overflow: hidden; }
+.view h2 { font: 600 13px inherit; margin: 0; padding: 8px 12px; color: var(--muted); }
+.scroll { overflow: auto; background: #6f8f45; }
+.scroll img { display: block; image-rendering: pixelated; max-width: none; }
+.bar { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; gap: 10px; align-items: center; background: var(--fg); color: var(--panel); padding: 8px 10px 8px 16px; border-radius: 12px; font-size: 13.5px; max-width: calc(100% - 32px); }
+.bar button { border: 0; border-radius: 8px; background: var(--panel); color: var(--fg); font: 600 13px inherit; padding: 6px 12px; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--on); outline-offset: 2px; }
+</style></head><body><div class="page">
+<h1>House builder</h1>
+<p class="lead">Flip the switches: every house on the street changes together, today's street stays below to compare.
+Hold <b>Space</b> (or the Compare button) to flip the top picture back to today.</p>
+<div class="controls" id="controls"></div>
+<div class="bar2" role="group" aria-label="Zoom">
+  <button type="button" data-z="1">1x</button><button type="button" data-z="2">2x</button>
+  <button type="button" data-z="3">3x</button><button type="button" data-z="4">4x</button>
+  <button type="button" id="cmp">Hold to compare</button>
+</div>
+<div class="stage">
+  <section class="view"><h2 id="mine-t">Your houses</h2><div class="scroll"><img id="mine" alt="The houses with your switches"></div></section>
+  <section class="view"><h2>Today</h2><div class="scroll"><img id="today" alt="The houses today"></div></section>
+</div>
+<textarea id="note" placeholder="Notes (anything to tweak)..." style="width:100%;min-height:40px;border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:8px;padding:6px 8px;font:13px inherit"></textarea>
+</div>
+<div class="bar"><span id="status"></span><button id="copy" type="button">Copy picks</button></div>
+<script>
+const SW = __SWITCHES__, KEY = "tiny-town/house-builder";
+let S = {}; try { S = JSON.parse(localStorage.getItem(KEY)) || {}; } catch { S = {}; }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} };
+S.on = S.on || {}; S.zoom = S.zoom || 3;
+const ctl = document.getElementById("controls");
+for (const s of SW) {
+  const l = document.createElement("label"); l.className = "sw";
+  l.innerHTML = `<input type="checkbox" data-k="${s.key}"><div><b>${s.label}</b><span>${s.note}</span></div>`;
+  ctl.append(l);
+}
+const bits = (on) => SW.map((s) => on[s.key] ? 1 : 0).join("");
+const mine = document.getElementById("mine"), today = document.getElementById("today");
+let comparing = false;
+function draw() {
+  mine.src = (comparing ? bits({}) : bits(S.on)) + ".png";
+  today.src = bits({}) + ".png";
+  document.getElementById("mine-t").textContent = comparing ? "Today (comparing)" : "Your houses";
+  for (const img of [mine, today]) img.onload = () => { img.style.width = img.naturalWidth * S.zoom + "px"; };
+  for (const b of document.querySelectorAll("[data-z]")) b.setAttribute("aria-pressed", +b.dataset.z === S.zoom);
+  const n = SW.filter((s) => S.on[s.key]).length;
+  document.getElementById("status").textContent = n ? `${n} switch${n > 1 ? "es" : ""} on` : "All off (today)";
+}
+for (const i of document.querySelectorAll("[data-k]")) { i.checked = !!S.on[i.dataset.k]; i.addEventListener("change", () => { S.on[i.dataset.k] = i.checked; save(); draw(); }); }
+for (const b of document.querySelectorAll("[data-z]")) b.addEventListener("click", () => { S.zoom = +b.dataset.z; save(); draw(); });
+const cmp = document.getElementById("cmp");
+const hold = (v) => { if (comparing !== v) { comparing = v; draw(); } };
+cmp.addEventListener("pointerdown", () => hold(true)); for (const e of ["pointerup", "pointerleave"]) cmp.addEventListener(e, () => hold(false));
+addEventListener("keydown", (e) => { if (e.code === "Space" && e.target.tagName !== "TEXTAREA") { e.preventDefault(); hold(true); } });
+addEventListener("keyup", (e) => { if (e.code === "Space") hold(false); });
+const note = document.getElementById("note"); note.value = S.note || ""; note.addEventListener("input", () => { S.note = note.value; save(); });
+draw();
+document.getElementById("copy").addEventListener("click", async () => {
+  const on = SW.filter((s) => S.on[s.key]).map((s) => s.label);
+  const text = `House builder: ${on.length ? on.join(", ") : "all off (today)"}` + (S.note ? `\n  note: ${S.note}` : "");
+  try { await navigator.clipboard.writeText(text); document.getElementById("status").textContent = "Copied, paste it to Claude"; } catch { prompt("Copy this:", text); }
+});
+</script></body></html>
+"""
 
 
 TREE_NAMES = r"^(tree|oak|birch|poplar|willow|maple|blossom|fruit|pine|spruce|cypress)"
@@ -483,7 +626,9 @@ ROUNDS["trees"] = cull_round(
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 2:
+    if len(sys.argv) > 1 and sys.argv[1] == "house-builder":
+        house_builder()
+    elif len(sys.argv) > 2:
         draw(sys.argv[1], sys.argv[2])
     else:
         main(sys.argv[1] if len(sys.argv) > 1 else "palette")
