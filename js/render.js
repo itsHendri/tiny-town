@@ -147,14 +147,44 @@ export function drawProp(ctx, ts, name, x, y) {
     ctx.drawImage(ts.propsImg, p.x, p.y, p.w, p.h, Math.round(x - p.ax), Math.round(y - p.ay), p.w, p.h);
     return true;
   }
-  if (p.shadow) {
+  if (p.shadow && ts.json.shadow) groundShadow(ctx, ts.json.shadow, x, y, p.w);
+  else if (p.shadow) {
     ctx.fillStyle = "rgba(38, 48, 63, 0.28)";
     ctx.beginPath();
     ctx.ellipse(Math.round(x + 2), Math.round(y - 1), p.w * 0.46, 2.6, 0, 0, Math.PI * 2);
     ctx.fill();
   }
-  ctx.drawImage(ts.propsImg, p.x, p.y, p.w, p.h, Math.round(x - p.w / 2), Math.round(y - p.h), p.w, p.h);
+  ctx.drawImage(ts.propsImg, p.x, p.y, p.w, p.h, Math.floor(x - p.w / 2), Math.floor(y - p.h), p.w, p.h);
   return true;
+}
+
+// Pixel rows of an ellipse, {y: [x0, x1)}: pixel centres inside, nothing antialiased. Same as art/iso.py.
+function ellipseRows(cx, cy, rx, ry) {
+  const rows = new Map();
+  for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) {
+    const t = 1 - ((y + 0.5 - cy) / ry) ** 2;
+    if (t <= 0) continue;
+    const half = rx * Math.sqrt(t), x0 = Math.ceil(cx - half - 0.5), x1 = Math.floor(cx + half - 0.5) + 1;
+    if (x1 > x0) rows.set(y, [x0, x1]);
+  }
+  return rows;
+}
+
+// The ground shadow under a tree or small thing (tileset.json `shadow`, iso.SHADOW): an outer ellipse falling
+// bottom-right with a darker core, drawn as pixel rows so it matches the Python renderer.
+function groundShadow(ctx, sh, x, y, w) {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(sh.color.slice(i, i + 2), 16));
+  const part = (k) => ellipseRows(x + w * sh[k][0], y - 0.5, w * sh[k][1], sh[k][2]);
+  const outer = part("outer"), core = part("core");
+  for (const [yy, [x0, x1]] of outer) {
+    const c = core.get(yy);
+    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${sh.alpha[0] / 255})`;
+    if (!c) { ctx.fillRect(x0, yy, x1 - x0, 1); continue; }
+    if (c[0] > x0) ctx.fillRect(x0, yy, c[0] - x0, 1);
+    if (x1 > c[1]) ctx.fillRect(c[1], yy, x1 - c[1], 1);
+  }
+  ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${sh.alpha[1] / 255})`;
+  for (const [yy, [x0, x1]] of core) ctx.fillRect(x0, yy, x1 - x0, 1);
 }
 
 export function drawProps(ctx, m, ts) {

@@ -48,6 +48,8 @@ def build(palette):
     sh.newline()
     meta["flats"] = {name: sh.add(im) for name, im in flats().items()}
     meta["colors"] = {k: PAL[k] for k in WALL_COLOURS}
+    from iso import SHADOW
+    meta["shadow"] = {**SHADOW, "color": PAL["shade"]}                   # ground shadows under props (js/render.js)
     out = ROOT / "tiles" / "iso"
     out.mkdir(parents=True, exist_ok=True)
     sh.image().save(out / "tileset.png")
@@ -71,7 +73,7 @@ def build_iso_props():
     from iso_nature import nature
     items = {name: (spr, shadow, {}) for name, (spr, shadow) in catalog().items() if not name.startswith("house-")}
     for name, spr in nature().items():
-        items[name] = (spr, not name.startswith("rock"), {})
+        items[name] = (spr, getattr(spr, "shadow", True), {})
     for name, kw in HOUSES.items():
         spr, (ax, ay), foot = house(**kw)
         items[name] = (spr, False, {"ax": ax, "ay": ay, "foot": list(foot), **({"smoke": list(spr.smoke)} if spr.smoke else {})})

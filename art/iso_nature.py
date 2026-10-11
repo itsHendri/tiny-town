@@ -177,5 +177,6 @@ def nature():
         out[f"bush-{k + 1}"] = flower_bush(f"b{k}")
     for k in range(2):
         out[f"rock-{k + 1}"] = mossy_rock(f"r{k}")
+        out[f"rock-{k + 1}"].shadow = False
     out.update(details())
     return out

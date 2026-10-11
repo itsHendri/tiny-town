@@ -33,6 +33,8 @@ def props():
     from props import catalog
     iso_props.use_look("storybook")
     out = {name: spr for name, (spr, _) in catalog().items() if not name.startswith("house-")}
+    for name, (spr, shadow) in catalog().items():
+        spr.shadow = shadow
     out.update(nature())
     out.update({name: iso_props.house(**kw)[0] for name, kw in iso_props.HOUSES.items()})
     out.update({name: make() for name, make in iso_market.MARKET.items()})

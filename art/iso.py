@@ -521,9 +521,39 @@ def walls(lay, fill, m, L, X0, Y0, frame):
                             lp[x, y + k] = RGB["out"]
 
 
+# Ground shadow under trees, bushes and small things (picked 2026-10-11, tree round: "pool"): a wide ellipse falling
+# to the bottom-right, away from the light, with a darker core. Colour `shade`, alpha per part; same in js/render.js.
+SHADOW = {"outer": (0.14, 0.48, 3.8), "core": (0.06, 0.26, 2.2), "alpha": (55, 115)}     # (x shift, rx) x sprite width, ry
+
+
+def ellipse_rows(cx, cy, rx, ry):
+    """Pixel rows of an ellipse, {y: (x0, x1)} with x1 exclusive: pixel centres inside, nothing antialiased."""
+    rows = {}
+    for y in range(math.floor(cy - ry), math.ceil(cy + ry) + 1):
+        t = 1 - ((y + 0.5 - cy) / ry) ** 2
+        if t <= 0:
+            continue
+        half = rx * math.sqrt(t)
+        x0, x1 = math.ceil(cx - half - 0.5), math.floor(cx + half - 0.5) + 1
+        if x1 > x0:
+            rows[y] = (x0, x1)
+    return rows
+
+
+def shadow_pixels(X, Y, w):
+    """{(x, y): alpha} of a sprite's ground shadow, feet at (X, Y), sprite width w."""
+    out = {}
+    for part, a in (("outer", SHADOW["alpha"][0]), ("core", SHADOW["alpha"][1])):
+        dx, rx, ry = SHADOW[part]
+        for y, (x0, x1) in ellipse_rows(X + w * dx, Y - 0.5, w * rx, ry).items():
+            for x in range(x0, x1):
+                out[x, y] = a
+    return out
+
+
 def place(canvas, spr, X, Y):
-    """A sprite with its feet at screen (X, Y), with a soft shadow. A building (a sprite with an `anchor`) is placed
-    so its anchor (its front cell's centre) lands on (X, Y), without a shadow."""
+    """A sprite with its feet at screen (X, Y), with its ground shadow (unless spr.shadow is False). A building (a
+    sprite with an `anchor`) is placed so its anchor (its front cell's centre) lands on (X, Y), without a shadow."""
     if getattr(spr, "anchor", None):
         left, top = int(round(X - spr.anchor[0])), int(round(Y - spr.anchor[1]))
         canvas.alpha_composite(spr.im, (left, top))
@@ -537,11 +567,14 @@ def place(canvas, spr, X, Y):
                 d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=(236, 232, 222, int(255 * (0.7 - rise / 26))))
             canvas.alpha_composite(sm)
         return
-    sh = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
-    ImageDraw.Draw(sh).ellipse((X - spr.w * 0.42, Y - 3, X + spr.w * 0.46, Y + 2), fill=(30, 22, 16, 70))
-    canvas.alpha_composite(sh)
-    canvas.alpha_composite(spr.im, (int(X - spr.w / 2), int(Y - spr.h)))
-
+    if getattr(spr, "shadow", True):
+        sh = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+        px, col = sh.load(), RGB["shade"][:3]
+        for (x, y), a in shadow_pixels(X, Y, spr.w).items():
+            if 0 <= x < sh.width and 0 <= y < sh.height:
+                px[x, y] = col + (a,)
+        canvas.alpha_composite(sh)
+    canvas.alpha_composite(spr.im, (math.floor(X - spr.w / 2), math.floor(Y - spr.h)))
 
 if __name__ == "__main__":
     import palettes

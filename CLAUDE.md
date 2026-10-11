@@ -106,6 +106,8 @@ existing values. If the format must change, bump `tinyTownVersion` in `js/format
 * Houses: the `storybook` look (`LOOK` in `art/iso_tiles.py`).
 * Outlines: selective (`OUTLINE` in `art/sprites.py`): `out` on the shadow sides, a dark local shade on the lit
   sides; 2 px on buildings. Clear outlines matter most: they keep objects apart from each other.
+* Ground shadows: the "pool" (`iso.SHADOW`, `groundShadow` in `js/render.js`, colour `shade`): a wide ellipse
+  falling bottom-right with a darker core, drawn as pixel rows in both renderers. Rocks have none.
 * Grass: soft swells in three close greens (`g1l g1 g1d`) with small tufts, lit on the swells; no per-pixel speckle.
 * Trees: lots of variety, no two alike; leaves use hash speckle, not dither stripes.
 * Reference: the market village (`docs/market-village.png`) was rebuilt from a storybook-style picture of a market
@@ -139,6 +141,16 @@ existing values. If the format must change, bump `tinyTownVersion` in `js/format
     const A = c.getContext("2d").getImageData(0, 0, c.width, c.height).data, B = c2.getContext("2d").getImageData(0, 0, c.width, c.height).data;
     let big = 0; for (let i = 0; i < A.length; i += 4) if (Math.max(...[0, 1, 2, 3].map((k) => Math.abs(A[i + k] - B[i + k]))) > 3) big++;
     res["top-" + name] = big;
+  }
+  {                                                                     // props and their ground shadows
+    const spots = await (await fetch("/out/shadow-ref.json", { cache: "reload" })).json();
+    const c = document.createElement("canvas"); c.width = 300; c.height = 120; const g = c.getContext("2d");
+    for (const [n, x, y] of spots) R.drawProp(g, ts, n, x, y);
+    const im = await new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = "/out/shadow-ref.png?" + Date.now(); });
+    const c2 = document.createElement("canvas"); c2.width = 300; c2.height = 120; c2.getContext("2d").drawImage(im, 0, 0);
+    const A = g.getImageData(0, 0, 300, 120).data, B = c2.getContext("2d").getImageData(0, 0, 300, 120).data;
+    let big = 0; for (let i = 0; i < A.length; i += 4) if (Math.max(...[0, 1, 2, 3].map((k) => Math.abs(A[i + k] - B[i + k]))) > 3) big++;
+    res.shadows = big;
   }
   res  // every count must be 0
   ```

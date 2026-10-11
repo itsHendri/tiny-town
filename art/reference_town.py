@@ -141,6 +141,8 @@ def sprites():
     import iso_props
     from props import catalog
     out = {name: spr for name, (spr, _) in catalog().items() if not name.startswith("house-")}
+    for name, (spr, shadow) in catalog().items():
+        spr.shadow = shadow
     from iso_nature import nature
     out.update(nature())
     out.update({name: iso_props.house(**kw)[0] for name, kw in iso_props.HOUSES.items()})

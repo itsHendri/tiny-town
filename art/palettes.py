@@ -148,7 +148,7 @@ def close_greens(pal):
 
 
 for _name in PALETTES:
-    PALETTES[_name] = close_greens(PALETTES[_name])
+    PALETTES[_name] = {**close_greens(PALETTES[_name]), "shade": "#221e34"}      # ground shadows (iso.SHADOW)
 
 
 def use(name):

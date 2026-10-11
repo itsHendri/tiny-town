@@ -1,7 +1,8 @@
 """Small test maps drawn by the Python renderer, for checking that the browser draws the same pixels.
 Writes out/iso-ref.png and out/iso-ref.json (a map on level 0), and out/iso-ref-dig.png and out/iso-ref-dig.json
 (a map whose ground is level 1, with a pit dug into it, drawn with a margin), plus each map top-down
-(out/top-iso-ref*.png, by art/preview.py). The browser check is in CLAUDE.md.
+(out/top-iso-ref*.png, by art/preview.py), and out/shadow-ref.png: a few props with their ground shadows.
+The browser check is in CLAUDE.md.
 
     python art/parity_ref.py
 """
@@ -50,3 +51,16 @@ d.fill("height", 2, 3, 6, 7, 0); d.fill("height", 1, 8, 4, 11, 2)       # rows f
 d.fill("terrain", 3, 4, 5, 6, "water"); d.fill("terrain", 8, 0, 9, 12, "path"); d.fill("terrain", 5, 8, 8, 11, "cobbles")
 d.feature[2][4] = "stairs"                                            # at the foot of the pit's back wall
 write(d, "iso-ref-dig", margin=2)
+
+# props with their ground shadows (trees at odd and even spots, a rock without a shadow)
+from PIL import Image
+from iso_nature import nature
+
+N = nature()
+spots = [("tree-1", 40, 90), ("oak-3", 121, 95), ("pine-3", 200, 100), ("rock-1", 260, 100)]
+cv = Image.new("RGBA", (300, 120), (0, 0, 0, 0))
+for name, x, y in spots:
+    iso.place(cv, N[name], x, y)
+cv.save(ROOT / "out" / "shadow-ref.png")
+json.dump(spots, open(ROOT / "out" / "shadow-ref.json", "w"))
+print("wrote out/shadow-ref.png and out/shadow-ref.json")
