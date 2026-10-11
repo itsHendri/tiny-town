@@ -4,6 +4,7 @@ plus a picker page with a pick and a note per option: out/lab/<round>/index.html
     python art/lab.py <round>          # rounds: palette, outline, ground, grass, trees (keep / drop), tree-look, house, cyber
     python art/lab.py <round> <key>    # draw one option (each runs in its own process: drawers cache by palette)
     python art/lab.py house-builder    # every combination of the house switches on a little street, with toggles
+    python art/lab.py cyber-builder    # every combination of the cyber items' choices on a neon street
 
 Serve the repo (python3 -m http.server 8000) and open http://localhost:8000/out/lab/<round>/.
 """
@@ -422,6 +423,94 @@ document.getElementById("copy").addEventListener("click", async () => {
 """
 
 
+# ---------- the cyber builder: a choice per item, every combination pre-rendered on a neon street ----------
+
+CYBER_GROUPS = [   # (key, label, [(value, label, note)]); the first is v0
+    ("plaza", "Plaza (grass)", [("panels", "Panels", "2 x 2 dark panels per cell, some seams glowing."),
+                                ("slabs", "Big slabs", "One slab per cell, fewer glowing seams."),
+                                ("puddles", "Puddles", "Panels with neon puddles reflecting the signs."),
+                                ("quiet", "Quiet", "Panels, no glowing seams.")]),
+    ("canal", "Canal (water)", [("neon", "Neon reflections", "Short reflections of the signs drifting."),
+                                ("calm", "Calm", "Dark water, the edge glow, the odd sparkle."),
+                                ("bands", "Bands", "Long bright bands of reflected light.")]),
+    ("walkway", "Walkway (path)", [("tiles", "Tiles", "Small tiles, a glowing amber curb."),
+                                   ("hazard", "Hazard curb", "Tiles, the curb striped like a warning."),
+                                   ("road", "Glowing road", "Dark asphalt, glowing dashes on the cell lines.")]),
+    ("windows", "Windows", [("random", "Random", "Every window a random neon colour."),
+                            ("one", "One per building", "Each building lit in its sign's colour."),
+                            ("warm", "Warm", "Warm light in the windows; neon only on signs and trims."),
+                            ("sparse", "Sparse", "Most windows dark, a few lit.")]),
+    ("trees", "Trees", [("neon", "Neon foliage", "The tree shapes in neon pink, pines in cyan."),
+                        ("rim", "Dark, neon rim", "Dark crowns, a cyan rim of light on the lit side."),
+                        ("holo", "Holo", "Cyan hologram trees.")]),
+]
+
+
+def cyber_street():
+    """A little neon street: plaza, a canal with a bridge, a walkway along it, a grated square, three blocks,
+    trees, weeds and lamps."""
+    import preview
+    m = preview.Map(18, 12)
+    m.fill("terrain", 6, 0, 8, 18, "water")
+    m.fill("terrain", 6, 9, 8, 11, "bridge")
+    m.fill("terrain", 4, 0, 6, 18, "path")
+    m.fill("terrain", 8, 9, 12, 11, "path")
+    m.fill("terrain", 9, 12, 12, 17, "cobbles")
+    for r in range(9, 12):
+        for c in range(1, 5):
+            m.deco[r][c] = "tallgrass"
+    spots = [("cottage-red", 3, 3), ("townhouse", 8, 3), ("longhouse", 14, 3), ("tree-1", 11, 2), ("pine-3", 1, 1),
+             ("tree-2-d2", 6, 10), ("birch-2", 16, 8), ("lamp-iso", 5, 4), ("lamp-iso", 12, 4)]
+    return m, spots
+
+
+def cyber_builder():
+    import itertools
+    import subprocess as sp
+    out = OUT / "cyber-builder"
+    out.mkdir(parents=True, exist_ok=True)
+    combos = list(itertools.product(*[range(len(g[2])) for g in CYBER_GROUPS]))
+    procs = 8                                                    # split over processes (drawers cache per look)
+    jobs = [sp.Popen([sys.executable, __file__, "cyber-builder-part", str(k), str(procs)]) for k in range(procs)]
+    for j in jobs:
+        j.wait()
+    groups = [{"key": k, "label": l, "options": [{"value": v, "label": vl, "note": n} for v, vl, n in opts]}
+              for k, l, opts in CYBER_GROUPS]
+    (out / "index.html").write_text(CYBER_PAGE.replace("__GROUPS__", json.dumps(groups)))
+    print("wrote out/lab/cyber-builder/index.html", len(combos), "combinations")
+
+
+def cyber_builder_part(k, n):
+    """Draw every n-th combination starting at k, each in a fresh look (the drawers are cached)."""
+    import itertools
+    combos = list(itertools.product(*[range(len(g[2])) for g in CYBER_GROUPS]))[k::n]
+    for combo in combos:
+        sp_args = [sys.executable, __file__, "cyber-builder-one", "-".join(map(str, combo))]
+        subprocess.run(sp_args, check=True)
+
+
+def cyber_builder_one(key):
+    from PIL import Image
+    import theme_cyber
+    combo = list(map(int, key.split("-")))
+    palettes.PALETTES["cyber"] = theme_cyber.palette(**theme_cyber.LOOKS[theme_cyber.PICK])
+    palettes.use("cyber")
+    import iso
+    import iso_props
+    from iso_nature import nature
+    from render_map import props
+    for (gk, _, opts), i in zip(CYBER_GROUPS, combo):
+        theme_cyber.CYBER[gk] = opts[i][0]
+    theme_cyber.apply()
+    P = props()
+    m, spots = cyber_street()
+    for name, c, r in spots:
+        spr = iso_props.house(**iso_props.HOUSES[name])[0] if name in iso_props.HOUSES else P[name]
+        m.objects.append((spr, c * 16 + 8, (r + 1) * 16))
+    im = iso.render(m, 0, margin=1, woods=False)
+    im.crop(im.getbbox()).save(OUT / "cyber-builder" / f"{key}.png")
+
+
 TREE_NAMES = r"^(tree|oak|birch|poplar|willow|maple|blossom|fruit|pine|spruce|cypress)"
 # one tree per distinct silhouette (the suggestion pre-checked on the page)
 TREE_KEEP = ["oak-3", "tree-1", "maple-1", "birch-2", "blossom-1", "tree-6", "poplar-1", "willow-1", "pine-3",
@@ -661,9 +750,99 @@ ROUNDS["trees"] = cull_round(
     "differently). Pines now sit in Trees.", TREE_NAMES, TREE_KEEP)
 
 
+CYBER_PAGE = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cyber Builder</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@700&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>
+:root { --bg: #efe9dc; --panel: #fffaf1; --fg: #26303f; --muted: #5f6672; --line: #ddd2bd; --on: #2f7448; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #191d24; --panel: #222731; --fg: #eef0f4; --muted: #a9b0bc; --line: #353c4a; --on: #9ad86f; color-scheme: dark; } }
+:root[data-theme="dark"] { --bg: #191d24; --panel: #222731; --fg: #eef0f4; --muted: #a9b0bc; --line: #353c4a; --on: #9ad86f; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 "IBM Plex Sans", system-ui, sans-serif; }
+.page { max-width: 1500px; margin: 0 auto; padding: 24px 16px 110px; display: grid; gap: 14px; }
+h1 { font: 700 32px/1.1 "Pixelify Sans", monospace; margin: 0; }
+.lead { color: var(--muted); margin: 0; max-width: 80ch; }
+.groups { display: grid; gap: 10px; }
+.group { display: grid; grid-template-columns: 150px 1fr; gap: 10px; align-items: start; }
+.group > b { font-weight: 600; padding-top: 6px; }
+.opts { display: flex; flex-wrap: wrap; gap: 6px; }
+.opt { border: 1.5px solid var(--line); background: var(--panel); color: var(--fg); border-radius: 8px; padding: 5px 12px; font: 600 13px inherit; cursor: pointer; }
+.opt[aria-pressed=true] { border-color: var(--on); color: var(--on); box-shadow: 0 0 0 1px var(--on); }
+.hint { color: var(--muted); font-size: 13px; min-height: 20px; }
+.bar2 { display: flex; gap: 8px; flex-wrap: wrap; }
+.bar2 button { border: 1.5px solid var(--line); background: var(--panel); color: var(--fg); border-radius: 8px; padding: 5px 12px; font: 600 13px inherit; cursor: pointer; }
+.bar2 button[aria-pressed=true] { border-color: var(--on); color: var(--on); }
+.view { background: var(--panel); border: 1.5px solid var(--line); border-radius: 14px; overflow: hidden; }
+.view h2 { font: 600 13px inherit; margin: 0; padding: 8px 12px; color: var(--muted); }
+.scroll { overflow: auto; background: #1c1d2b; }
+.scroll img { display: block; image-rendering: pixelated; max-width: none; }
+.bar { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; gap: 10px; align-items: center; background: var(--fg); color: var(--panel); padding: 8px 10px 8px 16px; border-radius: 12px; font-size: 13.5px; max-width: calc(100% - 32px); }
+.bar button { border: 0; border-radius: 8px; background: var(--panel); color: var(--fg); font: 600 13px inherit; padding: 6px 12px; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--on); outline-offset: 2px; }
+@media (max-width: 600px) { .group { grid-template-columns: 1fr; } }
+</style></head><body><div class="page">
+<h1>Cyber builder</h1>
+<p class="lead">Pick one look per item; the street redraws with your mix (every combination is the real renderer).
+Hold <b>Space</b> (or Compare) to flip to the first version of everything.</p>
+<div class="groups" id="groups"></div>
+<div class="hint" id="hint"></div>
+<div class="bar2" role="group" aria-label="Zoom">
+  <button type="button" data-z="1">1x</button><button type="button" data-z="2">2x</button>
+  <button type="button" data-z="3">3x</button><button type="button" id="cmp">Hold to compare</button>
+</div>
+<section class="view"><h2 id="t">Your street</h2><div class="scroll"><img id="img" alt="The neon street with your choices"></div></section>
+<textarea id="note" placeholder="Notes (anything to tweak)..." style="width:100%;min-height:40px;border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:8px;padding:6px 8px;font:13px inherit"></textarea>
+</div>
+<div class="bar"><span id="status">Pick a look per item</span><button id="copy" type="button">Copy picks</button></div>
+<script>
+const G = __GROUPS__, KEY = "tiny-town/cyber-builder";
+let S = {}; try { S = JSON.parse(localStorage.getItem(KEY)) || {}; } catch { S = {}; }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} };
+S.pick = S.pick || {}; S.zoom = S.zoom || 2;
+const box = document.getElementById("groups"), hint = document.getElementById("hint"), img = document.getElementById("img");
+for (const g of G) {
+  const row = document.createElement("div"); row.className = "group";
+  row.innerHTML = `<b>${g.label}</b><div class="opts" role="group" aria-label="${g.label}">${g.options.map((o, i) => `<button type="button" class="opt" data-g="${g.key}" data-i="${i}" title="${o.note}">${o.label}</button>`).join("")}</div>`;
+  box.append(row);
+}
+let comparing = false;
+function draw() {
+  const key = G.map((g) => comparing ? 0 : (S.pick[g.key] || 0)).join("-");
+  img.src = key + ".png"; img.onload = () => { img.style.width = img.naturalWidth * S.zoom + "px"; };
+  document.getElementById("t").textContent = comparing ? "First version (comparing)" : "Your street";
+  for (const b of document.querySelectorAll(".opt")) b.setAttribute("aria-pressed", (S.pick[b.dataset.g] || 0) === +b.dataset.i);
+  for (const b of document.querySelectorAll("[data-z]")) b.setAttribute("aria-pressed", +b.dataset.z === S.zoom);
+}
+for (const b of document.querySelectorAll(".opt")) {
+  b.addEventListener("click", () => { S.pick[b.dataset.g] = +b.dataset.i; save(); draw(); });
+  b.addEventListener("pointerenter", () => { hint.textContent = b.title; });
+  b.addEventListener("focus", () => { hint.textContent = b.title; });
+}
+for (const b of document.querySelectorAll("[data-z]")) b.addEventListener("click", () => { S.zoom = +b.dataset.z; save(); draw(); });
+const cmp = document.getElementById("cmp"), hold = (v) => { if (comparing !== v) { comparing = v; draw(); } };
+cmp.addEventListener("pointerdown", () => hold(true)); for (const e of ["pointerup", "pointerleave"]) cmp.addEventListener(e, () => hold(false));
+addEventListener("keydown", (e) => { if (e.code === "Space" && e.target.tagName !== "TEXTAREA") { e.preventDefault(); hold(true); } });
+addEventListener("keyup", (e) => { if (e.code === "Space") hold(false); });
+const note = document.getElementById("note"); note.value = S.note || ""; note.addEventListener("input", () => { S.note = note.value; save(); });
+draw();
+document.getElementById("copy").addEventListener("click", async () => {
+  const text = "Cyber builder: " + G.map((g) => `${g.label}: ${g.options[S.pick[g.key] || 0].label}`).join("; ") + (S.note ? `\n  note: ${S.note}` : "");
+  try { await navigator.clipboard.writeText(text); document.getElementById("status").textContent = "Copied, paste it to Claude"; } catch { prompt("Copy this:", text); }
+});
+</script></body></html>
+"""
+
+
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "house-builder":
         house_builder()
+    elif len(sys.argv) > 1 and sys.argv[1] == "cyber-builder":
+        cyber_builder()
+    elif len(sys.argv) > 1 and sys.argv[1] == "cyber-builder-part":
+        cyber_builder_part(int(sys.argv[2]), int(sys.argv[3]))
+    elif len(sys.argv) > 1 and sys.argv[1] == "cyber-builder-one":
+        cyber_builder_one(sys.argv[2])
     elif len(sys.argv) > 2:
         draw(sys.argv[1], sys.argv[2])
     else:

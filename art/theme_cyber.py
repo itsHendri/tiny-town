@@ -62,6 +62,11 @@ def palette(ground=275, ground_l=0.3, ground_c=0.035, a=345, b=200, c=75, glow=1
     return P
 
 
+PICK = "neon"   # picked 2026-10-11 (cyber palette round): neon night
+
+# How each hero item is drawn (the cyber builder's choices; the first of each is v0)
+CYBER = {"plaza": "panels", "canal": "neon", "walkway": "tiles", "windows": "random", "trees": "neon"}
+
 LOOKS = {   # candidate palettes (cyber palette round)
     "neon": dict(ground=275, ground_l=0.3, a=345, b=200, c=75),
     "blade": dict(ground=230, ground_l=0.27, ground_c=0.025, a=40, b=195, c=70),
@@ -86,16 +91,28 @@ def _cell(u, v, size, m):
 
 
 def plaza_px(gx, gy, variant=0, flat=True):
-    """Plaza: dark panels laid on the map grid (2 x 2 per cell), a lit bevel on each panel's top edges, some seams
-    glowing, the odd vent."""
+    """Plaza: dark panels laid on the map grid, a lit bevel on each panel's top edges, some seams glowing, the odd
+    vent. CYBER["plaza"]: panels (2 x 2 per cell), slabs (one per cell), puddles (panels with neon puddles),
+    quiet (panels, no glowing seams)."""
+    look = CYBER["plaza"]
     u, v = mapxy(gx, gy)
-    key = _cell(u, v, 8, 32 if flat else 8)
-    if u % 8 == 0 or v % 8 == 0:
-        axis = "u" if u % 8 == 0 else "v"
-        return "g0" if h("seam", variant, axis, *key) < 0.07 else "g3"
-    if u % 8 == 1 or v % 8 == 1:
+    size = 16 if look == "slabs" else 8
+    key = _cell(u, v, size, (256 if flat else 64) // size)
+    if look == "puddles":
+        gxw, gyw = (gx % 256, gy % 128) if flat else (gx % PX, gy % PY)
+        import ground
+        n = ground.smooth(gxw, gyw, ("pud", variant), 32, 16, 256 if flat else PX, 128 if flat else PY)
+        if n > 0.72:
+            if h("pspark", gxw, gyw) < 0.05:
+                return ("fl_p", "neon_b", "fl_y")[int(h("pc", gxw, gyw) * 3)]
+            return "w3" if n < 0.76 else "w2"
+    if u % size == 0 or v % size == 0:
+        axis = "u" if u % size == 0 else "v"
+        glow = 0 if look == "quiet" else 0.04 if look == "slabs" else 0.07
+        return "g0" if h("seam", variant, axis, *key) < glow else "g3"
+    if u % size == 1 or v % size == 1:
         return "gh"
-    if h("vent", variant, *key) < 0.04 and 2 < u % 8 < 7 and 2 < v % 8 < 7:
+    if size == 8 and h("vent", variant, *key) < 0.04 and 2 < u % 8 < 7 and 2 < v % 8 < 7:
         return "g4" if (u + v) % 2 else "g2"
     t = h("pt", variant, *key)
     return "g1l" if t < 0.25 else "g1d" if t > 0.8 else "g1"
@@ -115,12 +132,12 @@ def canal_px(sh, x, y, gx, gy, f):
         return "w1"
     if d <= 2.0:
         return "w3"
-    row = gy % 6
-    if row == 2:
-        k = (gx + (gy // 6) * 11 + f * 3) % 40
-        if k < 5:
-            return ("fl_p", "w1", "fl_y")[(gy // 6 + gx // 40) % 3]
-    if h("spark", gx % 64, gy % 32, f) < 0.004:
+    look = CYBER["canal"]
+    if look == "neon" and gy % 6 == 2 and (gx + (gy // 6) * 11 + f * 3) % 40 < 5:
+        return ("fl_p", "w1", "fl_y")[(gy // 6 + gx // 40) % 3]              # neon reflections drifting
+    if look == "bands" and gy % 4 == 1 and (gx + (gy // 4) * 7 + f * 4) % 32 < 9:
+        return ("fl_p", "w1", "fl_y", "neon_a")[(gy // 4) % 4]                # long bands of reflected light
+    if h("spark", gx % 64, gy % 32, f) < (0.002 if look == "calm" else 0.004):
         return "w0"
     return "w2"
 
@@ -129,12 +146,19 @@ def walkway_px(sh, x, y, gx, gy, view="iso"):
     """Walkway: small square tiles, a glowing amber curb along the edge."""
     if not sh.inside(x, y):
         return None
+    look = CYBER["walkway"]
     d = sh.dist(x, y, 3)
     if d <= 1.0:
+        if look == "hazard":
+            return "cb0" if (gx + 2 * gy) // 3 % 2 else "out"                  # hazard stripes on the curb
         return "cb0"
     if d <= 2.0:
         return "cb3"
     u, v = mapxy(gx, gy) if view == "iso" else (gx, gy)
+    if look == "road":                                                         # dark road, glowing dashes
+        if (u % 16 == 8 and v % 8 < 4) or (v % 16 == 8 and u % 8 < 4):
+            return "cb0"
+        return "cb3" if h("asph", *_cell(u, v, 2, 32)) < 0.25 else "cb2"
     if u % 4 == 0 or v % 4 == 0:
         return "cb3"
     t = h("wt", *_cell(u, v, 4, 16))
@@ -196,6 +220,13 @@ def block(fw=2, fd=2, name="cottage-red", **_):
             col_ = int(x / 6)
             if 1 < x % 6 < 5 and 2.5 < fz < 6.5 and 2 < x < length - 2:
                 k = h("win", seed, lit, floor, col_)
+                look = CYBER["windows"]
+                if look == "one":                                                # one colour per building
+                    return "win" if k < 0.4 else {"neon_a": "fl_p", "neon_b": "w1", "neon_c": "win2"}[spec["sign"]]
+                if look == "warm":
+                    return "win" if k < 0.45 else "win2"
+                if look == "sparse":
+                    return "win" if k < 0.78 else ("win2", "w1", "fl_p")[int(k * 97) % 3]
                 return "win" if k < 0.35 else "win2" if k < 0.6 else "w1" if k < 0.8 else "fl_p"
             return base
         return col
@@ -242,6 +273,26 @@ def block(fw=2, fd=2, name="cottage-red", **_):
     return out, out.anchor, (fw, fd)
 
 
+def weeds_px(sh, x, y, gx, gy, f):
+    """Tall grass: dark weeds pushing up through the plaza, the odd neon tip."""
+    if not sh.inside(x, y):
+        return None
+    sway = (0, 1, 0)[f % 3]
+    t = ["..0.", ".1.1", "1211", "3223"][gy % 4][(gx + (gy // 4 % 2) * 2 - (sway if gy % 4 < 2 else 0)) % 4]
+    if sh.dist(x, y, 2) <= 1.0 and t in ".3":
+        return None
+    if t == "0":
+        return ("neon_b", "fl_p")[(gx // 4 + gy // 4) % 2] if h("tip", gx % 64, gy % 32) < 0.3 else "g2"
+    return {"1": "g2", "2": "g3", "3": "g4", ".": "g3"}[t]
+
+
+TREE_LEAVES = {   # CYBER["trees"] -> leaf ramps (iso_trees.LEAVES), light to dark
+    "neon": None,                                                       # the palette's neon foliage as it is
+    "rim": ["neon_b", "g2", "g3", "g4", "out", "out"],                 # dark crowns, lit by neon on the edge
+    "holo": ["fl_w", "w1", "neon_b", "p2", "p3", "p3"],                # cyan holograms
+}
+
+
 # ---------- switching the drawers ----------
 
 def apply():
@@ -253,6 +304,12 @@ def apply():
     iso.cobble_px = ground.cobble_px = walkway_px
     iso.grey_cobble_px = ground.grey_cobble_px = grate_px
     iso.SETS["water"] = ground.water_px = canal_px
+    iso.SETS["tallgrass"] = weeds_px
+    ramp_ = TREE_LEAVES[CYBER["trees"]]
+    if ramp_:
+        import iso_trees
+        for k in ("green", "olive", "deep", "autumn", "rust", "blossom", "birch"):
+            iso_trees.LEAVES[k] = list(ramp_)
     for name in iso_props.HOUSES:
         iso_props.HOUSES[name] = {**iso_props.HOUSES[name], "name": name}
     iso_props.house = block
