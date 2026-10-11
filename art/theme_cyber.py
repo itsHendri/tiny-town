@@ -66,7 +66,10 @@ PICK = "neon"   # picked 2026-10-11 (cyber palette round): neon night
 
 # How each hero item is drawn (picked 2026-10-11, cyber and circuit builders: panels, coolant, tiles, random windows,
 # mixed parts for trees, neon blocks). It stays a city: the circuit board is a flavour, not the subject.
-CYBER = {"plaza": "panels", "canal": "coolant", "walkway": "tiles", "windows": "random", "trees": "mixed", "buildings": "blocks"}
+CYBER = {"plaza": "panels", "canal": "coolant", "walkway": "tiles", "windows": "random", "trees": "mixed", "buildings": "blocks",
+         "parts": "v1", "signs": "one", "glow": "off", "roofs": "plain"}
+# Polish switches (neon city polish round): parts v1 / city (city-scale tech), windows random / calm (a colour per
+# floor, half dark), signs one / varied (blade signs, billboards), glow off / on (halos, light spill), roofs plain / busy.
 
 def tweak(P):
     """Palette changes some choices need: a green circuit board, copper traces."""
@@ -276,7 +279,7 @@ def block(fw=2, fd=2, name="cottage-red", **_):
     from iso_props import OUTLINE, Canvas3D, Sprite, proj, with_ground_shadow
     spec = BLOCKS.get(name, BLOCKS["cottage-red"])
     X1, Y1, Hh = fw * 16, fd * 16, spec["height"]
-    top = Hh + (14 if spec.get("antenna") else 8)
+    top = Hh + max(14 if spec.get("antenna") else 8, 14 if CYBER["signs"] == "varied" else 0)
     W, H = X1 + Y1 + 14, int((X1 + Y1) / 2 + top + 16)
     cv = Canvas3D(W, H, Y1 + 7, int(top) + 8)
     seed = name
@@ -306,6 +309,9 @@ def block(fw=2, fd=2, name="cottage-red", **_):
                     return "win" if k < 0.45 else "win2"
                 if look == "sparse":
                     return "win" if k < 0.78 else ("win2", "w1", "fl_p")[int(k * 97) % 3]
+                if look == "calm":                                               # a colour per floor, half dark
+                    f_ = h("floor", seed, lit, floor)
+                    return "win" if k < 0.48 else "win2" if f_ < 0.5 else "w1" if f_ < 0.8 else "fl_p"
                 return "win" if k < 0.35 else "win2" if k < 0.6 else "w1" if k < 0.8 else "fl_p"
             return base
         return col
@@ -319,12 +325,30 @@ def block(fw=2, fd=2, name="cottage-red", **_):
     cv.face((sx, Y1 + 0.5, sz), (sw, 0, 0), (0, 0, sh_),
             lambda s, t, su, tu: "out" if su < 1 or su > sw - 1 or tu < 1 or tu > sh_ - 1 else
             ("fl_w" if (int(su) % 3 == 1 and 2 < tu < sh_ - 2) else spec["sign"]))
+    if CYBER["signs"] == "varied":
+        # a blade sign sticking out from the lit wall's right end, letters stacked down it
+        bz0, bh = max(10, Hh * 0.35), min(16, Hh - 6)
+        blade = BLADES[int(h("blade", seed) * len(BLADES))]
+        cv.face((X1 - 3, Y1, bz0), (0, 5, 0), (0, 0, bh),
+                lambda s, t, su, tu: "out" if su < 0.8 or tu < 1 or tu > bh - 1 else
+                ("fl_w" if 1.5 < su < 3.5 and int(tu) % 3 != 0 else blade))
+        if Hh < 40:                                                      # a billboard on the roof's back edge
+            bw = X1 * 0.6
+            for px_ in (X1 * 0.2 + 1, X1 * 0.2 + bw - 2):
+                cv.face((px_, 3, Hh), (1, 0, 0), (0, 0, 4), lambda *a: "s2")
+            cv.face((X1 * 0.2, 3, Hh + 4), (bw, 0, 0), (0, 0, 8),
+                    lambda s, t, su, tu: "out" if su < 1 or su > bw - 1 or tu < 1 or tu > 7 else
+                    ("fl_w" if h("ad", seed, int(su / 2), int(tu / 2)) < 0.3 and 2 < tu < 6 else BILLBOARD[int(h("bb", seed) * 3)]))
     smoke = None
     units = []
     if spec.get("vent"):
         units.append((X1 * 0.55, Y1 * 0.25, 6, 5, 4))
     if spec.get("tank"):
         units.append((X1 * 0.15, Y1 * 0.2, 7, 7, 8))
+    if CYBER["roofs"] == "busy":                                         # rows of AC units along the front edge
+        for k in range(int((X1 - 8) / 7)):
+            if h("ac", seed, k) < 0.7:
+                units.append((4 + k * 7, Y1 - 8, 5, 4, 3))
     for (ux, uy, uw, ud, uh) in units:                                   # rooftop units: boxes on the roof
         cv.face((ux, uy + ud, Hh), (uw, 0, 0), (0, 0, uh), lambda s, t, su, tu: "s1" if tu < uh - 1 else "s0")
         cv.face((ux + uw, uy + ud, Hh), (0, -ud, 0), (0, 0, uh), lambda s, t, su, tu: "s2")
@@ -332,10 +356,17 @@ def block(fw=2, fd=2, name="cottage-red", **_):
     if spec.get("vent"):
         tx, ty = proj(X1 * 0.55 + 3, Y1 * 0.25 + 2.5, Hh + 4)
         smoke = (tx + cv.ox + 2, ty + cv.oy + 2)
-    if spec.get("antenna"):
+    if spec.get("antenna") or CYBER["roofs"] == "busy":
         ax_, ay_ = proj(X1 * 0.8, Y1 * 0.7, Hh)
         for k in range(12):
             cv.s.put(int(ax_ + cv.ox), int(ay_ + cv.oy - k), "s1" if k < 11 else spec["sign"])
+    if CYBER["roofs"] == "busy":                                         # a satellite dish
+        dx_, dy_ = proj(X1 * 0.35, Y1 * 0.55, Hh + 3)
+        for j in range(-3, 4):
+            for i in range(-4, 5):
+                if (i / 4.2) ** 2 + (j / 3.2) ** 2 <= 1:
+                    cv.s.put(int(dx_ + cv.ox + i), int(dy_ + cv.oy + j), "s0" if i + j < 0 else "s1")
+        cv.s.put(int(dx_ + cv.ox), int(dy_ + cv.oy + 4), "s2"); cv.s.put(int(dx_ + cv.ox), int(dy_ + cv.oy + 5), "s2")
     spr = cv.s
     spr.outline()
     sx_, sy_ = proj(X1, Y1, 0)
@@ -345,11 +376,69 @@ def block(fw=2, fd=2, name="cottage-red", **_):
     out.px = out.im.load()
     if OUTLINE["double"]:
         out.outline()
+    if CYBER["glow"] == "on":
+        out = glow(out)
+        out = light_spill(out, X1, Y1, cv.ox + 1, cv.oy + 1, spec["sign"])
     if iso_props.LOOK.get("ground_shadow"):
         out = with_ground_shadow(out, X1, Y1, cv.ox + 1, cv.oy + 1)
     out.anchor = (round(ax), round(ay))
     out.smoke = (round(smoke[0]), round(smoke[1])) if smoke else None
     return out, out.anchor, (fw, fd)
+
+
+BLADES = ["neon_a", "neon_b", "neon_c"]
+BILLBOARD = ["neon_b", "neon_a", "neon_c"]
+GLOWS = ("neon_a", "neon_b", "neon_c", "fl_p")
+
+
+def glow(spr, names=GLOWS, reach=2.6):
+    """A soft halo round the neon pixels (signs, trims, lamps): see-through pixels of the same colour just outside
+    the sprite. Pixel-exact, so both renderers draw it the same."""
+    from PIL import Image
+    from sprites import RGB, Sprite
+    neon = {RGB[n][:3] for n in names}
+    src = [(x, y, spr.px[x, y][:3]) for y in range(spr.h) for x in range(spr.w)
+           if spr.px[x, y][3] and spr.px[x, y][:3] in neon]
+    halo = Image.new("RGBA", (spr.w, spr.h), (0, 0, 0, 0))
+    hp = halo.load()
+    k = int(reach) + 1
+    for (x, y, col) in src:
+        for j in range(-k, k + 1):
+            for i in range(-k, k + 1):
+                d = math.hypot(i, j)
+                X, Y = x + i, y + j
+                if d <= reach and 0 <= X < spr.w and 0 <= Y < spr.h and not spr.px[X, Y][3]:
+                    a = 130 if d < 1.5 else 60
+                    if hp[X, Y][3] < a:
+                        hp[X, Y] = col + (a,)
+    halo.alpha_composite(spr.im)
+    out = Sprite(spr.w, spr.h)
+    out.im, out.px = halo, halo.load()
+    for attr in ("anchor", "smoke"):
+        if hasattr(spr, attr):
+            setattr(out, attr, getattr(spr, attr))
+    return out
+
+
+def light_spill(spr, X1, Y1, ox, oy, colour):
+    """The shopfront's light on the ground in front of the lit wall: a band of see-through neon, under the block."""
+    from PIL import Image
+    from iso_props import proj
+    from sprites import RGB, Sprite
+    sh = Image.new("RGBA", (spr.w, spr.h), (0, 0, 0, 0))
+    px, col = sh.load(), RGB[colour][:3]
+    (pxo, pyo), (ax, ay), (bx, by) = proj(2, Y1, 0), proj(X1 - 4, 0, 0), proj(0, 5, 0)
+    det = ax * by - ay * bx
+    for y in range(spr.h):
+        for x in range(spr.w):
+            dx, dy = x - ox + 0.5 - pxo, y - oy + 0.5 - pyo
+            s, t = (dx * by - dy * bx) / det, (ax * dy - ay * dx) / det
+            if 0 <= s < 1 and 0 <= t < 1:
+                px[x, y] = col + (95 if t < 0.5 else 50,)
+    sh.alpha_composite(spr.im)
+    out = Sprite(spr.w, spr.h)
+    out.im, out.px = sh, sh.load()
+    return out
 
 
 def weeds_px(sh, x, y, gx, gy, f):
@@ -533,7 +622,132 @@ PARTS = {   # CYBER["trees"] -> which part each tree name becomes
 CAP_BODIES = [("b1", "b2", "b3"), ("vh0", "vh1", "vh2"), ("r1", "r2", "r3"), ("y1", "y2", "y3"), ("p1", "p2", "p3")]
 
 
+def tank(seed, size=1.0, body=("b1", "b2", "b3")):
+    """A storage tank: a big cylinder with dark bands, a ladder up the lit side, a red light on top."""
+    from sprites import Sprite, rng, tight
+    r_ = rng("tank", seed)
+    r, hgt = 9 * size * r_.uniform(0.92, 1.08), 24 * size * r_.uniform(0.9, 1.1)
+    s = Sprite(int(r * 2 + 8), int(hgt + r + 10))
+    cx, base = s.w / 2, s.h - 3 - r / 2
+    _cylinder(s, cx, base, r, hgt, body, ("cs0", "cs1"))
+    for k in range(1, int(hgt / 7) + 1):                              # bands
+        yb = base - k * 7
+        for x in range(int(cx - r) + 1, int(cx + r)):
+            dx = x + 0.5 - cx
+            s.put(x, int(yb + r / 2 * math.sqrt(max(0, 1 - (dx / r) ** 2))), body[2])
+    lx = int(cx - r * 0.45)                                            # ladder
+    for y in range(int(base - hgt + 2), int(base + 2)):
+        s.put(lx, y, "cs0"); s.put(lx + 2, y, "cs0")
+        if y % 2 == 0:
+            s.put(lx + 1, y, "cs1")
+    s.put(int(cx), int(base - hgt - r / 2 - 1), "neon_a")
+    return tight(s).outline()
+
+
+def station(seed, size=1.0):
+    """A transformer station: a box with cooling fins, a hazard plate, glowing insulators on top."""
+    from iso_props import Canvas3D
+    w, d, hgt = 18 * size, 12 * size, 16 * size
+    cv = Canvas3D(int(w + d + 12), int((w + d) / 2 + hgt + 20), int(d + 6), int(hgt + 14))
+    fins = lambda lit: (lambda s, t, su, tu: ("cs0" if lit else "cs1") if int(su) % 2 else ("cs2" if lit else "cs3"))
+
+    def front(s, t, su, tu):
+        if abs(su - w * 0.5) + abs(tu - hgt * 0.55) * 1.1 < 3.2 and tu < hgt * 0.55 + 2.5:
+            return "out" if abs(su - w * 0.5) < 0.6 and hgt * 0.45 < tu < hgt * 0.62 else "neon_c"   # hazard plate
+        return fins(True)(s, t, su, tu)
+    cv.face((0, d, 0), (w, 0, 0), (0, 0, hgt), front)
+    cv.face((w, d, 0), (0, -d, 0), (0, 0, hgt), fins(False))
+    cv.face((0, 0, hgt), (w, 0, 0), (0, d, 0), lambda s, t, su, tu: "s1" if su < 1 or tu < 1 else "s2")
+    from iso_props import proj
+    for k in range(3):                                                 # insulator stacks
+        x_, y_ = proj(w * (0.25 + k * 0.25), d * 0.5, hgt)
+        for j in range(5):
+            cv.s.put(int(x_ + cv.ox), int(y_ + cv.oy - j), "neon_b" if j == 4 else ("s0" if j % 2 else "s2"))
+    cv.s.outline()
+    return _feet(cv.s)
+
+
+def street_pole(seed, colour="neon_b", hgt=30):
+    """An LED street pole: a tall post, an arm, a lamp head."""
+    from sprites import Sprite, tight
+    s = Sprite(16, hgt + 6)
+    cx, base = 6, s.h - 2
+    for y in range(base - hgt, base + 1):
+        s.put(cx, y, "cs1"); s.put(cx + 1, y, "cs2")
+    for x in range(cx, cx + 7):                                       # the arm
+        s.put(x, base - hgt, "cs1")
+    for y in range(base - hgt + 1, base - hgt + 4):                   # the lamp head
+        for x in range(cx + 3, cx + 9):
+            s.put(x, y, "fl_w" if y == base - hgt + 3 and 3 < x - cx < 8 else colour)
+    s.put(cx - 1, base, "cs2"); s.put(cx + 2, base, "cs2")
+    return tight(s).outline()
+
+
+def ring(seed, size=1.0):
+    """A ring monument: a big copper-wound ring on a plinth, glowing inside."""
+    from sprites import Sprite, tight
+    R, rr = 12 * size, 3.4 * size
+    s = Sprite(int(R * 2 + 8), int(R * 2 + 14))
+    cx, cy = s.w / 2, s.h - 7 - R
+    for y in range(s.h - 6, s.h - 2):                                  # plinth
+        for x in range(int(cx - 6), int(cx + 6)):
+            s.put(x, y, "s1" if x < cx else "s2")
+    for y in range(s.h):
+        for x in range(s.w):
+            dx, dy = x + 0.5 - cx, y + 0.5 - cy
+            d = math.hypot(dx, dy)
+            if R - rr * 2 < d < R:
+                a = math.atan2(dy, dx)
+                c = "cb1" if int((a + 3.2) * 7) % 2 else "cb2"
+                if dx > R * 0.4:
+                    c = "cb3" if c == "cb2" else "cb2"
+                s.put(x, y, c)
+            elif R - rr * 2 - 1.5 < d <= R - rr * 2:
+                s.put(x, y, "neon_b")                                  # the glow inside the ring
+    return tight(s).outline()
+
+
+def mast(seed, size=1.0):
+    """A radio mast: a thin lattice tower, a dish, a red light on top."""
+    from sprites import Sprite, tight
+    hgt = int(52 * size)
+    s = Sprite(16, hgt + 6)
+    cx, base = 8, s.h - 2
+    for y in range(base - hgt, base + 1):
+        s.put(cx - 1, y, "cs1"); s.put(cx + 1, y, "cs2")
+        if (base - y) % 4 == 0:
+            s.put(cx, y, "cs2")
+        elif (base - y) % 4 == 2:
+            s.put(cx, y, "cs3")
+    for j in range(-2, 3):                                             # a dish part way up
+        for i in range(0, 4):
+            if (i / 3.5) ** 2 + (j / 2.5) ** 2 <= 1:
+                s.put(cx + 2 + i, base - int(hgt * 0.6) + j, "s0" if j < 0 else "s1")
+    s.put(cx, base - hgt - 1, "neon_a"); s.put(cx, base - hgt - 2, "neon_a")
+    return tight(s).outline()
+
+
+CITY_PARTS = {"tree-1": (tank, ("b1", "b2", "b3")), "tree-2-d2": (tank, ("vh0", "vh1", "vh2")), "oak-3": (station, None),
+              "maple-1": (tank, ("r1", "r2", "r3")), "blossom-1": (street_pole, "neon_a"), "tree-6": (street_pole, "neon_c"),
+              "birch-2": (street_pole, "neon_b"), "poplar-1": (mast, None), "willow-1": (ring, None),
+              "pine-2": (pylon, 0), "pine-3": (pylon, 1), "cypress-2": (mast, None)}
+
+
+def city_part(name):
+    fn, arg = CITY_PARTS[name]
+    if fn is tank:
+        return tank(name, 0.85 + h("ts", name) * 0.3, arg)
+    if fn is street_pole:
+        return street_pole(name, arg, 26 + int(h("ph", name) * 12))
+    if fn is pylon:
+        return pylon(name, 1.0 + arg * 0.2)
+    return fn(name, 1.0)
+
+
 def part_sprite(spec, name):
+    if CYBER["parts"] == "city" and name in CITY_PARTS:
+        spr = city_part(name)
+        return glow(spr, reach=2.2) if CYBER["glow"] == "on" else spr
     fn, arg, *rest = spec
     if fn is capacitor:
         return capacitor(name, 0.8 + (arg % 3) * 0.25, CAP_BODIES[arg % len(CAP_BODIES)])

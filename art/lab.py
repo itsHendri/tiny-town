@@ -6,6 +6,7 @@ plus a picker page with a pick and a note per option: out/lab/<round>/index.html
     python art/lab.py house-builder    # every combination of the house switches on a little street, with toggles
     python art/lab.py cyber-builder    # every combination of the cyber items' choices on a neon street
     python art/lab.py chip-builder     # the same for the circuit-board concepts
+    python art/lab.py city-builder     # neon city polish: before / after for each change
 
 Serve the repo (python3 -m http.server 8000) and open http://localhost:8000/out/lab/<round>/.
 """
@@ -461,7 +462,8 @@ def cyber_street():
         for c in range(1, 5):
             m.deco[r][c] = "tallgrass"
     spots = [("cottage-red", 3, 3), ("townhouse", 8, 3), ("longhouse", 14, 3), ("tree-1", 11, 2), ("pine-3", 1, 1),
-             ("tree-2-d2", 6, 10), ("birch-2", 16, 8), ("lamp-iso", 5, 4), ("lamp-iso", 12, 4)]
+             ("tree-2-d2", 6, 10), ("birch-2", 16, 8), ("lamp-iso", 5, 4), ("lamp-iso", 12, 4), ("oak-3", 13, 10),
+             ("willow-1", 4, 10), ("cypress-2", 17, 1), ("blossom-1", 8, 8), ("tree-6", 12, 8), ("maple-1", 0, 8)]
     return m, spots
 
 
@@ -485,7 +487,21 @@ CHIP_GROUPS = [
     ("buildings", "Buildings", [("blocks", "Neon blocks", "Today's buildings."),
                                 ("chips", "Chips", "Black chips with silver pins; the tower is a heatsink.")]),
 ]
-BUILDERS = {"cyber-builder": ("Cyber builder", CYBER_GROUPS), "chip-builder": ("Circuit builder", CHIP_GROUPS)}
+CITY_GROUPS = [   # neon city polish: before / after for each change
+    ("parts", "Tree parts", [("v1", "As now", "Capacitors, a transformer, LEDs, a coil, pylons."),
+                             ("city", "City-scale", "Storage tanks, a transformer station, LED street poles, a ring "
+                              "monument, radio masts, pylons.")]),
+    ("windows", "Windows", [("random", "Random", "As now: every window a random colour."),
+                            ("calm", "Calmer", "One colour per floor, about half the windows dark.")]),
+    ("signs", "Signs", [("one", "One sign", "As now: one sign on the front."),
+                        ("varied", "Varied", "Blade signs sticking out from the corners, rooftop billboards.")]),
+    ("glow", "Neon glow", [("off", "Off", "As now."),
+                           ("on", "On", "A soft halo round signs, trims and lamps; light spilling onto the ground.")]),
+    ("roofs", "Roofs", [("plain", "Plain", "As now."),
+                        ("busy", "Busy", "Rows of AC units, satellite dishes, lit antennas.")]),
+]
+BUILDERS = {"cyber-builder": ("Cyber builder", CYBER_GROUPS), "chip-builder": ("Circuit builder", CHIP_GROUPS),
+            "city-builder": ("Neon city polish", CITY_GROUPS)}
 
 
 def cyber_builder(name="cyber-builder"):
