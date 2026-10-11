@@ -1,7 +1,7 @@
 """The look lab: candidate looks for one thing at a time, each drawn by the real renderer on the market village,
 plus a picker page with a pick and a note per option: out/lab/<round>/index.html.
 
-    python art/lab.py <round>          # rounds: palette, outline, ground
+    python art/lab.py <round>          # rounds: palette, outline, ground, grass
     python art/lab.py <round> <key>    # draw one option (each runs in its own process: drawers cache by palette)
 
 Serve the repo (python3 -m http.server 8000) and open http://localhost:8000/out/lab/<round>/.
@@ -110,15 +110,56 @@ def with_deep_water():
     return pal
 
 
-def ground(grass, water):
+def ground(grass, water, grass_n=None):
     def setup():
         import iso
         import lab_ground as g
+        if grass_n:
+            iso.GRASS_N = grass_n
         if grass:
             iso.grass_px = getattr(g, "grass_" + grass)
         if water:
             iso.SETS["water"] = getattr(g, "water_" + water)
     return setup
+
+
+def with_close_greens():
+    """The default palette plus g1l / g1d: greens a small step lighter / darker than g1, for faint patches."""
+    pal = dict(palettes.PALETTES[palettes.DEFAULT])
+    L, C, H = palettes.oklch(pal["g1"])
+    pal["g1l"] = palettes.hexof(L + 0.03, C * 1.02, H - 3)
+    pal["g1d"] = palettes.hexof(L - 0.025, C, H + 3)
+    return pal
+
+
+ROUNDS["grass"] = {
+    "title": "Clean grass",
+    "lead": "Round 2 for grass, water stays as today. All options keep Clean flat's tiny tufts; what changes is the "
+            "light patches, which made a blob pattern when tiles join up. Check the Open field view: a plain meadow "
+            "is where repeats show.",
+    "field": True,
+    "options": [
+        ("clean", "Clean flat (round 1 pick)", "Soft light patches in gh: the blobs you saw.", None,
+         ground("clean", None)),
+        ("bare", "No patches", "Just the base green and the tiny tufts.", None, ground("bare", None)),
+        ("faint", "Faint patches", "Same patches, in a green only a small step lighter than the base.",
+         with_close_greens, ground("faint", None)),
+        ("flecks", "Small flecks", "Many small ragged light flecks instead of big patches.", with_close_greens,
+         ground("flecks", None)),
+        ("lit-tufts", "Lit tufts", "No filled patches; tufts get denser and lighter where a patch would be.",
+         None, ground("lit_tufts", None)),
+        ("diagonal", "Diagonal swells", "Faint patches stretched along the iso diagonals, like gentle swells.",
+         with_close_greens, ground("diagonal", None)),
+        ("two-tone", "Two close greens", "The base split into two close greens, no light patches.",
+         with_close_greens, ground("two_tone", None)),
+        ("patches-big", "Clean flat, big repeat", "Round 1's patches exactly, but the grass repeats every 16 cells "
+         "instead of 4, so they stop lining up into dots.", None, ground("patches_big", None, 16)),
+        ("faint-big", "Faint patches, big repeat", "Faint patches with the 16-cell repeat.", with_close_greens,
+         ground("faint_big", None, 16)),
+        ("swells-big", "Soft swells, big repeat", "Light and shade swells in three close greens, 16-cell repeat.",
+         with_close_greens, ground("swells_big", None, 16)),
+    ],
+}
 
 
 ROUNDS["ground"] = {
@@ -164,6 +205,14 @@ def draw(round_name, key):
     im.save(out / f"{key}-1x.png")
     d = im.crop(DETAIL)
     d.resize((d.width * 3, d.height * 3), 0).save(out / f"{key}-zoom.png")
+    if rd.get("field"):
+        import preview
+        f = preview.Map(34, 34)
+        f.fill("terrain", 16, 0, 18, 34, "path")
+        f.fill("terrain", 9, 19, 13, 24, "water")
+        fi = iso.render(f, 0, objects=False, margin=0, woods=False)
+        cx, cy = fi.width // 2, fi.height // 2
+        fi.crop((cx - 300, cy - 130, cx + 300, cy + 130)).resize((1200, 520), 0).save(out / f"{key}-field.png")
     if round_name == "palette":
         swatch(palettes.PALETTES["lab"]).save(out / f"{key}-ramps.png")
 
@@ -189,7 +238,8 @@ def main(round_name):
     cards = [{"key": k, "name": n, "note": t} for k, n, t, *_ in rd["options"]]
     page = PAGE.replace("__TITLE__", rd["title"]).replace("__LEAD__", rd["lead"]) \
         .replace("__PICKS__", json.dumps(rd.get("picks", ["pick"]))).replace("__ROUND__", round_name).replace("__CARDS__", json.dumps(cards)) \
-        .replace("__RAMPS__", "true" if round_name == "palette" else "false")
+        .replace("__RAMPS__", "true" if round_name == "palette" else "false") \
+        .replace("__FIELD__", "true" if rd.get("field") else "false")
     (OUT / round_name / "index.html").write_text(page)
     print(f"wrote out/lab/{round_name}/index.html")
 
@@ -232,13 +282,14 @@ textarea { width: 100%; border: 1px solid var(--line); background: var(--bg); co
   <button type="button" data-v="1x" aria-pressed="true">1x village</button>
   <button type="button" data-v="2x" aria-pressed="false">2x village</button>
   <button type="button" data-v="zoom" aria-pressed="false">Zoomed detail</button>
+  <button type="button" data-v="field" aria-pressed="false" hidden>Open field (2x)</button>
 </div>
 <div class="grid" id="grid"></div>
 <p><textarea id="general" placeholder="Anything else (mixing two options, a colour to change)..."></textarea></p>
 </div>
 <div class="bar"><span id="status">Pick one</span><button id="copy" type="button">Copy picks</button></div>
 <script>
-const CARDS = __CARDS__, RAMPS = __RAMPS__, PICKS = __PICKS__, KEY = "tiny-town/lab/__ROUND__";
+const CARDS = __CARDS__, RAMPS = __RAMPS__, PICKS = __PICKS__, FIELD = __FIELD__, KEY = "tiny-town/lab/__ROUND__";
 let S = {}; try { S = JSON.parse(localStorage.getItem(KEY)) || {}; } catch { S = {}; }
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} };
 const grid = document.getElementById("grid");
@@ -256,11 +307,12 @@ function view(v) {
   for (const b of document.querySelectorAll(".tools button")) b.setAttribute("aria-pressed", b.dataset.v === v);
   for (const a of document.querySelectorAll(".card")) {
     const img = a.querySelector(".pic img");
-    img.src = `${a.dataset.key}-${v === "zoom" ? "zoom" : "1x"}.png?v=${v0}`;
+    img.src = `${a.dataset.key}-${v === "zoom" || v === "field" ? v : "1x"}.png?v=${v0}`;
     img.style.width = v === "2x" ? "1546px" : "";
-    a.querySelector(".pic").classList.toggle("fit", v === "zoom");
+    a.querySelector(".pic").classList.toggle("fit", v === "zoom" || v === "field");
   }
 }
+if (FIELD) document.querySelector("[data-v=field]").hidden = false;
 for (const b of document.querySelectorAll(".tools button")) b.addEventListener("click", () => view(b.dataset.v));
 view(S.view || "1x");
 for (const r of document.querySelectorAll("input[type=radio]")) { r.checked = S[r.name] === r.value; r.addEventListener("change", () => { S[r.name] = r.value; save(); sync(); }); }

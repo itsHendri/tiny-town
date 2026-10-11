@@ -10,9 +10,9 @@ PX, PY = 64, 32                       # the pattern repeat
 
 # ---------- helpers ----------
 
-def smooth(gx, gy, key, sx=16, sy=8):
+def smooth(gx, gy, key, sx=16, sy=8, px=PX, py=PY):
     """Soft value noise in [0, 1): hashed lattice every sx x sy px, blended, wrapping at the pattern repeat."""
-    nx, ny = PX // sx, PY // sy
+    nx, ny = px // sx, py // sy
     fx, fy = gx / sx, gy / sy
     i, j = math.floor(fx), math.floor(fy)
     tx, ty = fx - i, fy - j
@@ -212,3 +212,86 @@ def water_deep(sh, x, y, gx, gy, f):
     if ripple(gx, gy, f, 6, 3, 24):
         return "w2"
     return "w3"
+
+
+# ---------- round 2: clean flat grass without the blob pattern ----------
+
+SPRINKLE = [[".a.", "b.b"], ["a.a", ".b."]]
+
+
+def _sprinkle(gx, gy, variant, key="kg", p=0.4):
+    t = stamps(gx, gy, (key, variant), 16, 8, SPRINKLE, p)
+    return {"a": "gh", "b": "g2"}[t] if t else None
+
+
+def grass_bare(gx, gy, variant=0):
+    """Clean flat without patches: one green and the tiny tufts."""
+    return _sprinkle(gx % PX, gy % PY, variant) or "g1"
+
+
+def grass_faint(gx, gy, variant=0):
+    """Clean flat, patches in a tone just above the base (g1l), so they hint rather than show."""
+    gx, gy = gx % PX, gy % PY
+    return _sprinkle(gx, gy, variant) or ("g1l" if smooth(gx, gy, ("kp", variant), 32, 16) > 0.7 else "g1")
+
+
+def grass_flecks(gx, gy, variant=0):
+    """Small ragged light flecks instead of big patches: no shape big enough to repeat visibly."""
+    gx, gy = gx % PX, gy % PY
+    t = _sprinkle(gx, gy, variant)
+    if t:
+        return t
+    n = smooth(gx, gy, ("kf", variant), 8, 4)
+    return "g1l" if n > 0.72 + 0.12 * h("kr", gx // 2, gy, variant) else "g1"
+
+
+def grass_lit_tufts(gx, gy, variant=0):
+    """No filled patches: where a patch would be, tufts get denser and catch the light."""
+    gx, gy = gx % PX, gy % PY
+    n = smooth(gx, gy, ("kp", variant), 32, 16)
+    t = stamps(gx, gy, ("kl", variant), 8, 8, SPRINKLE, 0.15 + 0.6 * n)
+    if t:
+        return ({"a": "g0", "b": "gh"} if n > 0.6 else {"a": "gh", "b": "g2"})[t]
+    return "g1"
+
+
+def grass_diagonal(gx, gy, variant=0):
+    """Faint patches stretched along the iso diagonals, so they read as gentle ground swells, not blobs."""
+    gx, gy = gx % PX, gy % PY
+    t = _sprinkle(gx, gy, variant)
+    if t:
+        return t
+    u, v = (gx + 2 * gy) % PX, (2 * gy - gx) % PX               # along the two diagonals
+    n = smooth(u % PX, (v // 2) % PY, ("kd", variant), 32, 8)
+    return "g1l" if n > 0.68 else "g1"
+
+
+def grass_two_tone(gx, gy, variant=0):
+    """Base split into two close greens in soft blobs (no light patch at all): texture only from tufts."""
+    gx, gy = gx % PX, gy % PY
+    return _sprinkle(gx, gy, variant) or ("g1" if smooth(gx, gy, ("kt", variant), 16, 8) > 0.45 else "g1d")
+
+
+# Big repeat: flat grass over 16 x 16 cells (iso.GRASS_N = 16), 256 x 128 px, so soft patches don't line up into dots.
+BX, BY = 256, 128
+
+
+def grass_faint_big(gx, gy, variant=0):
+    """Faint patches, big repeat."""
+    t = _sprinkle(gx % PX, gy % PY, variant)
+    return t or ("g1l" if smooth(gx % BX, gy % BY, ("kb", variant), 32, 16, BX, BY) > 0.68 else "g1")
+
+
+def grass_swells_big(gx, gy, variant=0):
+    """Faint light and shade swells, big repeat: three close greens."""
+    t = _sprinkle(gx % PX, gy % PY, variant)
+    if t:
+        return t
+    n = smooth(gx % BX, gy % BY, ("ks", variant), 64, 32, BX, BY) * 0.7 + smooth(gx % BX, gy % BY, ("ks2", variant), 16, 8, BX, BY) * 0.3
+    return "g1l" if n > 0.64 else "g1d" if n < 0.36 else "g1"
+
+
+def grass_patches_big(gx, gy, variant=0):
+    """Round 1's Clean flat patches (gh), big repeat: the same look, without the dot pattern."""
+    t = _sprinkle(gx % PX, gy % PY, variant)
+    return t or ("gh" if smooth(gx % BX, gy % BY, ("kq", variant), 32, 16, BX, BY) > 0.72 else "g1")

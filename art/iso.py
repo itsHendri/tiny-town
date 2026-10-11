@@ -282,10 +282,18 @@ def iso_tile(name, mask, frame, phase):
     return im
 
 
+GRASS_N = 4              # flat grass repeats every GRASS_N cells each way (16 * N x 8 * N px); same in js/iso.js
+
+
+def grass_phase(c, r):
+    """Which flat grass tile a cell gets: like phase_of, but over GRASS_N cells, so grass can repeat less often."""
+    return (c - r) % GRASS_N, (c + r) % GRASS_N
+
+
 @lru_cache(maxsize=None)
 def grass_cell(phase):
     a, b = phase
-    ox, oy = (a * 16 - 16) % 64, (b * 8) % 32
+    ox, oy = (a * 16 - 16) % (16 * GRASS_N), (b * 8) % (8 * GRASS_N)
     im = Image.new("RGBA", (CW, CH), (0, 0, 0, 0))
     px = im.load()
     for y in range(CH):
@@ -388,7 +396,7 @@ def render(m, frame=0, objects=True, margin=0, woods=True):
                 if 0 <= c < cols and 0 <= r < rows:
                     continue
                 x, y = cell_top(c, r, B)
-                put(outside, grass_cell(phase_of(c, r)), X0 + x - 16, Y0 + y)
+                put(outside, grass_cell(grass_phase(c, r)), X0 + x - 16, Y0 + y)
         for name in ("water", "path", "cobbles"):            # roads and rivers run on out into the forest
             dual_ext(outside, name, margin_cells(m.cells(name, B), M), M)
 
@@ -398,7 +406,7 @@ def render(m, frame=0, objects=True, margin=0, woods=True):
         for c in range(cols):
             x, y = cell_top(c, r)
             X, Y = X0 + x - 16, Y0 + y
-            put(base, grass_cell(phase_of(c, r)), X, Y)
+            put(base, grass_cell(grass_phase(c, r)), X, Y)
     overlays(base, 0)
     clip_to_map(base, cols, rows, X0, Y0, 0)
     if B:
