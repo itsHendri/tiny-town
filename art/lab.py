@@ -1,7 +1,7 @@
 """The look lab: candidate looks for one thing at a time, each drawn by the real renderer on the market village,
 plus a picker page with a pick and a note per option: out/lab/<round>/index.html.
 
-    python art/lab.py <round>          # rounds: palette, outline, ground, grass, trees (keep / drop), tree-look, house
+    python art/lab.py <round>          # rounds: palette, outline, ground, grass, trees (keep / drop), tree-look, house, cyber
     python art/lab.py <round> <key>    # draw one option (each runs in its own process: drawers cache by palette)
     python art/lab.py house-builder    # every combination of the house switches on a little street, with toggles
 
@@ -240,6 +240,42 @@ ROUNDS["house"] = {
          house_look(**ALL_HOUSE)),
         ("all-sills", "All together, sills", "As above, with sills instead of flower boxes.", None,
          house_look(**ALL_HOUSE, flower_box=False)),
+    ],
+}
+
+
+def cyber_pal(key):
+    def pal():
+        import theme_cyber
+        return theme_cyber.palette(**theme_cyber.LOOKS[key])
+    return pal
+
+
+def cyber_apply():
+    import theme_cyber
+    theme_cyber.apply()
+
+
+ROUNDS["cyber"] = {
+    "title": "Cyberpunk palette",
+    "lead": "The same village as a neon city, drawn by the first cyber versions of the hero items: plaza panels with "
+            "glowing seams for grass, a canal for water, a lit walkway for the path, steel grates for cobbles, neon "
+            "blocks for houses, neon foliage on the trees. Each card is one palette. Pick the palette; note anything "
+            "about the shapes too (they get their own rounds next). The Block lineup shows the five buildings.",
+    "field": True, "field_label": "Block lineup (3x)", "lineup": "houses",
+    "options": [
+        ("neon", "Neon night", "Indigo concrete, hot magenta signs, cyan water and glass, amber walkways.",
+         cyber_pal("neon"), cyber_apply),
+        ("blade", "Rain and sodium", "Cold blue-grey city, orange signs, teal water: a rainy noir street.",
+         cyber_pal("blade"), cyber_apply),
+        ("synth", "Synthwave", "Purple ground, pink and violet neon, red-orange light.", cyber_pal("synth"),
+         cyber_apply),
+        ("acid", "Acid grid", "Deep teal city with green neon, like a terminal screen.", cyber_pal("acid"),
+         cyber_apply),
+        ("vapor", "Vapor dusk", "Lighter lilac concrete, soft pink and sky blue: friendlier, less night.",
+         cyber_pal("vapor"), cyber_apply),
+        ("rain", "Wet steel", "Neutral steel grey, red neon, pale cyan: restrained, very readable.",
+         cyber_pal("rain"), cyber_apply),
     ],
 }
 
