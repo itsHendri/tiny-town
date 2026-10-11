@@ -1,6 +1,7 @@
 """Build the isometric tile sheet and prop atlas (tiles/iso/), in one palette.
 
     python art/iso_tiles.py [rich|earthy|deep|bright]  (default: palettes.DEFAULT)
+    python art/iso_tiles.py --theme cyberpunk           (a theme's sheet, in tiles/themes/<theme>/iso; see themes.py)
 
 Every ground set has 15 shapes x 8 pattern phases (x 3 frames for water and tall grass). The browser picks the
 phase from the grid corner, so patterns run on seamlessly. Cliff walls aren't tiles: the browser pushes each
@@ -18,15 +19,18 @@ LOOK = "storybook"                                         # house look, picked 
 WALL_COLOURS = ["out", "g3", "g4", "k1", "k2", "k3", "w0", "w1", "w2", "fl_w"]
 
 
-def build(palette):
-    palettes.use(palette)
+def build(palette=None, theme=None):
+    import themes
+    swap = themes.use(theme, palette)
     from iso import ANIMATED, CH, CW, HT, grass_cell, iso_tile
+    import iso_props  # noqa: F401 (imported before the theme swaps its drawers)
+    swap()
     from props import catalog
     from sprites import PAL
     from tiles import Sheet
 
     sh = Sheet()
-    meta = {"version": 1, "projection": "iso", "palette": palette, "cell": [CW, CH], "levelHeight": HT,
+    meta = {"version": 1, "projection": "iso", "palette": themes.palette_name(theme, palette), "theme": theme or "cottage", "cell": [CW, CH], "levelHeight": HT,
             "frames": 3, "frameMs": 320, "image": "tileset.png"}
     from ground import GRASS_N
     meta["grassN"] = GRASS_N                               # flat grass repeats every grassN cells (js/iso.js)
@@ -50,7 +54,7 @@ def build(palette):
     meta["colors"] = {k: PAL[k] for k in WALL_COLOURS}
     from iso import SHADOW
     meta["shadow"] = {**SHADOW, "color": PAL["shade"]}                   # ground shadows under props (js/render.js)
-    out = ROOT / "tiles" / "iso"
+    out = ROOT / themes.folder(theme) / "iso"
     out.mkdir(parents=True, exist_ok=True)
     sh.image().save(out / "tileset.png")
     (out / "tileset.json").write_text(json.dumps(meta, separators=(",", ":")) + "\n")
@@ -111,4 +115,5 @@ def build_iso_props():
 
 
 if __name__ == "__main__":
-    build(sys.argv[1] if len(sys.argv) > 1 else palettes.DEFAULT)
+    import themes
+    build(*themes.args(sys.argv[1:]))

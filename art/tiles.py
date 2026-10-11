@@ -1,6 +1,6 @@
 """Build the tile sheet and the prop atlas that the browser renderer uses.
 
-    python art/tiles.py [palette]  -> tiles/tileset.png + tileset.json, tiles/props.png + props.json, sprites/index.json
+    python art/tiles.py [palette] [--theme NAME]  -> tiles/tileset.png + tileset.json, tiles/props.png + props.json, sprites/index.json
 
 The look comes from preview.DEFAULT (the styles picked so far). Everything is drawn in code; a hand-painted
 tiles/tileset.edited.png with the same layout wins tile by tile when the page loads.
@@ -116,9 +116,10 @@ def build_props():
 
 
 if __name__ == "__main__":
-    import palettes
-    palettes.use(sys.argv[1] if len(sys.argv) > 1 else palettes.DEFAULT)      # the same palette as tiles/iso/
-    d = ROOT / "tiles"
+    import themes
+    palette, theme = themes.args(sys.argv[1:])
+    themes.use(theme, palette)()                                 # the same palette (and theme) as tiles/iso/
+    d = ROOT / themes.folder(theme)
     d.mkdir(exist_ok=True)
     im, meta = build_tileset(DEFAULT)
     im.save(d / "tileset.png")

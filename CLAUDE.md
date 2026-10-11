@@ -28,6 +28,7 @@ Code MIT (`LICENSE`), art CC BY 4.0 (`LICENSE-art`). Read `README.md` for the us
 | Command | Does |
 |---|---|
 | `art/iso_tiles.py` | Rebuilds `tiles/iso/` (isometric tile sheet + prop atlas) in `palettes.DEFAULT`. Run after any art change. |
+| `art/iso_tiles.py --theme cyberpunk`, `art/tiles.py --theme cyberpunk` | Rebuild a theme's sheets in `tiles/themes/<theme>/` (see Themes below). |
 | `art/tiles.py` | Rebuilds `tiles/` (the top-down sheet, props, `sprites/index.json`), same palette as iso. |
 | `art/reference_town.py` | Rebuilds `maps/market-village.ldtk` (the default example) and `out/market-village*.png`. Copy the scene to `docs/market-village.png` when the look changes. |
 | `art/render_map.py <map.ldtk> <out.png> [--crop]` | Draws any map in Python. |
@@ -84,6 +85,17 @@ Code MIT (`LICENSE`), art CC BY 4.0 (`LICENSE-art`). Read `README.md` for the us
   `share.js` (share codes: gzip + base64url, prefix `tinytown1:`), `files.js` (save picker, then a download fallback),
   `walk.js` (a selected character walks with the arrows; props with a `foot` block their cells), `format.js`
   (parse/build `.ldtk`).
+
+## Themes
+
+* A theme is the same map in another look: a palette (every colour name gets the theme's colour, so anything not
+  redrawn still recolours) plus drawers swapped for the theme's own (`art/theme_cyber.py`: plaza, coolant canal,
+  walkway, grates, neon blocks, tech parts for trees). Terrain values and prop names keep their meaning.
+* `art/themes.py` lists them and switches them in Python; each is built into `tiles/themes/<theme>/` (cottage
+  stays in `tiles/`). The editor's settings dialog switches theme (`THEMES` in `js/editor.js`, kept in localStorage,
+  not in the map file). Rebuild a theme after art changes that touch it.
+* Cyberpunk ("Neon city") is a city at night; the circuit board is a flavour, not the subject. Picks: palette
+  `neon`, `CYBER` in `art/theme_cyber.py`.
 
 ## Map format (keep it stable)
 

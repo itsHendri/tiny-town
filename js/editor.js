@@ -1569,18 +1569,54 @@ function strollEnd() {
   if (st.moved) changed(false); else history.drop();
 }
 
+// ---------- themes: the same map in another look (art/themes.py builds each into its own tile folder) ----------
+
+const THEMES = [{ id: "cottage", label: "Cottage", base: "tiles/" }, { id: "cyberpunk", label: "Neon city", base: "tiles/themes/cyberpunk/" }];
+const themeOf = (id) => THEMES.find((t) => t.id === id) || THEMES[0];
+
+async function loadTheme(id) {
+  const t = themeOf(id);
+  return { ts: await loadTileset(t.base), isoTs: await loadIsoTileset(t.base + "iso/").catch(() => null) };
+}
+
+function buildThemes() {
+  $("themes").replaceChildren(...THEMES.map((t) => {
+    const b = el("button", { type: "button", "aria-pressed": String(S.theme === t.id), text: t.label });
+    b.addEventListener("click", () => setTheme(t.id));
+    return b;
+  }));
+}
+
+async function setTheme(id) {
+  if (id === S.theme) return;
+  let sets;
+  try { sets = await loadTheme(id); } catch { toast("Couldn't load that theme's tiles."); return; }
+  S.theme = id; S.ts = sets.ts; S.isoTs = sets.isoTs;
+  try { localStorage.setItem("tiny-town/theme", id); } catch { /* fine */ }
+  swatches.clear();
+  for (const k of Object.keys(grassTiles)) delete grassTiles[k];
+  if (!S.isoTs) S.projection = "ortho";
+  syncProjection(); buildThemes();
+  S.terrainDirty = true;
+  if (S.map) { buildPaintPanel(); buildCatalog(); buildStamps(); sync(); buildCard(true); rebuildView(); }
+  S.needsDraw = true;
+}
+
 // ---------- start ----------
 
 async function start() {
   $("undo").append(icon("undo")); $("redo").append(icon("redo")); $("settings").append(icon("cog")); $("file-btn").append(icon("chev"));
     for (const side of ["left", "right"]) { let f = false; try { f = localStorage.getItem(`tiny-town/fold-${side}`) === "1"; } catch { /* fine */ } if (f) setFold(side, true); }
+  try { S.theme = themeOf(localStorage.getItem("tiny-town/theme")).id; } catch { S.theme = THEMES[0].id; }
   try {
-    S.ts = await loadTileset("tiles/");
+    ({ ts: S.ts, isoTs: S.isoTs } = await loadTheme(S.theme));
   } catch (e) {
-    toast("Couldn't load the tiles. Open this page through a web server (see README).");
-    return;
+    try { S.theme = THEMES[0].id; ({ ts: S.ts, isoTs: S.isoTs } = await loadTheme(S.theme)); } catch {
+      toast("Couldn't load the tiles. Open this page through a web server (see README).");
+      return;
+    }
   }
-  S.isoTs = await loadIsoTileset("tiles/iso/").catch(() => null);
+  buildThemes();
   try { S.projection = localStorage.getItem("tiny-town/projection") || "iso"; } catch { /* default */ }
   if (!S.isoTs) S.projection = "ortho";
   syncProjection();

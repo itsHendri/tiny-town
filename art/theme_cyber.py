@@ -64,8 +64,9 @@ def palette(ground=275, ground_l=0.3, ground_c=0.035, a=345, b=200, c=75, glow=1
 
 PICK = "neon"   # picked 2026-10-11 (cyber palette round): neon night
 
-# How each hero item is drawn (cyber builder picks 2026-10-11: panels, neon reflections, tiles, random, holo)
-CYBER = {"plaza": "panels", "canal": "neon", "walkway": "tiles", "windows": "random", "trees": "holo", "buildings": "blocks"}
+# How each hero item is drawn (picked 2026-10-11, cyber and circuit builders: panels, coolant, tiles, random windows,
+# mixed parts for trees, neon blocks). It stays a city: the circuit board is a flavour, not the subject.
+CYBER = {"plaza": "panels", "canal": "coolant", "walkway": "tiles", "windows": "random", "trees": "mixed", "buildings": "blocks"}
 
 def tweak(P):
     """Palette changes some choices need: a green circuit board, copper traces."""
@@ -105,8 +106,14 @@ def plaza_px(gx, gy, variant=0, flat=True):
     """Plaza: dark panels laid on the map grid, a lit bevel on each panel's top edges, some seams glowing, the odd
     vent. CYBER["plaza"]: panels (2 x 2 per cell), slabs (one per cell), puddles (panels with neon puddles),
     quiet (panels, no glowing seams)."""
+    return plaza_uv(*mapxy(gx, gy), variant, flat, gx, gy)
+
+
+def plaza_uv(u, v, variant=0, flat=True, gx=None, gy=None):
+    """The plaza at map pixel (u, v) (top-down draws it straight from map pixels; gx, gy: the screen pixel, for
+    puddles)."""
     look = CYBER["plaza"]
-    u, v = mapxy(gx, gy)
+    gx, gy = (u - v, (u + v) // 2) if gx is None else (gx, gy)
     if look in ("pcb", "pcb-green"):
         return pcb_px(u, v, variant, flat)
     if look == "silicon":
@@ -599,6 +606,11 @@ def apply():
     iso.grey_cobble_px = ground.grey_cobble_px = grate_px
     iso.SETS["water"] = ground.water_px = canal_px
     iso.SETS["tallgrass"] = weeds_px
+    ground.grass_top = lambda u, v, variant=0: plaza_uv(u, v, variant)
+    import styles                                                       # the top-down sheet's hooks
+    styles.SHARED[("water", "shared")] = canal_px
+    styles.SHARED[("raised_fill", "tufts")] = lambda sh, x, y, gx, gy, f: plaza_uv(gx, gy, 1, False) if sh.inside(x, y) else None
+    styles.TERRAIN["tallgrass"]["meadow"] = lambda sh, x, y, f, v: weeds_px(styles.TopShape(sh), x, y, *styles.gxy(x, y), f)
     ramp_ = TREE_LEAVES.get(CYBER["trees"])
     if CYBER["trees"] in PARTS:
         import iso_trees
