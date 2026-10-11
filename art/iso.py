@@ -207,7 +207,7 @@ class IsoMap:
     """Same data as preview.Map (terrain names, heights, features, fence/deco, objects at map pixels)."""
 
 
-MARGIN_TREES = ["tree-1-d1", "tree-1-d2", "tree-5-d2", "pine-1", "pine-3", "tree-2-d2", "pine-2", "tree-4-d1", "spruce-2", "oak-3", "pine-5", "tree-4-d2"]   # the same list is in js/iso.js
+MARGIN_TREES = ["tree-1", "tree-2-d2", "oak-3", "pine-3", "cypress-2", "tree-2-d2", "pine-2", "poplar-1", "pine-3", "oak-3", "birch-2", "tree-1"]   # the same list is in js/iso.js
 
 
 def ground_level(m):

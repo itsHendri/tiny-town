@@ -99,6 +99,9 @@ def build_iso_props():
         out.alpha_composite(spr.im, (placed[name]["x"], placed[name]["y"]))
     for old_name, target in (("lamp", "lamp-iso"), ("bench", "bench-iso"), ("barrel", "barrel-iso")):
         placed[old_name] = {**placed[target], "alias": target}
+    from iso_trees import TREE_ALIASES
+    for old_name, target in TREE_ALIASES.items():
+        placed[old_name] = {**placed[target], "alias": target}
     for colour, target in HOUSE_ALIASES.items():
         for size in ("s", "m", "l"):
             placed[f"house-{colour}-{size}"] = {**placed[target], "alias": target}

@@ -84,7 +84,7 @@ def dressing(m, taken, houses):
                             "detail-pebbles-2", "bush-1", "bush-3", "rock-1", "detail-mushrooms"][int(h("dk", c, r) * 10)]
                     out.append((pick, c, r))
             elif not near_road(r, c, 2) and k < 0.10 and not any((c + dc, r + dr) in houses for dr in range(-3, 3) for dc in range(-3, 3)):
-                mix = ["tree-1", "birch-1", "tree-4", "pine-1", "oak-2", "tree-2", "pine-2", "maple-1", "poplar-1", "tree-5", "spruce-2", "birch-2", "tree-3", "pine-4", "oak-3", "willow-1"]
+                mix = ["tree-1", "birch-2", "tree-2-d2", "pine-3", "oak-3", "maple-1", "pine-2", "poplar-1", "cypress-2", "willow-1", "tree-1", "oak-3", "pine-3", "tree-2-d2", "birch-2", "pine-2"]
                 out.append((mix[int(h("tk", c, r) * len(mix))], c, r))
             elif k > 0.93:
                 out.append((["detail-flowers-1", "detail-tuft-2", "bush-2"][int(h("dk2", c, r) * 3)], c, r))
@@ -100,10 +100,10 @@ OBJECTS = [
     ("chalkboard", 11, 16), ("flower-cart", 26, 15), ("bench-iso", 15, 14),
     ("lamp-sign", 7, 17), ("lamp-sign", 11, 14), ("lamp-iso", 18, 14), ("lamp-iso", 13, 24), ("lamp-sign", 21, 8), ("lamp-iso", 7, 11),
     # trees and bushes round the edges and between the houses
-    ("pine-1", 1, 1), ("tree-2", 4, 1), ("pine-3", 7, 0), ("tree-5", 16, 0), ("pine-2", 22, 1), ("tree-1", 26, 2), ("pine-4", 27, 7),
-    ("tree-4", 1, 7), ("pine-1", 0, 12), ("tree-6", 1, 19), ("pine-2", 0, 24), ("tree-3", 3, 27), ("pine-3", 8, 27), ("tree-1", 12, 27),
-    ("pine-1", 18, 27), ("tree-5", 21, 26), ("pine-4", 27, 21), ("tree-2", 26, 25), ("tree-4", 17, 9), ("tree-1", 13, 9),
-    ("tree-3", 10, 6), ("pine-2", 16, 6), ("bush-1", 9, 4), ("bush-2", 14, 7), ("bush-3", 6, 14), ("bush-1", 20, 12),
+    ("pine-3", 1, 1), ("tree-2-d2", 4, 1), ("pine-3", 7, 0), ("oak-3", 16, 0), ("pine-2", 22, 1), ("tree-1", 26, 2), ("cypress-2", 27, 7),
+    ("tree-2-d2", 1, 7), ("pine-3", 0, 12), ("tree-6", 1, 19), ("pine-2", 0, 24), ("maple-1", 3, 27), ("pine-3", 8, 27), ("tree-1", 12, 27),
+    ("pine-3", 18, 27), ("oak-3", 21, 26), ("cypress-2", 27, 21), ("poplar-1", 26, 25), ("tree-1", 17, 9), ("birch-2", 13, 9),
+    ("maple-1", 10, 6), ("pine-2", 16, 6), ("bush-1", 9, 4), ("bush-2", 14, 7), ("bush-3", 6, 14), ("bush-1", 20, 12),
     ("bush-2", 4, 20), ("rock-1", 8, 2), ("rock-2", 15, 2), ("rock-1", 20, 21), ("rock-2", 24, 20), ("bush-3", 25, 9),
     ("tree-6", 21, 17), ("pine-3", 19, 25),
     ("rock-1", 8, 4), ("rock-2", 9, 7), ("rock-1", 15, 6), ("rock-2", 14, 8), ("detail-pebbles-1", 11, 8),

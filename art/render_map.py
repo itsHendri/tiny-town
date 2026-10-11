@@ -58,7 +58,9 @@ def load_map(path, sprite_dir):
         f = {x["__identifier"]: x["__value"] for x in e["fieldInstances"]}
         x, y = e["px"]
         if e["__identifier"] == "Prop":
+            from iso_trees import TREE_ALIASES
             name = ALIASES.get(f.get("sprite"), f.get("sprite"))
+            name = TREE_ALIASES.get(name, name)
             if name in P:
                 m.objects.append((P[name], x, y))
         elif e["__identifier"] == "Character":

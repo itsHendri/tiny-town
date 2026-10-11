@@ -71,7 +71,8 @@ Code MIT (`LICENSE`), art CC BY 4.0 (`LICENSE-art`). Read `README.md` for the us
 * **Palettes** (`art/palettes.py`) swap the colours behind names; `palettes.use()` must run before other art imports.
 * **Props:** isometric buildings, stalls, fences, stairs use a face painter (`Canvas3D` in `art/iso_props.py`).
   Anchors (`ax`, `ay`) and footprints (`foot`) live in `tiles/iso/props.json`; aliases map old names to new ones so old
-  maps keep working. Trees: `art/iso_trees.py` (many kinds, varied per seed); the editor groups them by name regex.
+  maps keep working. Trees: `art/iso_trees.py`, 12 kept kinds (`trees()`); every older tree name is an alias
+  (`TREE_ALIASES`). The editor lists trees and pines together under Trees (name regex in `propGroups`).
 * **Editor** (`js/editor.js`): one state object `S` (projection `"iso"` or top-down, view `S.V`). One active tool,
   `S.tool` (`brush` while a swatch is chosen, `place scatter stamp`, `area` for a new stamp, or `select`: nothing in hand,
   clicks select and drags move or pan); `S.place` / `S.pasting` are only what

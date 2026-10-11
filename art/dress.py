@@ -11,7 +11,7 @@ from dualgrid import h
 ROAD = {1, 2, 5}                 # path, cobbles, bridge
 EDGE = ["detail-tuft-1", "detail-tuft-2", "detail-flowers-1", "detail-flowers-2", "detail-pebbles-1", "detail-pebbles-2",
         "bush-1", "bush-3", "rock-1", "detail-mushrooms"]
-TREES = ["tree-1", "birch-1", "tree-4", "pine-1", "oak-2", "tree-2", "pine-2", "maple-1", "poplar-1", "tree-5", "spruce-2", "birch-2", "tree-3", "pine-4", "oak-3", "willow-1"]
+TREES = ["tree-1", "birch-2", "tree-2-d2", "pine-3", "oak-3", "maple-1", "pine-2", "poplar-1", "cypress-2", "willow-1", "tree-1", "oak-3", "pine-3", "tree-2-d2", "birch-2", "pine-2"]
 FOOT = {"house-red": (2, 2), "house-yellow": (3, 2), "house-blue": (3, 2), "cottage": (2, 2), "townhouse": (2, 2),
         "thatch": (3, 2), "longhouse": (3, 2), "stall": (2, 1)}
 

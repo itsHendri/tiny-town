@@ -236,41 +236,32 @@ def cypress(seed, size=1.0):
     return tight(s).outline()
 
 
-def trees():
-    """Every tree by its catalog name. tree-N and pine-N are kept (old maps use them), each now a different kind."""
-    out = {}
-    kinds = [("oak", 1.0, "green"), ("wide", 0.95, "olive"), ("oak", 1.0, "autumn"), ("tall", 1.05, "deep"),
-             ("oak", 1.3, "green"), (None, 0.95, "fruit")]
-    for dark in (0, 1, 2):
-        for k, (kind, size, leaves) in enumerate(kinds):
-            name = f"tree-{k + 1}" + (f"-d{dark}" if dark else "")
-            if kind is None:
-                out[name] = fruit_tree(f"t{k}", size, dark=dark)
-            else:
-                out[name] = broadleaf(kind, f"t{k}", size, dark, leaves)
-    out["pine-1"] = spruce("p1", 1.0)
-    out["pine-2"] = scots_pine("p2", 1.0)
-    out["pine-3"] = spruce("p3", 1.3, dark=True)
-    out["pine-4"] = cypress("p4", 1.0)
-    out.update({
-        "birch-1": birch("b1", 1.0), "birch-2": birch("b2", 1.15),
-        "poplar-1": poplar("q1", 1.0), "poplar-2": poplar("q2", 1.15),
-        "willow-1": willow("w1", 1.0),
-        "maple-1": broadleaf("lopsided", "m1", 1.05, 0, "rust"), "maple-2": broadleaf("small", "m2", 0.9, 0, "autumn"),
-        "blossom-1": broadleaf("small", "c1", 0.9, 0, "blossom"),
-        "fruit-2": fruit_tree("f2", 0.9, fruit=("fl_o", "fl_y")),
-        "oak-2": broadleaf("lopsided", "o2", 1.15, 0, "green"), "oak-3": broadleaf("wide", "o3", 1.2, 1, "deep"),
-        "spruce-2": spruce("s2", 0.85), "pine-5": scots_pine("p5", 1.2), "cypress-2": cypress("c2", 1.15),
-    })
-    return out
+# Trees kept 2026-10-11 (tree round: one per distinct shape). Every other old name points at the closest kept tree.
+TREE_ALIASES = {
+    "birch-1": "birch-2", "fruit-2": "tree-6", "maple-2": "maple-1", "oak-2": "oak-3", "pine-1": "pine-3",
+    "pine-4": "cypress-2", "pine-5": "pine-2", "poplar-2": "poplar-1", "spruce-2": "pine-3",
+    "tree-1-d1": "tree-1", "tree-1-d2": "tree-2-d2", "tree-2": "tree-1", "tree-2-d1": "tree-2-d2",
+    "tree-3": "maple-1", "tree-3-d1": "maple-1", "tree-3-d2": "maple-1", "tree-4": "tree-1", "tree-4-d1": "oak-3",
+    "tree-4-d2": "oak-3", "tree-5": "tree-1", "tree-5-d1": "tree-2-d2", "tree-5-d2": "oak-3",
+    "tree-6-d1": "tree-6", "tree-6-d2": "tree-6",
+}
 
+
+def trees():
+    """Every tree by its catalog name (old names: TREE_ALIASES)."""
+    return {
+        "tree-1": broadleaf("oak", "t0", 1.0, 0, "green"), "tree-2-d2": broadleaf("wide", "t1", 0.95, 2, "olive"),
+        "tree-6": fruit_tree("t5", 0.95, dark=0), "oak-3": broadleaf("wide", "o3", 1.2, 1, "deep"),
+        "maple-1": broadleaf("lopsided", "m1", 1.05, 0, "rust"), "blossom-1": broadleaf("small", "c1", 0.9, 0, "blossom"),
+        "birch-2": birch("b2", 1.15), "poplar-1": poplar("q1", 1.0), "willow-1": willow("w1", 1.0),
+        "pine-2": scots_pine("p2", 1.0), "pine-3": spruce("p3", 1.3, dark=True), "cypress-2": cypress("c2", 1.15),
+    }
 
 if __name__ == "__main__":
     import palettes
     from PIL import Image
     palettes.use(sys.argv[2] if len(sys.argv) > 2 else palettes.DEFAULT)
     ts = list(trees().items())
-    ts = [kv for kv in ts if "-d" not in kv[0]]
     W = sum(s.w for _, s in ts) + 6 * len(ts)
     H = max(s.h for _, s in ts)
     sheet = Image.new("RGBA", (W, H), (142, 164, 63, 255))

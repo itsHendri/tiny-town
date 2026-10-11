@@ -300,7 +300,7 @@ export function bakeIso(m, ts, view, { objects = true, woods = true, frames: onl
       items.push([c + r, 1, e]);
     }
     if (objects && woods && M) {                           // the light wood round the edge (the editor leaves it out: its grass runs on forever)
-      const trees = ["tree-1-d1", "tree-1-d2", "tree-5-d2", "pine-1", "pine-3", "tree-2-d2", "pine-2", "tree-4-d1", "spruce-2", "oak-3", "pine-5", "tree-4-d2"];   // the same list is in art/iso.py
+      const trees = ["tree-1", "tree-2-d2", "oak-3", "pine-3", "cypress-2", "tree-2-d2", "pine-2", "poplar-1", "pine-3", "oak-3", "birch-2", "tree-1"];   // the same list is in art/iso.py
       for (let r = -M; r < rows + M; r++) for (let c = -M; c < cols + M; c++) {
         if ((c >= 0 && r >= 0 && c < cols && r < rows) || ihash(c & 0xffff, r & 0xffff, 11) >= marginTrees(c, r, cols, rows)) continue;
         if (runOn(r, c)) continue;                         // keep the road or river leaving the map clear
