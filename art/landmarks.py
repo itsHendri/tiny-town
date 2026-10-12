@@ -13,8 +13,9 @@ from dualgrid import h
 from sprites import Sprite, rng, tight
 
 NAMES = ["tank", "pylon", "station", "street-pole", "monument", "mast"]
-TWINS = {"tank": "water-tower", "pylon": "windmill", "station": "shed", "street-pole": "lantern-post",
-         "monument": "standing-stone", "mast": "bell-tower"}
+# picked 2026-10-12 (cottage twins builder)
+TWINS = {"tank": "water-tower", "pylon": "windpump", "station": "woodshed", "street-pole": "hanging-lantern",
+         "monument": "standing-stone", "mast": "maypole"}
 OVERRIDE = None          # a theme's {name: () -> Sprite}
 
 
