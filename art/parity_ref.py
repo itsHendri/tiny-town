@@ -56,9 +56,16 @@ write(d, "iso-ref-dig", margin=2)
 from PIL import Image
 from iso_nature import nature
 
+import iso_market
+
 N = nature()
-spots = [("tree-1", 40, 90), ("oak-3", 121, 95), ("pine-3", 200, 100), ("rock-1", 260, 100)]
-cv = Image.new("RGBA", (300, 120), (0, 0, 0, 0))
+N.update({n: iso_market.make(n) for n in ("barrel-iso", "crates", "flower-cart")})
+for n, draw in iso_market.PLAIN.items():
+    N[n] = draw()
+    N[n].shadow = n == "well"
+spots = [("tree-1", 40, 90), ("oak-3", 121, 95), ("pine-3", 200, 100), ("rock-1", 260, 100), ("barrel-iso", 300, 100),
+         ("crates", 335, 101), ("flower-cart", 375, 100), ("well", 410, 105), ("crate", 440, 100)]
+cv = Image.new("RGBA", (460, 120), (0, 0, 0, 0))
 for name, x, y in spots:
     iso.place(cv, N[name], x, y)
 cv.save(ROOT / "out" / "shadow-ref.png")

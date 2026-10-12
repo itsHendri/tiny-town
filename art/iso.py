@@ -551,11 +551,22 @@ def shadow_pixels(X, Y, w):
     return out
 
 
+def ground_shadow(canvas, X, Y, w):
+    sh = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+    px, col = sh.load(), RGB["shade"][:3]
+    for (x, y), a in shadow_pixels(X, Y, w).items():
+        if 0 <= x < sh.width and 0 <= y < sh.height:
+            px[x, y] = col + (a,)
+    canvas.alpha_composite(sh)
+
+
 def place(canvas, spr, X, Y):
     """A sprite with its feet at screen (X, Y), with its ground shadow (unless spr.shadow is False). A building (a
     sprite with an `anchor`) is placed so its anchor (its front cell's centre) lands on (X, Y), without a shadow."""
     if getattr(spr, "anchor", None):
         left, top = int(round(X - spr.anchor[0])), int(round(Y - spr.anchor[1]))
+        if getattr(spr, "ground_shadow", False):                 # market things: the same pool shadow
+            ground_shadow(canvas, X, Y, spr.w)
         canvas.alpha_composite(spr.im, (left, top))
         if getattr(spr, "smoke", None):
             sm = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
@@ -568,12 +579,7 @@ def place(canvas, spr, X, Y):
             canvas.alpha_composite(sm)
         return
     if getattr(spr, "shadow", True):
-        sh = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
-        px, col = sh.load(), RGB["shade"][:3]
-        for (x, y), a in shadow_pixels(X, Y, spr.w).items():
-            if 0 <= x < sh.width and 0 <= y < sh.height:
-                px[x, y] = col + (a,)
-        canvas.alpha_composite(sh)
+        ground_shadow(canvas, X, Y, spr.w)
     canvas.alpha_composite(spr.im, (math.floor(X - spr.w / 2), math.floor(Y - spr.h)))
 
 if __name__ == "__main__":

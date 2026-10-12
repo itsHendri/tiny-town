@@ -170,6 +170,49 @@ def flower_cart():
     return finish(cv, 1, 1)
 
 
+def well_iso():
+    """A stone well with a little shingle roof on two posts and a bucket, drawn for the angle (a plain prop)."""
+    from landmarks import cylinder
+    from sprites import tight
+    s = Sprite(26, 36)
+    cx, base = 13, 32
+    cylinder(s, cx, base, 9, 7, ("s0", "s1", "s2"), ("s1", "s2"))
+    for y in range(int(base - 7 - 2), int(base - 7 + 3)):          # the water inside the ring
+        for x in range(cx - 7, cx + 8):
+            if ((x + 0.5 - cx) / 6.5) ** 2 + ((y + 0.5 - (base - 7)) / 2.6) ** 2 <= 1:
+                s.put(x, y, "w3" if x < cx else "w2")
+    for k in (3, 6):                                               # courses on the ring
+        for x in range(cx - 9, cx + 10):
+            dx = x + 0.5 - cx
+            if h("wc", x, k) < 0.7:
+                s.put(x, int(base - k + 4.5 * math.sqrt(max(0, 1 - (dx / 9) ** 2))), "s2" if dx < 3 else "s3")
+    for px_ in (cx - 8, cx + 7):                                   # posts, a roller, the roof
+        s.rect(px_, base - 22, 2, 15, "k2" if px_ < cx else "k3")
+    s.rect(cx - 7, base - 18, 15, 1, "k1")
+    for j in range(5):
+        for x in range(cx - 10 + j, cx + 11 - j):
+            s.put(x, base - 23 - j, "r1" if x < cx else "r2")
+    s.rect(cx + 1, base - 16, 3, 3, "k1"); s.put(cx + 2, base - 17, "k3")       # the bucket on its rope
+    return tight(s).outline()
+
+
+def crate_iso():
+    """An empty wooden crate, drawn for the angle (a plain prop)."""
+    from sprites import tight
+    cv = Canvas3D(24, 22, 12, 12)
+    box(cv, 1, 1, 0, 9, 8, 7, lambda s, t, su, tu: "k1" if 0.8 < su < 8.2 and 0.8 < tu < 7.2 else "k0")
+    s = cv.s
+    x0, y0, x1, y1 = s.im.getbbox()
+    out = Sprite(x1 - x0, y1 - y0)
+    out.im.paste(s.im.crop((x0, y0, x1, y1)), (0, 0)); out.px = out.im.load()
+    return tight(out).outline()
+
+
+# Plain props (feet at the bottom middle) drawn here instead of the top-down catalog's flat ones; same names.
+PLAIN = {"well": well_iso, "crate": crate_iso}
+SHADOWED = ("barrel-iso", "crates", "flower-cart")    # market things that cast a ground shadow
+
+
 MARKET = {
     "stall-red": lambda: stall("red", ("tomatoes", "apples", "lemons")),
     "stall-green": lambda: stall("green", ("cabbages", "carrots", "lemons")),
@@ -187,6 +230,13 @@ MARKET = {
     "flower-cart": flower_cart,
 }
 FOOTPRINTS = {name: [2, 1] for name in MARKET if name.startswith("stall")}
+
+
+def make(name):
+    """A market thing by name, marked if it casts a ground shadow (iso.place and js/render.js draw it)."""
+    spr = MARKET[name]()
+    spr.ground_shadow = name in SHADOWED
+    return spr
 
 
 if __name__ == "__main__":

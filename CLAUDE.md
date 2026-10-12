@@ -161,11 +161,11 @@ existing values. If the format must change, bump `tinyTownVersion` in `js/format
   }
   {                                                                     // props and their ground shadows
     const spots = await (await fetch("/out/shadow-ref.json", { cache: "reload" })).json();
-    const c = document.createElement("canvas"); c.width = 300; c.height = 120; const g = c.getContext("2d");
+    const c = document.createElement("canvas"); c.width = 460; c.height = 120; const g = c.getContext("2d");
     for (const [n, x, y] of spots) R.drawProp(g, ts, n, x, y);
     const im = await new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = "/out/shadow-ref.png?" + Date.now(); });
-    const c2 = document.createElement("canvas"); c2.width = 300; c2.height = 120; c2.getContext("2d").drawImage(im, 0, 0);
-    const A = g.getImageData(0, 0, 300, 120).data, B = c2.getContext("2d").getImageData(0, 0, 300, 120).data;
+    const c2 = document.createElement("canvas"); c2.width = 460; c2.height = 120; c2.getContext("2d").drawImage(im, 0, 0);
+    const A = g.getImageData(0, 0, 460, 120).data, B = c2.getContext("2d").getImageData(0, 0, 460, 120).data;
     let big = 0; for (let i = 0; i < A.length; i += 4) if (Math.max(...[0, 1, 2, 3].map((k) => Math.abs(A[i + k] - B[i + k]))) > 3) big++;
     res.shadows = big;
   }

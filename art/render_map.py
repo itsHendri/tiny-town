@@ -37,7 +37,10 @@ def props():
         spr.shadow = shadow
     out.update(nature())
     out.update({name: iso_props.house(**kw)[0] for name, kw in iso_props.HOUSES.items()})
-    out.update({name: make() for name, make in iso_market.MARKET.items()})
+    out.update({name: iso_market.make(name) for name in iso_market.MARKET})
+    for name, draw in iso_market.PLAIN.items():
+        out[name] = draw()
+        out[name].shadow = name == "well"
     from landmarks import landmarks
     out.update(landmarks())
     return out

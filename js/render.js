@@ -140,7 +140,8 @@ export function drawProp(ctx, ts, name, x, y) {
   const p = ts.props[name];
   if (!p) return false;
   if (p.ax !== undefined) {                                  // drawn in 3D: its anchor is its front cell's centre
-    if (p.shadow) {
+    if (p.shadow && ts.json.shadow) groundShadow(ctx, ts.json.shadow, x, y, p.w);   // the same pool as trees
+    else if (p.shadow) {
       ctx.fillStyle = "rgba(38, 30, 22, 0.25)";
       ctx.beginPath(); ctx.ellipse(Math.round(x), Math.round(y), Math.min(10, p.w * 0.4), 3, 0, 0, Math.PI * 2); ctx.fill();
     }

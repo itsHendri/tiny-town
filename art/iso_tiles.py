@@ -87,13 +87,15 @@ def build_iso_props():
     from iso_ground import uprights
     for name, spr in uprights().items():
         items[name] = (spr, False, {"ax": spr.anchor[0], "ay": spr.anchor[1]})
-    from iso_market import FOOTPRINTS, MARKET
-    for name, make in MARKET.items():
-        spr = make()
+    import iso_market
+    for name in iso_market.MARKET:
+        spr = iso_market.make(name)
         extra = {"ax": spr.anchor[0], "ay": spr.anchor[1]}
-        if name in FOOTPRINTS:
-            extra["foot"] = FOOTPRINTS[name]
-        items[name] = (spr, name in ("barrel-iso", "crates", "flower-cart"), extra)
+        if name in iso_market.FOOTPRINTS:
+            extra["foot"] = iso_market.FOOTPRINTS[name]
+        items[name] = (spr, spr.ground_shadow, extra)
+    for name, draw in iso_market.PLAIN.items():                # the well and crate, drawn for the angle
+        items[name] = (draw(), name == "well", {})
     order = sorted(items.items(), key=lambda kv: -kv[1][0].h)
     W, x, y, shelf, placed = 512, 0, 0, 0, {}
     for name, (spr, shadow, extra) in order:
