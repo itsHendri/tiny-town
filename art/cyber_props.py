@@ -358,3 +358,160 @@ def ground(switch):
         iso_ground.flowers_iso = flowers_shroom
     if switch.get("crops") == "neon":
         iso_ground.crops_iso = crops_hydro
+
+
+# ---------- nature bits (art/iso_nature.py): bushes, rocks, the small details ----------
+
+def _line(s, x0, y0, x1, y1, c):
+    n = int(max(abs(x1 - x0), abs(y1 - y0))) + 1
+    for k in range(n):
+        t = k / max(1, n - 1)
+        s.put(round(x0 + (x1 - x0) * t), round(y0 + (y1 - y0) * t), c)
+
+
+def fibre_bush(seed):
+    """A small fibre tuft: straight strands fanning up from one root, glowing tips (the fibre trees' cousin)."""
+    from sprites import rng
+    r = rng("fibush", seed)
+    s = Sprite(20, 15)
+    rx, ry = 10, 13
+    tip = ("neon_b", "fl_p", "neon_c")[int(h("fbt", seed) * 3)]
+    for k in range(9):
+        a = math.pi * (0.12 + 0.76 * k / 8) + r.uniform(-0.08, 0.08)
+        ln = r.uniform(7, 11)
+        x, y = rx - math.cos(a) * ln * 0.95, ry - math.sin(a) * ln
+        _line(s, rx, ry, x, y, "p3" if k % 2 else "lf1")
+        s.put(round(x), round(y), "fl_w"); s.put(round(x) + 1, round(y), tip)
+    return tight(s).outline()
+
+
+def led_shrub(seed):
+    """A dark rounded shrub, dotted with little lights."""
+    from sprites import rng
+    r = rng("ledsh", seed)
+    s = Sprite(20, 15)
+    for (x, y, rr) in [(6, 8, 5.5), (13, 8, 5.5), (9.5, 5, 5.5)]:
+        for j in range(15):
+            for i in range(20):
+                dx, dy = i + 0.5 - x, j + 0.5 - y
+                if dx * dx + dy * dy <= rr * rr:
+                    lit = -(dx + dy) / rr
+                    s.put(i, j, "lf1" if lit > 0.7 else "lf3" if lit < -0.4 or j > 11 else "lf2")
+    col = r.choice(["neon_a", "neon_b", "neon_c"])
+    for _ in range(10):
+        x, y = r.randint(3, 16), r.randint(2, 11)
+        if s.get(x, y)[3]:
+            s.put(x, y, col if r.random() < 0.7 else "fl_w")
+    return tight(s).outline()
+
+
+def _small_box(w, d, hgt, lit, dark, top):
+    cv = Canvas3D(int(w + d + 8), int((w + d) / 2 + hgt + 8), int(d + 4), int(hgt + 4))
+    cv.face((0, d, 0), (w, 0, 0), (0, 0, hgt), lit)
+    cv.face((w, d, 0), (0, -d, 0), (0, 0, hgt), dark)
+    cv.face((0, 0, hgt), (w, 0, 0), (0, d, 0), top)
+    return cv
+
+
+def _crop(cv):
+    s = cv.s
+    x0, y0, x1, y1 = s.im.getbbox()
+    out = Sprite(x1 - x0, y1 - y0)
+    out.im.paste(s.im.crop((x0, y0, x1, y1)), (0, 0)); out.px = out.im.load()
+    return tight(out).outline()
+
+
+def concrete_block(seed):
+    """A broken concrete block, rebar sticking out of its top."""
+    from iso_props import proj
+    w = 9 if h("cbw", seed) < 0.5 else 11
+    cv = _small_box(w, 6, 5, lambda s, t, su, tu: "c2" if (su + tu * 2) % 7 < 0.8 else "c1",
+                    lambda *a: "c3", lambda s, t, su, tu: "c1" if su < w - 2 or tu > 2 else None)
+    for k in range(2):                                                # rebar
+        x, y = proj(2 + k * 4, 3, 5)
+        for j in range(4 + k):
+            cv.s.put(int(x + cv.ox + j * 0.4), int(y + cv.oy - j), "s2" if j < 3 + k else "cb2")
+    return _crop(cv)
+
+
+def scrap(seed):
+    """A small pile of scrap: plates, a pipe, one glowing part."""
+    from sprites import rng
+    r = rng("scrap", seed)
+    s = Sprite(16, 10)
+    for k in range(4):
+        x, y = r.randint(1, 10), r.randint(4, 7)
+        w, hh = r.randint(3, 5), r.randint(2, 3)
+        s.rect(x, y, w, hh, ("s1", "s2", "vh1", "b2")[k])
+        s.rect(x, y, w, 1, ("s0", "s1", "vh0", "b1")[k])
+    s.rect(4, 3, 7, 2, "s1"); s.rect(4, 3, 7, 1, "s0")                # the pipe
+    s.put(r.randint(3, 11), r.randint(5, 7), "neon_b")
+    return tight(s).outline()
+
+
+def bolts(seed):
+    """Nuts and bolts on the ground."""
+    from sprites import rng
+    r = rng("bolts", seed)
+    s = Sprite(14, 7)
+    for _ in range(4):
+        x, y = r.randint(2, 11), r.randint(2, 5)
+        s.rect(x, y, 2, 2, "s1"); s.put(x, y, "s0"); s.put(x + 1, y + 1, "s2")
+    return tight(s).outline()
+
+
+def cables(seed):
+    """Cables poking up out of the ground, glowing at the ends."""
+    from sprites import rng
+    r = rng("cables", seed)
+    s = Sprite(12, 10)
+    for k in range(4):
+        x0 = 2 + k * 2.4
+        hgt = r.randint(4, 8)
+        lean = r.uniform(-2, 2)
+        for j in range(hgt):
+            s.put(int(x0 + lean * (j / hgt) ** 2), 9 - j, "vh1" if k % 2 else "vh0")
+        s.put(int(x0 + lean), 9 - hgt, ("neon_b", "fl_p", "neon_c", "neon_a")[k])
+    return tight(s)
+
+
+def led_flowers(seed):
+    """Little stems with neon heads."""
+    from sprites import rng
+    r = rng("ledfl", seed)
+    s = Sprite(12, 10)
+    col = r.choice(["neon_a", "neon_b", "neon_c"])
+    for k in range(5):
+        x, y = r.randint(2, 9), r.randint(2, 6)
+        s.put(x, y + 1, "vh1"); s.put(x, y + 2, "vh1"); s.put(x, y + 3, "vh1")
+        s.put(x, y, col); s.put(x, y - 1, "fl_w")
+    return tight(s).outline()
+
+
+def glow_shrooms(seed):
+    """Glowing mushrooms."""
+    from sprites import rng
+    r = rng("gshroom", seed)
+    s = Sprite(12, 9)
+    for k in range(r.randint(2, 3)):
+        x = 2 + k * 4 + r.randint(0, 1)
+        s.rect(x, 5, 1, 3, "lf1")
+        s.rect(x - 2, 3, 5, 2, "neon_b"); s.rect(x - 1, 2, 3, 1, "neon_b"); s.put(x - 1, 2, "fl_w")
+    return tight(s).outline()
+
+
+def nature(switch):
+    """Patches for art/iso_nature.py per CYBER switch: bushes recolour / fibre / led, rocks recolour / concrete /
+    scrap, details recolour / neon."""
+    import iso_nature
+    if switch.get("bushes") == "fibre":
+        iso_nature.flower_bush = fibre_bush
+    elif switch.get("bushes") == "led":
+        iso_nature.flower_bush = led_shrub
+    if switch.get("rocks") == "concrete":
+        iso_nature.mossy_rock = concrete_block
+    elif switch.get("rocks") == "scrap":
+        iso_nature.mossy_rock = scrap
+    if switch.get("details") == "neon":
+        iso_nature.pebbles, iso_nature.tuft = bolts, cables
+        iso_nature.flower_clump, iso_nature.mushrooms = led_flowers, glow_shrooms

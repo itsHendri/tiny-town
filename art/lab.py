@@ -12,6 +12,7 @@ plus a picker page with a pick and a note per option: out/lab/<round>/index.html
     python art/lab.py twin-builder     # the landmarks' cottage twins, on a village lane
     python art/lab.py street-builder   # Neon city twins of the street and market things
     python art/lab.py ground-builder   # Neon city twins of the ground pieces
+    python art/lab.py nature-builder   # Neon city twins of the bushes, rocks and small details
 
 Serve the repo (python3 -m http.server 8000) and open http://localhost:8000/out/lab/<round>/.
 """
@@ -557,7 +558,16 @@ GROUND_GROUPS = [
                              ("shrooms", "Glow mushrooms", "Small glowing mushroom caps.")]),
     ("crops", "Crops", [RECOLOUR, ("neon", "Hydroponics", "Glowing sprouts along metal channels.")]),
 ]
-BUILDERS = {"ground-builder": ("Neon ground pieces", GROUND_GROUPS, "ground"),
+NATURE_GROUPS = [
+    ("bushes", "Bushes", [RECOLOUR, ("fibre", "Fibre tufts", "Small fibre tufts, the fibre trees' cousins."),
+                          ("led", "LED shrubs", "Dark rounded shrubs dotted with lights.")]),
+    ("rocks", "Rocks", [RECOLOUR, ("concrete", "Concrete blocks", "Broken concrete, rebar sticking out."),
+                        ("scrap", "Scrap piles", "Plates, a pipe, one glowing part.")]),
+    ("details", "Small details", [RECOLOUR, ("neon", "Neon details", "Nuts and bolts, cables with glowing ends, "
+                                             "LED flowers, glowing mushrooms.")]),
+]
+BUILDERS = {"nature-builder": ("Neon nature bits", NATURE_GROUPS, "nature"),
+            "ground-builder": ("Neon ground pieces", GROUND_GROUPS, "ground"),
             "street-builder": ("Neon street and market", STREET_GROUPS, "market"),
             "twin-builder": ("Cottage twins", TWIN_GROUPS, "twins"), "cyber-builder": ("Cyber builder", CYBER_GROUPS), "chip-builder": ("Circuit builder", CHIP_GROUPS),
             "city-builder": ("Neon city polish", CITY_GROUPS), "tree-builder": ("Cyber trees", TREE_GROUPS, "park"),
@@ -656,6 +666,20 @@ def ground_street():
     return m, spots
 
 
+def nature_street():
+    """A walkway through the plaza, bushes, rocks and the small details scattered along it, fibre trees, a block."""
+    import preview
+    m = preview.Map(16, 10)
+    m.fill("terrain", 4, 0, 6, 16, "path")
+    spots = [("townhouse", 14, 3), ("tree-1", 3, 2), ("pine-3", 9, 1), ("tree-2-d2", 6, 8)]
+    things = ["bush-1", "bush-2", "bush-3", "rock-1", "rock-2", "detail-pebbles-1", "detail-pebbles-2", "detail-tuft-1",
+              "detail-tuft-2", "detail-flowers-1", "detail-flowers-2", "detail-mushrooms"]
+    for k, n in enumerate(things):
+        c, r = 1 + (k * 5) % 14, (3 if k % 2 else 7) + (k % 3 == 0)
+        spots.append((n, c, r))
+    return m, spots
+
+
 def twins_one(name, key):
     import landmarks
     combo = list(map(int, key.split("-")))
@@ -692,7 +716,7 @@ def cyber_builder_one(name, key):
     P = props()
     scene = BUILDERS[name][2] if len(BUILDERS[name]) > 2 else None
     m, spots = (cyber_park() if scene == "park" else market_street() if scene == "market" else
-                ground_street() if scene == "ground" else cyber_street())
+                ground_street() if scene == "ground" else nature_street() if scene == "nature" else cyber_street())
     for nm, c, r in spots:
         spr = iso_props.house(**iso_props.HOUSES[nm])[0] if nm in iso_props.HOUSES else P[nm]
         m.objects.append((spr, c * 16 + 8, (r + 1) * 16))

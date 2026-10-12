@@ -76,7 +76,10 @@ CYBER = {"plaza": "panels", "canal": "coolant", "walkway": "tiles", "windows": "
          # ground pieces (cyber_props.ground): fences recolour / rail / glass, the rest recolour / neon (beds: led, shrooms);
          # picked 2026-10-12: glass fences, LED stairs, hydroponics, the rest recoloured
          "fences": "glass", "rails": "recolour", "stairs": "neon", "deck": "recolour", "beds": "recolour",
-         "crops": "neon"}
+         "crops": "neon",
+         # nature bits (cyber_props.nature): bushes recolour / fibre / led, rocks recolour / concrete / scrap,
+         # details recolour / neon
+         "bushes": "recolour", "rocks": "recolour", "details": "recolour"}
 # Trees stay trees in the city (a dense wood reads as a glowing park): CYBER["trees"] for broadleaf kinds and
 # CYBER["pines"] for conifers: neon, holo, biolum (dark crowns, glowing specks), outline (dark, a neon rim),
 # cable (crowns of wire bundles, broadleaf only); "planter": trees standing in lit planter boxes. "tech-<concept>":
@@ -940,6 +943,7 @@ def apply():
     import cyber_props                                                # street and market twins
     import iso_market
     cyber_props.ground(CYBER)
+    cyber_props.nature(CYBER)
     m, plain = cyber_props.market(CYBER)
     gl = (lambda spr: glow(spr, reach=2.2)) if CYBER["glow"] == "on" else (lambda spr: spr)
 
