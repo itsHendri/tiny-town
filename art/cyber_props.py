@@ -449,6 +449,28 @@ def scrap(seed):
     return tight(s).outline()
 
 
+def connector(seed):
+    """Rocks as connector chips: rock-1 a pin header (a black block, a row of gold pins standing up), rock-2 a small
+    chip (a black square, silver legs, a pin-one dot)."""
+    from iso_props import proj
+    header = str(seed).endswith("0")
+    if header:
+        w, d, hgt = 12, 4, 3
+        cv = _small_box(w, d, hgt, lambda *a: "vh1", lambda *a: "vh2", lambda *a: "vh0")
+        for k in range(5):                                            # the pins
+            x, y = proj(1.5 + k * 2.2, d / 2, hgt)
+            for j in range(4):
+                cv.s.put(int(x + cv.ox), int(y + cv.oy - j), "cb0" if j == 3 else "cb1")
+        return _crop(cv)
+    w = d = 8
+    cv = _small_box(w, d, 2, lambda *a: "vh1", lambda *a: "vh2",
+                    lambda s, t, su, tu: "fl_w" if (su - 1.6) ** 2 + (tu - 1.6) ** 2 < 0.7 else "vh0")
+    for k in range(3):                                                # legs on the two front sides
+        cv.face((1.5 + k * 2.5, d, 0), (0.9, 0, 0), (0, 1.6, 0), lambda *a: "s0")
+        cv.face((w, 1.5 + k * 2.5, 0), (1.6, 0, 0), (0, 0.9, 0), lambda *a: "s1")
+    return _crop(cv)
+
+
 def bolts(seed):
     """Nuts and bolts on the ground."""
     from sprites import rng
@@ -512,6 +534,8 @@ def nature(switch):
         iso_nature.mossy_rock = concrete_block
     elif switch.get("rocks") == "scrap":
         iso_nature.mossy_rock = scrap
+    elif switch.get("rocks") == "connector":
+        iso_nature.mossy_rock = connector
     if switch.get("details") == "neon":
         iso_nature.pebbles, iso_nature.tuft = bolts, cables
         iso_nature.flower_clump, iso_nature.mushrooms = led_flowers, glow_shrooms

@@ -562,7 +562,8 @@ NATURE_GROUPS = [
     ("bushes", "Bushes", [RECOLOUR, ("fibre", "Fibre tufts", "Small fibre tufts, the fibre trees' cousins."),
                           ("led", "LED shrubs", "Dark rounded shrubs dotted with lights.")]),
     ("rocks", "Rocks", [RECOLOUR, ("concrete", "Concrete blocks", "Broken concrete, rebar sticking out."),
-                        ("scrap", "Scrap piles", "Plates, a pipe, one glowing part.")]),
+                        ("scrap", "Scrap piles", "Plates, a pipe, one glowing part."),
+                        ("connector", "Connector chips", "A pin header and a small chip with silver legs.")]),
     ("details", "Small details", [RECOLOUR, ("neon", "Neon details", "Nuts and bolts, cables with glowing ends, "
                                              "LED flowers, glowing mushrooms.")]),
 ]
