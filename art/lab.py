@@ -8,6 +8,7 @@ plus a picker page with a pick and a note per option: out/lab/<round>/index.html
     python art/lab.py chip-builder     # the same for the circuit-board concepts
     python art/lab.py city-builder     # neon city polish: before / after for each change
     python art/lab.py tree-builder     # cyber trees, in a dense wood
+    python art/lab.py tech-builder     # tech trees (tech objects that read as trees), in a dense wood
 
 Serve the repo (python3 -m http.server 8000) and open http://localhost:8000/out/lab/<round>/.
 """
@@ -514,8 +515,20 @@ TREE_GROUPS = [   # cyber trees: trees stay trees, judged in a dense wood
                              ("yes", "Lit planters", "Broadleaf trees in concrete boxes with a lit rim.")]),
     ("glow", "Glow", [("on", "On", "Neon pixels get a soft halo."), ("off", "Off", "No halo.")]),
 ]
+TECH_GROUPS = [   # tech trees: tech objects that read as trees (after Hendri's references)
+    ("trees", "Tech trees", [("outline", "Neon outline", "The last round's best: dark trees with a neon rim."),
+                             ("tech-data", "Data tree", "Dark crown, glowing cubes, light dropping from them, a lit "
+                              "pedestal."),
+                             ("tech-circuit", "Circuit tree", "Angular crown, traces fanning out from a chip, gold "
+                              "vias, a neon outline."),
+                             ("tech-wire", "Wireframe hologram", "See-through crown with scanlines over a projector."),
+                             ("tech-voxel", "Voxel tree", "A crown of little glowing iso cubes."),
+                             ("tech-fibre", "Fibre tree", "Straight fibres fanning up, glowing tips.")]),
+    ("glow", "Glow", [("on", "On", "Neon pixels get a soft halo."), ("off", "Off", "No halo.")]),
+]
 BUILDERS = {"cyber-builder": ("Cyber builder", CYBER_GROUPS), "chip-builder": ("Circuit builder", CHIP_GROUPS),
-            "city-builder": ("Neon city polish", CITY_GROUPS), "tree-builder": ("Cyber trees", TREE_GROUPS, "park")}
+            "city-builder": ("Neon city polish", CITY_GROUPS), "tree-builder": ("Cyber trees", TREE_GROUPS, "park"),
+            "tech-builder": ("Tech trees", TECH_GROUPS, "park")}
 
 
 def cyber_park():
@@ -569,6 +582,8 @@ def cyber_builder_one(name, key):
     combo = list(map(int, key.split("-")))
     for (gk, _, opts), i in zip(BUILDERS[name][1], combo):
         theme_cyber.CYBER[gk] = opts[i][0]
+    if name == "tech-builder" and theme_cyber.CYBER["trees"] == "outline":
+        theme_cyber.CYBER["pines"] = "outline"
     palettes.PALETTES["cyber"] = theme_cyber.tweak(theme_cyber.palette(**theme_cyber.LOOKS[theme_cyber.PICK]))
     palettes.use("cyber")
     import iso

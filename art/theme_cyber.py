@@ -71,7 +71,8 @@ CYBER = {"plaza": "panels", "canal": "coolant", "walkway": "tiles", "windows": "
          "parts": "city", "signs": "varied", "glow": "on", "roofs": "busy", "pines": "neon", "planter": "no"}
 # Trees stay trees in the city (a dense wood reads as a glowing park): CYBER["trees"] for broadleaf kinds and
 # CYBER["pines"] for conifers: neon, holo, biolum (dark crowns, glowing specks), outline (dark, a neon rim),
-# cable (crowns of wire bundles, broadleaf only); "planter": trees standing in lit planter boxes.
+# cable (crowns of wire bundles, broadleaf only); "planter": trees standing in lit planter boxes. "tech-<concept>":
+# tech objects that read as trees, every kind (art/tech_trees.py: data, circuit, wire, voxel, fibre).
 # Polish switches (neon city polish round, picked 2026-10-11: city, random, varied, on, busy): parts v1 / city (city-scale tech), windows random / calm (a colour per
 # floor, half dark), signs one / varied (blade signs, billboards), glow off / on (halos, light spill), roofs plain / busy.
 
@@ -896,7 +897,13 @@ def apply():
     styles.TERRAIN["tallgrass"]["meadow"] = lambda sh, x, y, f, v: weeds_px(styles.TopShape(sh), x, y, *styles.gxy(x, y), f)
     ramp_ = TREE_LEAVES.get(CYBER["trees"])
     pine_ramp = TREE_LEAVES.get(CYBER["pines"])
-    if CYBER["trees"] not in PARTS:
+    if CYBER["trees"].startswith("tech-"):                             # tech trees (art/tech_trees.py)
+        import iso_trees
+        import tech_trees
+        concept = CYBER["trees"][5:]
+        iso_trees.trees = lambda: {n: (glow(spr, reach=2.2) if CYBER["glow"] == "on" else spr)
+                                   for n, spr in tech_trees.trees(concept).items()}
+    elif CYBER["trees"] not in PARTS:
         import iso_trees
         if pine_ramp:
             for k in PINE_LEAVES:
