@@ -205,3 +205,156 @@ def market(switch):
     if switch.get("well") == "neon":
         plain["well"] = vent
     return m, plain
+
+
+# ---------- ground pieces (art/iso_ground.py): fences, gates, bridge rails, stairs, the deck, flower beds, crops ----------
+
+def fence_neon(conn, style="rail"):
+    """Metal posts; toward each joined neighbour a glowing top rail and a plain lower one (style "rail"), or a glass
+    panel with a neon top edge (style "glass")."""
+    from iso_ground import E_, N_, S_, W_, finish_cell
+    cv = Canvas3D(40, 34, 20, 22)
+    c = 8
+    glass = style == "glass"
+    for bit, (dx, dy) in ((N_, (0, -1)), (W_, (-1, 0)), (E_, (1, 0)), (S_, (0, 1))):
+        if not conn & bit:
+            continue
+        a = (dx * 8.5, 0, 0) if dx else (0, dy * 8.5, 0)
+        if glass:
+            cv.face((c, c, 1), a, (0, 0, 7.5), lambda s, t, su, tu: "neon_b" if tu > 6.6 else (120, 220, 235, 90))
+        else:
+            cv.face((c, c, 3.5), a, (0, 0, 1.4), lambda *a_: "s1")
+            cv.face((c, c, 7.5), a, (0, 0, 1.4), lambda *a_: "neon_b")
+    cv.face((c - 1, c + 1, 0), (2, 0, 0), (0, 0, 10), lambda *a: "s1")
+    cv.face((c + 1, c + 1, 0), (0, -2, 0), (0, 0, 10), lambda *a: "s2")
+    cv.face((c - 1, c - 1, 10), (2, 0, 0), (0, 2, 0), lambda *a: "neon_b")
+    return finish_cell(cv)
+
+
+def gate_neon(axis):
+    """A barrier between two posts: a hazard-striped bar."""
+    from iso_ground import finish_cell
+    cv = Canvas3D(40, 34, 20, 22)
+    bar = lambda s, t, su, tu: ("neon_c" if int(su / 2) % 2 else "out") if 0.6 < tu < 2.2 else None
+    if axis == "x":
+        for x in (0.5, 14):
+            cv.face((x, 9, 0), (1.6, 0, 0), (0, 0, 9), lambda *a: "s1")
+        cv.face((2, 8.6, 5), (12, 0, 0), (0, 0, 2.8), bar)
+    else:
+        for y in (0.5, 14):
+            cv.face((9, y, 0), (0, 1.6, 0), (0, 0, 9), lambda *a: "s2")
+        cv.face((8.6, 2, 5), (0, 12, 0), (0, 0, 2.8), bar)
+    return finish_cell(cv)
+
+
+def rail_neon(axis, sides):
+    """Bridge rails: a glass panel with a neon top along each open side."""
+    from iso_ground import finish_cell
+    cv = Canvas3D(40, 34, 20, 22)
+    panel = lambda s, t, su, tu: "neon_b" if tu > 5.6 else (120, 220, 235, 90)
+    for side in sides:
+        if axis == "x":
+            y = 0.5 if side == "a" else 15
+            cv.face((0, y, 0), (16, 0, 0), (0, 0, 6.5), panel)
+        else:
+            x = 0.5 if side == "a" else 15
+            cv.face((x, 0, 0), (0, 16, 0), (0, 0, 6.5), panel)
+    return finish_cell(cv)
+
+
+def stairs_neon(direction, lit=True):
+    """Metal steps with an LED strip along every lip."""
+    from iso_ground import HT, finish_cell
+    cv = Canvas3D(44, 44, 22, 30)
+    for k in reversed(range(4)):
+        z = (k + 1) * HT / 4
+        if direction == "n":
+            y0 = 16 - (k + 1) * 4
+            cv.face((1, y0 + 4, 0), (14, 0, 0), (0, 0, z), lambda s, t, su, tu, z=z: "neon_b" if tu > z - 0.8 else "s2")
+            cv.face((1, y0, z), (14, 0, 0), (0, 4, 0), lambda s, t, su, tu: "s0" if int(su) % 3 else "s1")
+            cv.face((15, y0 + 4, 0), (0, -4, 0), (0, 0, z), lambda *a: "s3")
+        else:
+            x0 = 16 - (k + 1) * 4
+            cv.face((x0 + 4, 15, 0), (0, -14, 0), (0, 0, z), lambda s, t, su, tu, z=z: "neon_b" if tu > z - 0.8 else "s3")
+            cv.face((x0, 1, z), (4, 0, 0), (0, 14, 0), lambda s, t, su, tu: "s0" if int(tu) % 3 else "s1")
+            cv.face((x0, 15, 0), (4, 0, 0), (0, 0, z), lambda *a: "s2")
+    return finish_cell(cv)
+
+
+def deck_neon(axis):
+    """Steel grating across the bridge, a glowing line down the middle."""
+    from iso_ground import diamond
+
+    def fn(x, y):
+        dx, dy = x + 0.5 - 16, y + 0.5 - 8
+        u, v = (dx + 2 * dy) / 2 + 8, (2 * dy - dx) / 2 + 8
+        across, along = (u, v) if axis == "x" else (v, u)
+        if 7.2 < across < 8.8:
+            return "neon_b"
+        return "vh2" if int(along) % 3 == 0 or int(across) % 3 == 0 else "s2"
+    return diamond(fn)
+
+
+def flowers_led(variant):
+    """An LED bed: dark soil, a grid of tiny lights in two colours."""
+    from iso_ground import diamond
+    cols = [("neon_a", "neon_b"), ("neon_c", "fl_p"), ("neon_b", "fl_w"), ("fl_p", "neon_c")][variant % 4]
+
+    def fn(x, y):
+        if (x + 2 * y) % 6 == 0 and y % 2 == 0:
+            return cols[int(h("led", variant, x, y) * 2)]
+        return "lf3" if (x + y) % 3 else "g4"
+    return diamond(fn)
+
+
+def flowers_shroom(variant):
+    """A bed of glowing mushrooms: small caps lit from below."""
+    from iso_ground import diamond
+    col = ("neon_b", "fl_p", "neon_c", "neon_a")[variant % 4]
+    spots = [(3 + i * 5.2 + (2.5 if j % 2 else 0) + h("mx", variant, i, j) * 2, 3 + j * 3.4) for j in range(4) for i in range(6)]
+
+    def fn(x, y):
+        for (sx, sy) in spots:
+            if abs(x + 0.5 - sx) < 1.6 and -1.2 < y + 0.5 - sy < 0.2:
+                return col if y + 0.5 - sy > -0.6 else "fl_w"         # a cap, lit on top
+            if abs(x + 0.5 - sx) < 0.5 and 0.2 <= y + 0.5 - sy < 1.6:
+                return "lf1"                                           # its stem
+        return "lf3"
+    return diamond(fn)
+
+
+def crops_hydro():
+    """Hydroponic trays: rows of glowing sprouts along metal channels."""
+    from iso_ground import diamond
+
+    def fn(x, y):
+        k = (x + 2 * y) % 8
+        if k in (0, 1):
+            return "s2"                                                # the channel
+        if k == 2 and (x // 2 + y) % 3 == 0:
+            return "neon_b" if (x + y) % 2 else "p0"                   # sprouts
+        if k == 3 and (x // 2 + y) % 3 == 0:
+            return "p1"
+        return None
+    return diamond(fn)
+
+
+def ground(switch):
+    """Patches for art/iso_ground.py per CYBER switch."""
+    import iso_ground
+    if switch.get("fences") in ("rail", "glass"):
+        style = switch["fences"]
+        iso_ground.fence_iso = lambda conn, style_=style, **_: fence_neon(conn, style_)
+        iso_ground.gate_iso = gate_neon
+    if switch.get("rails") == "neon":
+        iso_ground.bridge_iso = rail_neon
+    if switch.get("stairs") == "neon":
+        iso_ground.stairs_iso = stairs_neon
+    if switch.get("deck") == "neon":
+        iso_ground.deck_iso = deck_neon
+    if switch.get("beds") == "led":
+        iso_ground.flowers_iso = flowers_led
+    elif switch.get("beds") == "shrooms":
+        iso_ground.flowers_iso = flowers_shroom
+    if switch.get("crops") == "neon":
+        iso_ground.crops_iso = crops_hydro

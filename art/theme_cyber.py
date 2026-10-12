@@ -72,7 +72,10 @@ CYBER = {"plaza": "panels", "canal": "coolant", "walkway": "tiles", "windows": "
          # street and market twins (art/cyber_props.py): "neon" or "recolour" (the cottage drawing in cyber colours);
          # picked 2026-10-12: all neon
          "stalls": "neon", "lamps": "neon", "bench": "neon", "barrel": "neon", "crates": "neon",
-         "board": "neon", "cart": "neon", "well": "neon"}
+         "board": "neon", "cart": "neon", "well": "neon",
+         # ground pieces (cyber_props.ground): fences recolour / rail / glass, the rest recolour / neon (beds: led, shrooms)
+         "fences": "recolour", "rails": "recolour", "stairs": "recolour", "deck": "recolour", "beds": "recolour",
+         "crops": "recolour"}
 # Trees stay trees in the city (a dense wood reads as a glowing park): CYBER["trees"] for broadleaf kinds and
 # CYBER["pines"] for conifers: neon, holo, biolum (dark crowns, glowing specks), outline (dark, a neon rim),
 # cable (crowns of wire bundles, broadleaf only); "planter": trees standing in lit planter boxes. "tech-<concept>":
@@ -935,6 +938,7 @@ def apply():
             iso_trees.LEAVES[k] = list(ramp_)
     import cyber_props                                                # street and market twins
     import iso_market
+    cyber_props.ground(CYBER)
     m, plain = cyber_props.market(CYBER)
     gl = (lambda spr: glow(spr, reach=2.2)) if CYBER["glow"] == "on" else (lambda spr: spr)
 

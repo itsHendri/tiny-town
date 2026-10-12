@@ -11,6 +11,7 @@ plus a picker page with a pick and a note per option: out/lab/<round>/index.html
     python art/lab.py tech-builder     # tech trees (tech objects that read as trees), in a dense wood
     python art/lab.py twin-builder     # the landmarks' cottage twins, on a village lane
     python art/lab.py street-builder   # Neon city twins of the street and market things
+    python art/lab.py ground-builder   # Neon city twins of the ground pieces
 
 Serve the repo (python3 -m http.server 8000) and open http://localhost:8000/out/lab/<round>/.
 """
@@ -543,7 +544,21 @@ STREET_GROUPS = [(k, label, [("recolour", "Recoloured", "The cottage drawing in 
                      ("board", "Chalkboard", "A digital screen on a stand."),
                      ("cart", "Flower cart", "A vending machine."),
                      ("well", "Well", "A steam vent with a glowing rim."))]
-BUILDERS = {"street-builder": ("Neon street and market", STREET_GROUPS, "market"),
+RECOLOUR = ("recolour", "Recoloured", "The cottage drawing in Neon city colours.")
+GROUND_GROUPS = [
+    ("fences", "Fences and gates", [RECOLOUR, ("rail", "Neon rail", "Metal posts, a glowing top rail; gates a "
+                                               "hazard-striped barrier."),
+                                    ("glass", "Glass panels", "Glass between the posts, a neon top edge; gates a "
+                                     "hazard-striped barrier.")]),
+    ("rails", "Bridge rails", [RECOLOUR, ("neon", "Glass rails", "Glass with a neon top.")]),
+    ("stairs", "Stairs", [RECOLOUR, ("neon", "LED steps", "Metal steps, an LED strip on every lip.")]),
+    ("deck", "Bridge deck", [RECOLOUR, ("neon", "Steel grating", "Grating with a glowing centre line.")]),
+    ("beds", "Flower beds", [RECOLOUR, ("led", "LED beds", "Tiny neon lights on dark soil."),
+                             ("shrooms", "Glow mushrooms", "Small glowing mushroom caps.")]),
+    ("crops", "Crops", [RECOLOUR, ("neon", "Hydroponics", "Glowing sprouts along metal channels.")]),
+]
+BUILDERS = {"ground-builder": ("Neon ground pieces", GROUND_GROUPS, "ground"),
+            "street-builder": ("Neon street and market", STREET_GROUPS, "market"),
             "twin-builder": ("Cottage twins", TWIN_GROUPS, "twins"), "cyber-builder": ("Cyber builder", CYBER_GROUPS), "chip-builder": ("Circuit builder", CHIP_GROUPS),
             "city-builder": ("Neon city polish", CITY_GROUPS), "tree-builder": ("Cyber trees", TREE_GROUPS, "park"),
             "tech-builder": ("Tech trees", TECH_GROUPS, "park")}
@@ -619,6 +634,28 @@ def market_street():
     return m, spots
 
 
+def ground_street():
+    """Fences round a yard with a gate and flower beds, a canal and its bridge, a hill with stairs, a crop plot."""
+    import preview
+    m = preview.Map(16, 12)
+    m.fill("terrain", 5, 0, 7, 16, "water")
+    m.fill("terrain", 5, 7, 7, 9, "bridge")
+    m.fill("terrain", 3, 7, 5, 9, "path"); m.fill("terrain", 7, 7, 12, 9, "path")
+    m.fill("height", 0, 10, 4, 16, 1)
+    m.feature[4][12] = "stairs"; m.terrain[4][12] = "path"
+    for c in range(1, 6):
+        m.fence[8][c] = m.fence[11][c] = True
+    for r in range(8, 12):
+        m.fence[r][1] = m.fence[r][5] = True
+    m.fence[8][3] = False; m.deco[8][3] = "gate"
+    for r in range(9, 11):
+        for c in range(2, 5):
+            m.deco[r][c] = "flowers"
+    m.fill("terrain", 8, 10, 11, 14, "soil")
+    spots = [("lamp-iso", 6, 3), ("tree-1", 14, 9), ("townhouse", 15, 2)]
+    return m, spots
+
+
 def twins_one(name, key):
     import landmarks
     combo = list(map(int, key.split("-")))
@@ -654,7 +691,8 @@ def cyber_builder_one(name, key):
     theme_cyber.apply()
     P = props()
     scene = BUILDERS[name][2] if len(BUILDERS[name]) > 2 else None
-    m, spots = cyber_park() if scene == "park" else market_street() if scene == "market" else cyber_street()
+    m, spots = (cyber_park() if scene == "park" else market_street() if scene == "market" else
+                ground_street() if scene == "ground" else cyber_street())
     for nm, c, r in spots:
         spr = iso_props.house(**iso_props.HOUSES[nm])[0] if nm in iso_props.HOUSES else P[nm]
         m.objects.append((spr, c * 16 + 8, (r + 1) * 16))
