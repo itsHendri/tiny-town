@@ -67,12 +67,13 @@ PICK = "neon"   # picked 2026-10-11 (cyber palette round): neon night
 
 # How each hero item is drawn (picked 2026-10-11, cyber and circuit builders: panels, coolant, tiles, random windows,
 # mixed parts for trees, neon blocks). It stays a city: the circuit board is a flavour, not the subject.
-CYBER = {"plaza": "panels", "canal": "coolant", "walkway": "tiles", "windows": "random", "trees": "mixed", "buildings": "blocks",
+CYBER = {"plaza": "panels", "canal": "coolant", "walkway": "tiles", "windows": "random", "trees": "tech-fibre", "buildings": "blocks",
          "parts": "city", "signs": "varied", "glow": "on", "roofs": "busy", "pines": "neon", "planter": "no"}
 # Trees stay trees in the city (a dense wood reads as a glowing park): CYBER["trees"] for broadleaf kinds and
 # CYBER["pines"] for conifers: neon, holo, biolum (dark crowns, glowing specks), outline (dark, a neon rim),
 # cable (crowns of wire bundles, broadleaf only); "planter": trees standing in lit planter boxes. "tech-<concept>":
 # tech objects that read as trees, every kind (art/tech_trees.py: data, circuit, wire, voxel, fibre).
+# Picked 2026-10-12 (tech tree round): fibre trees, glow on.
 # Polish switches (neon city polish round, picked 2026-10-11: city, random, varied, on, busy): parts v1 / city (city-scale tech), windows random / calm (a colour per
 # floor, half dark), signs one / varied (blade signs, billboards), glow off / on (halos, light spill), roofs plain / busy.
 

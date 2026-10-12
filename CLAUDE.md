@@ -95,7 +95,8 @@ Code MIT (`LICENSE`), art CC BY 4.0 (`LICENSE-art`). Read `README.md` for the us
   stays in `tiles/`). The editor's settings dialog switches theme (`THEMES` in `js/editor.js`, kept in localStorage,
   not in the map file). Rebuild a theme after art changes that touch it.
 * Cyberpunk ("Neon city") is a city at night; the circuit board is a flavour, not the subject. Picks: palette
-  `neon`, `CYBER` in `art/theme_cyber.py` (city-scale tech instead of trees, varied signs, neon glow, busy roofs).
+  `neon`, `CYBER` in `art/theme_cyber.py` (fibre trees from `art/tech_trees.py`: trees stay trees in a city, as tech objects, so dense woods
+  still work; varied signs, neon glow, busy roofs).
 
 ## Map format (keep it stable)
 
