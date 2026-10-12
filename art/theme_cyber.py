@@ -59,6 +59,7 @@ def palette(ground=275, ground_l=0.3, ground_c=0.035, a=345, b=200, c=75, glow=1
               "vh0": palettes.hexof(0.36, 0.02, G), "vh1": palettes.hexof(0.26, 0.02, G), "vh2": palettes.hexof(0.18, 0.02, G),
               "neon_a": palettes.hexof(0.72, 0.2 * glow, a), "neon_b": palettes.hexof(0.8, 0.14 * glow, b),
               "neon_c": palettes.hexof(0.86, 0.15 * glow, c)})
+    P.update(names(["lf0", "lf1", "lf2", "lf3"], ramp(4, L + 0.14, L - 0.1, 0.08, 0.06, (a + G) / 2 + 20, (a + G) / 2 + 40)))
     return P
 
 
@@ -67,7 +68,10 @@ PICK = "neon"   # picked 2026-10-11 (cyber palette round): neon night
 # How each hero item is drawn (picked 2026-10-11, cyber and circuit builders: panels, coolant, tiles, random windows,
 # mixed parts for trees, neon blocks). It stays a city: the circuit board is a flavour, not the subject.
 CYBER = {"plaza": "panels", "canal": "coolant", "walkway": "tiles", "windows": "random", "trees": "mixed", "buildings": "blocks",
-         "parts": "city", "signs": "varied", "glow": "on", "roofs": "busy"}
+         "parts": "city", "signs": "varied", "glow": "on", "roofs": "busy", "pines": "neon", "planter": "no"}
+# Trees stay trees in the city (a dense wood reads as a glowing park): CYBER["trees"] for broadleaf kinds and
+# CYBER["pines"] for conifers: neon, holo, biolum (dark crowns, glowing specks), outline (dark, a neon rim),
+# cable (crowns of wire bundles, broadleaf only); "planter": trees standing in lit planter boxes.
 # Polish switches (neon city polish round, picked 2026-10-11: city, random, varied, on, busy): parts v1 / city (city-scale tech), windows random / calm (a colour per
 # floor, half dark), signs one / varied (blade signs, billboards), glow off / on (halos, light spill), roofs plain / busy.
 
@@ -454,11 +458,76 @@ def weeds_px(sh, x, y, gx, gy, f):
     return {"1": "g2", "2": "g3", "3": "g4", ".": "g3"}[t]
 
 
-TREE_LEAVES = {   # CYBER["trees"] -> leaf ramps (iso_trees.LEAVES), light to dark
+TREE_LEAVES = {   # CYBER["trees"] / ["pines"] -> leaf ramps (iso_trees.LEAVES), light to dark
     "neon": None,                                                       # the palette's neon foliage as it is
     "rim": ["neon_b", "g2", "g3", "g4", "out", "out"],                 # dark crowns, lit by neon on the edge
     "holo": ["fl_w", "w1", "neon_b", "p2", "p3", "p3"],                # cyan holograms
+    "biolum": ["lf0", "lf1", "lf2", "lf3", "out", "out"],              # dark crowns (glowing specks added after)
+    "outline": ["lf1", "lf2", "lf3", "lf3", "out", "out"],             # dark silhouettes (a neon rim added after)
+    "cable": ["vh0", "vh1", "vh2", "vh2", "out", "out"],               # bundles of cable (wires and LEDs added after)
 }
+BROADLEAF_LEAVES = ("green", "olive", "deep", "autumn", "rust", "blossom", "birch")
+PINE_LEAVES = ("fir", "fir_dark")
+PINES = ("pine-2", "pine-3", "cypress-2")
+RIMS = {"tree-1": "neon_b", "tree-2-d2": "neon_a", "oak-3": "neon_b", "maple-1": "neon_c", "blossom-1": "neon_a",
+        "tree-6": "neon_c", "birch-2": "neon_b", "poplar-1": "neon_a", "willow-1": "neon_b", "pine-2": "neon_c",
+        "pine-3": "neon_b", "cypress-2": "neon_a"}
+
+
+def dress_tree(spr, name, look):
+    """The finishing touch per look, on a finished tree sprite: glowing specks (biolum), a neon rim on the lit
+    edges (outline), wires and LEDs (cable). Only crown pixels change (the leaf ramp's colours)."""
+    from sprites import RGB
+    if look not in ("biolum", "outline", "cable"):
+        return spr
+    crown = {RGB[c][:3] for c in TREE_LEAVES[look][:4]}
+    rim = RIMS.get(name, "neon_b")
+    px, W, H = spr.px, spr.w, spr.h
+    src = [[px[x, y] for x in range(W)] for y in range(H)]
+    clear = lambda x, y: not (0 <= x < W and 0 <= y < H) or not src[y][x][3]
+    # the sprite's own outline: opaque pixels touching the outside
+    rimline = {(x, y) for y in range(H) for x in range(W) if src[y][x][3]
+               and any(clear(x + dx, y + dy) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))}
+    for y in range(H):
+        for x in range(W):
+            p = src[y][x]
+            if not p[3] or p[:3] not in crown:
+                continue
+            if look == "biolum" and h("spk", name, x, y) < 0.07:
+                spr.put(x, y, ("neon_b", "fl_p", "neon_c")[int(h("spc", name, x, y) * 3)])
+            elif look == "outline":
+                # a crown pixel just inside the outline on the top or left: the lit edge
+                if (x, y - 1) in rimline or (x - 1, y) in rimline:
+                    spr.put(x, y, rim)
+            elif look == "cable":
+                k = h("wire", name, x // 3, y)
+                if k < 0.06:
+                    spr.put(x, y, ("neon_a", "neon_b", "cb1", "neon_c")[int(k * 66) % 4])
+                elif h("led", name, x, y) < 0.012:
+                    spr.put(x, y, "fl_w")
+    return spr
+
+
+def planter(spr):
+    """A tree standing in a lit planter box: a low concrete box, a neon rim along its top front edges."""
+    from sprites import Sprite
+    bw, bh = 16, 4                                         # box: 16 px wide diamond top, 4 px high
+    W = max(spr.w, bw + 2)
+    out = Sprite(W, spr.h + bh + 4)
+    cx = W // 2
+    top = out.h - bh - 9                                   # the box's top diamond centre row
+    for y in range(out.h):
+        for x in range(W):
+            dx, dy = x + 0.5 - cx, y + 0.5 - top
+            if abs(dx) / (bw / 2) + abs(dy) / (bw / 4) <= 1:
+                edge = abs(dx) / (bw / 2) + abs(dy) / (bw / 4) > 0.75 and dy > 0
+                out.put(x, y, "neon_b" if edge else "g3")                    # soil, a lit rim
+            elif abs(dx) <= bw / 2 and 0 <= dy - (bw / 4 - abs(dx) / 2) < bh + 0.01 and dy > -bw / 4:
+                out.put(x, y, "c1" if dx < 0 else "c2")                    # the box's two front faces
+    out.outline()
+    out.im.alpha_composite(spr.im, (cx - spr.w // 2, top + 1 - spr.h))
+    out.px = out.im.load()
+    return out
 
 
 # ---------- components (instead of trees) and chips (instead of houses) ----------
@@ -826,6 +895,23 @@ def apply():
     styles.SHARED[("raised_fill", "tufts")] = lambda sh, x, y, gx, gy, f: plaza_uv(gx, gy, 1, False) if sh.inside(x, y) else None
     styles.TERRAIN["tallgrass"]["meadow"] = lambda sh, x, y, f, v: weeds_px(styles.TopShape(sh), x, y, *styles.gxy(x, y), f)
     ramp_ = TREE_LEAVES.get(CYBER["trees"])
+    pine_ramp = TREE_LEAVES.get(CYBER["pines"])
+    if CYBER["trees"] not in PARTS:
+        import iso_trees
+        if pine_ramp:
+            for k in PINE_LEAVES:
+                iso_trees.LEAVES[k] = list(pine_ramp)
+        old_trees = iso_trees.trees
+
+        def themed_trees():
+            out = {}
+            for n, spr in old_trees().items():
+                spr = dress_tree(spr, n, CYBER["pines"] if n in PINES else CYBER["trees"])
+                if CYBER["planter"] == "yes" and n not in PINES:
+                    spr = planter(spr)
+                out[n] = glow(spr, reach=2.2) if CYBER["glow"] == "on" else spr
+            return out
+        iso_trees.trees = themed_trees
     if CYBER["trees"] in PARTS:
         import iso_trees
         parts = PARTS[CYBER["trees"]]

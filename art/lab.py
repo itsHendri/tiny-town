@@ -7,6 +7,7 @@ plus a picker page with a pick and a note per option: out/lab/<round>/index.html
     python art/lab.py cyber-builder    # every combination of the cyber items' choices on a neon street
     python art/lab.py chip-builder     # the same for the circuit-board concepts
     python art/lab.py city-builder     # neon city polish: before / after for each change
+    python art/lab.py tree-builder     # cyber trees, in a dense wood
 
 Serve the repo (python3 -m http.server 8000) and open http://localhost:8000/out/lab/<round>/.
 """
@@ -500,14 +501,46 @@ CITY_GROUPS = [   # neon city polish: before / after for each change
     ("roofs", "Roofs", [("plain", "Plain", "As now."),
                         ("busy", "Busy", "Rows of AC units, satellite dishes, lit antennas.")]),
 ]
+TREE_GROUPS = [   # cyber trees: trees stay trees, judged in a dense wood
+    ("trees", "Broadleaf trees", [("neon", "Neon", "As before the parts: the tree shapes in neon pink."),
+                                  ("holo", "Holo", "Cyan holograms."),
+                                  ("biolum", "Bioluminescent", "Dark crowns with glowing specks."),
+                                  ("outline", "Neon outline", "Dark silhouettes, a neon rim on the lit edge."),
+                                  ("cable", "Cable trees", "Crowns of cable bundles, coloured wires, LEDs.")]),
+    ("pines", "Pines", [("neon", "Neon", "Cyan tiers."), ("holo", "Holo", "Cyan holograms."),
+                        ("biolum", "Bioluminescent", "Dark tiers with glowing specks."),
+                        ("outline", "Neon outline", "Dark tiers, a neon rim.")]),
+    ("planter", "Planters", [("no", "None", "Trees straight on the plaza."),
+                             ("yes", "Lit planters", "Broadleaf trees in concrete boxes with a lit rim.")]),
+    ("glow", "Glow", [("on", "On", "Neon pixels get a soft halo."), ("off", "Off", "No halo.")]),
+]
 BUILDERS = {"cyber-builder": ("Cyber builder", CYBER_GROUPS), "chip-builder": ("Circuit builder", CHIP_GROUPS),
-            "city-builder": ("Neon city polish", CITY_GROUPS)}
+            "city-builder": ("Neon city polish", CITY_GROUPS), "tree-builder": ("Cyber trees", TREE_GROUPS, "park")}
+
+
+def cyber_park():
+    """A dense wood beside a street: is it a glowing park or a mess? Plus street trees and two blocks."""
+    import preview
+    from iso_trees import TREE_ALIASES  # noqa: F401
+    from dualgrid import h
+    kinds = ["tree-1", "tree-2-d2", "oak-3", "maple-1", "blossom-1", "tree-6", "birch-2", "poplar-1", "willow-1",
+             "pine-2", "pine-3", "cypress-2"]
+    m = preview.Map(20, 15)
+    m.fill("terrain", 6, 0, 8, 20, "path")
+    m.fill("terrain", 0, 15, 6, 17, "water")
+    spots = [("townhouse", 13, 3), ("cottage-red", 9, 3), ("lamp-iso", 4, 5), ("tree-1", 2, 5), ("birch-2", 6, 5),
+             ("tree-6", 18, 8)]
+    for r in range(9, 15):
+        for c in range(0, 15):
+            if h("wood", c, r) < 0.8:
+                spots.append((kinds[int(h("kind", c, r) * len(kinds))], c, r))
+    return m, spots
 
 
 def cyber_builder(name="cyber-builder"):
     import itertools
     import subprocess as sp
-    title, groups_ = BUILDERS[name]
+    title, groups_ = BUILDERS[name][:2]
     out = OUT / name
     out.mkdir(parents=True, exist_ok=True)
     combos = list(itertools.product(*[range(len(g[2])) for g in groups_]))
@@ -543,7 +576,7 @@ def cyber_builder_one(name, key):
     from render_map import props
     theme_cyber.apply()
     P = props()
-    m, spots = cyber_street()
+    m, spots = cyber_park() if BUILDERS[name][2:] == ("park",) else cyber_street()
     for nm, c, r in spots:
         spr = iso_props.house(**iso_props.HOUSES[nm])[0] if nm in iso_props.HOUSES else P[nm]
         m.objects.append((spr, c * 16 + 8, (r + 1) * 16))
