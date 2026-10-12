@@ -69,9 +69,10 @@ PICK = "neon"   # picked 2026-10-11 (cyber palette round): neon night
 # mixed parts for trees, neon blocks). It stays a city: the circuit board is a flavour, not the subject.
 CYBER = {"plaza": "panels", "canal": "coolant", "walkway": "tiles", "windows": "random", "trees": "tech-fibre", "buildings": "blocks",
          "parts": "city", "signs": "varied", "glow": "on", "roofs": "busy", "pines": "neon", "planter": "no",
-         # street and market twins (art/cyber_props.py): "neon" or "recolour" (the cottage drawing in cyber colours)
-         "stalls": "recolour", "lamps": "recolour", "bench": "recolour", "barrel": "recolour", "crates": "recolour",
-         "board": "recolour", "cart": "recolour", "well": "recolour"}
+         # street and market twins (art/cyber_props.py): "neon" or "recolour" (the cottage drawing in cyber colours);
+         # picked 2026-10-12: all neon
+         "stalls": "neon", "lamps": "neon", "bench": "neon", "barrel": "neon", "crates": "neon",
+         "board": "neon", "cart": "neon", "well": "neon"}
 # Trees stay trees in the city (a dense wood reads as a glowing park): CYBER["trees"] for broadleaf kinds and
 # CYBER["pines"] for conifers: neon, holo, biolum (dark crowns, glowing specks), outline (dark, a neon rim),
 # cable (crowns of wire bundles, broadleaf only); "planter": trees standing in lit planter boxes. "tech-<concept>":
