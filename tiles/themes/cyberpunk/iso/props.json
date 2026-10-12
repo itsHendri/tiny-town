@@ -407,49 +407,49 @@
    "shadow": true
   },
   "detail-flowers-1": {
-   "x": 48,
+   "x": 86,
    "y": 409,
    "w": 14,
    "h": 12,
    "shadow": true
   },
   "detail-flowers-2": {
-   "x": 63,
+   "x": 101,
    "y": 409,
    "w": 14,
    "h": 12,
    "shadow": true
   },
   "detail-mushrooms": {
-   "x": 138,
+   "x": 146,
    "y": 409,
    "w": 14,
    "h": 11,
    "shadow": true
   },
   "detail-pebbles-1": {
-   "x": 186,
+   "x": 194,
    "y": 409,
    "w": 16,
    "h": 9,
    "shadow": true
   },
   "detail-pebbles-2": {
-   "x": 203,
+   "x": 211,
    "y": 409,
    "w": 16,
    "h": 9,
    "shadow": true
   },
   "detail-tuft-1": {
-   "x": 108,
+   "x": 116,
    "y": 409,
    "w": 14,
    "h": 11,
    "shadow": true
   },
   "detail-tuft-2": {
-   "x": 123,
+   "x": 131,
    "y": 409,
    "w": 14,
    "h": 11,
@@ -768,17 +768,17 @@
    "shadow": true
   },
   "rock-1": {
-   "x": 78,
+   "x": 35,
    "y": 409,
-   "w": 14,
-   "h": 11,
+   "w": 18,
+   "h": 15,
    "shadow": false
   },
   "rock-2": {
-   "x": 93,
+   "x": 67,
    "y": 409,
-   "w": 14,
-   "h": 11,
+   "w": 18,
+   "h": 12,
    "shadow": false
   },
   "spruce-2": {

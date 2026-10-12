@@ -449,25 +449,42 @@ def scrap(seed):
     return tight(s).outline()
 
 
-def connector(seed):
-    """Rocks as connector chips: rock-1 a pin header (a black block, a row of gold pins standing up), rock-2 a small
-    chip (a black square, silver legs, a pin-one dot)."""
+CONNECTOR_LOOKS = {   # housing (lit, dark, top), pins (lit, shade), chip (side, top, print), accent
+    "dark": (("vh1", "vh2", "vh0"), ("cb0", "cb1"), ("vh1", "vh0", "s1"), "fl_w"),
+    "colour": (("b1", "b2", "b0"), ("fl_y", "cb1"), ("r2", "r1", "fl_w"), "neon_b"),
+    "neon": (("vh1", "vh2", "vh0"), ("neon_c", "cb1"), ("vh1", "vh0", "neon_b"), "neon_a"),
+    "light": (("c0", "c1", "fl_w"), ("cb0", "cb1"), ("s0", "fl_w", "vh1"), "neon_a"),
+}
+CONNECTOR = "colour"     # picked 2026-10-12
+
+
+def connector(seed, look=None):
+    """Rocks as connector chips: rock-1 a pin header (a block, a row of gold pins standing up), rock-2 a small chip
+    (a square, silver legs, a pin-one dot, printing). look: CONNECTOR_LOOKS key (colours and contrast)."""
     from iso_props import proj
+    (hl, hd, ht), (pl, pd), (cs, ct, cp), accent = CONNECTOR_LOOKS[look or CONNECTOR]
     header = str(seed).endswith("0")
     if header:
         w, d, hgt = 12, 4, 3
-        cv = _small_box(w, d, hgt, lambda *a: "vh1", lambda *a: "vh2", lambda *a: "vh0")
-        for k in range(5):                                            # the pins
+        cv = _small_box(w, d, hgt, lambda s, t, su, tu: accent if tu < 0.7 else hl, lambda *a: hd,
+                        lambda s, t, su, tu: ht if su > 0.6 else hl)
+        for k in range(5):                                            # the pins, a bright tip on each
             x, y = proj(1.5 + k * 2.2, d / 2, hgt)
             for j in range(4):
-                cv.s.put(int(x + cv.ox), int(y + cv.oy - j), "cb0" if j == 3 else "cb1")
+                cv.s.put(int(x + cv.ox), int(y + cv.oy - j), "fl_w" if j == 3 else pl if j == 2 else pd)
         return _crop(cv)
     w = d = 8
-    cv = _small_box(w, d, 2, lambda *a: "vh1", lambda *a: "vh2",
-                    lambda s, t, su, tu: "fl_w" if (su - 1.6) ** 2 + (tu - 1.6) ** 2 < 0.7 else "vh0")
-    for k in range(3):                                                # legs on the two front sides
-        cv.face((1.5 + k * 2.5, d, 0), (0.9, 0, 0), (0, 1.6, 0), lambda *a: "s0")
-        cv.face((w, 1.5 + k * 2.5, 0), (1.6, 0, 0), (0, 0.9, 0), lambda *a: "s1")
+
+    def top(s, t, su, tu):
+        if (su - 1.6) ** 2 + (tu - 1.6) ** 2 < 0.8:
+            return accent                                             # pin-one dot
+        if 3 < tu < 3.8 and 2 < su < 7 or 5 < tu < 5.8 and 2 < su < 5.5:
+            return cp                                                 # printing
+        return ct
+    cv = _small_box(w, d, 2, lambda *a: cs, lambda *a: hd, top)
+    for k in range(3):                                                # bright legs on the two front sides
+        cv.face((1.5 + k * 2.5, d, 0), (0.9, 0, 0), (0, 1.6, 0), lambda *a: "fl_w")
+        cv.face((w, 1.5 + k * 2.5, 0), (1.6, 0, 0), (0, 0.9, 0), lambda *a: "s0")
     return _crop(cv)
 
 
