@@ -10,6 +10,7 @@ plus a picker page with a pick and a note per option: out/lab/<round>/index.html
     python art/lab.py tree-builder     # cyber trees, in a dense wood
     python art/lab.py tech-builder     # tech trees (tech objects that read as trees), in a dense wood
     python art/lab.py twin-builder     # the landmarks' cottage twins, on a village lane
+    python art/lab.py street-builder   # Neon city twins of the street and market things
 
 Serve the repo (python3 -m http.server 8000) and open http://localhost:8000/out/lab/<round>/.
 """
@@ -531,7 +532,19 @@ TWIN_GROUPS = [(n, n.replace("-", " ").capitalize(), [(c, c.replace("-", " ").ca
                for n, cands in (("tank", ["water-tower", "grain-silo"]), ("pylon", ["windmill", "windpump"]),
                                 ("station", ["shed", "woodshed"]), ("street-pole", ["lantern-post", "hanging-lantern"]),
                                 ("monument", ["standing-stone", "market-cross"]), ("mast", ["bell-tower", "maypole"]))]
-BUILDERS = {"twin-builder": ("Cottage twins", TWIN_GROUPS, "twins"), "cyber-builder": ("Cyber builder", CYBER_GROUPS), "chip-builder": ("Circuit builder", CHIP_GROUPS),
+STREET_GROUPS = [(k, label, [("recolour", "Recoloured", "The cottage drawing in Neon city colours."),
+                               ("neon", "Neon twin", note)])
+                 for k, label, note in (
+                     ("stalls", "Market stalls", "Neon kiosks: metal counter, LED strip, lit canopy, holo menu."),
+                     ("lamps", "Lamps", "Slim LED street lamps; the sign lamp gets a holo panel."),
+                     ("bench", "Bench", "Steel bench, an LED strip under the seat."),
+                     ("barrel", "Barrel", "A chemical drum with a hazard band and a glowing cap."),
+                     ("crates", "Crates", "Plastic cargo crates of glowing goods."),
+                     ("board", "Chalkboard", "A digital screen on a stand."),
+                     ("cart", "Flower cart", "A vending machine."),
+                     ("well", "Well", "A steam vent with a glowing rim."))]
+BUILDERS = {"street-builder": ("Neon street and market", STREET_GROUPS, "market"),
+            "twin-builder": ("Cottage twins", TWIN_GROUPS, "twins"), "cyber-builder": ("Cyber builder", CYBER_GROUPS), "chip-builder": ("Circuit builder", CHIP_GROUPS),
             "city-builder": ("Neon city polish", CITY_GROUPS), "tree-builder": ("Cyber trees", TREE_GROUPS, "park"),
             "tech-builder": ("Tech trees", TECH_GROUPS, "park")}
 
@@ -593,6 +606,19 @@ def twins_street():
     return m, spots
 
 
+def market_street():
+    """A Neon city market: kiosks, lamps, a bench, a drum, crates, a screen, a vending machine, a vent, a block."""
+    import preview
+    m = preview.Map(16, 10)
+    m.fill("terrain", 4, 0, 6, 16, "path")
+    m.fill("terrain", 6, 3, 10, 11, "cobbles")
+    spots = [("townhouse", 13, 3), ("stall-red", 5, 7), ("stall-purple", 9, 7), ("stall-green", 6, 9),
+             ("lamp-sign", 2, 4), ("lamp-iso", 11, 4), ("bench-iso", 4, 3), ("barrel-iso", 2, 7), ("crates", 3, 8),
+             ("crate-carrots", 10, 9), ("crate", 11, 8), ("chalkboard", 7, 5), ("flower-cart", 14, 7), ("well", 1, 2),
+             ("tree-1", 8, 2)]
+    return m, spots
+
+
 def twins_one(name, key):
     import landmarks
     combo = list(map(int, key.split("-")))
@@ -627,7 +653,8 @@ def cyber_builder_one(name, key):
     from render_map import props
     theme_cyber.apply()
     P = props()
-    m, spots = cyber_park() if BUILDERS[name][2:] == ("park",) else cyber_street()
+    scene = BUILDERS[name][2] if len(BUILDERS[name]) > 2 else None
+    m, spots = cyber_park() if scene == "park" else market_street() if scene == "market" else cyber_street()
     for nm, c, r in spots:
         spr = iso_props.house(**iso_props.HOUSES[nm])[0] if nm in iso_props.HOUSES else P[nm]
         m.objects.append((spr, c * 16 + 8, (r + 1) * 16))

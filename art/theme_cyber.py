@@ -68,7 +68,10 @@ PICK = "neon"   # picked 2026-10-11 (cyber palette round): neon night
 # How each hero item is drawn (picked 2026-10-11, cyber and circuit builders: panels, coolant, tiles, random windows,
 # mixed parts for trees, neon blocks). It stays a city: the circuit board is a flavour, not the subject.
 CYBER = {"plaza": "panels", "canal": "coolant", "walkway": "tiles", "windows": "random", "trees": "tech-fibre", "buildings": "blocks",
-         "parts": "city", "signs": "varied", "glow": "on", "roofs": "busy", "pines": "neon", "planter": "no"}
+         "parts": "city", "signs": "varied", "glow": "on", "roofs": "busy", "pines": "neon", "planter": "no",
+         # street and market twins (art/cyber_props.py): "neon" or "recolour" (the cottage drawing in cyber colours)
+         "stalls": "recolour", "lamps": "recolour", "bench": "recolour", "barrel": "recolour", "crates": "recolour",
+         "board": "recolour", "cart": "recolour", "well": "recolour"}
 # Trees stay trees in the city (a dense wood reads as a glowing park): CYBER["trees"] for broadleaf kinds and
 # CYBER["pines"] for conifers: neon, holo, biolum (dark crowns, glowing specks), outline (dark, a neon rim),
 # cable (crowns of wire bundles, broadleaf only); "planter": trees standing in lit planter boxes. "tech-<concept>":
@@ -929,6 +932,22 @@ def apply():
         import iso_trees
         for k in ("green", "olive", "deep", "autumn", "rust", "blossom", "birch"):
             iso_trees.LEAVES[k] = list(ramp_)
+    import cyber_props                                                # street and market twins
+    import iso_market
+    m, plain = cyber_props.market(CYBER)
+    gl = (lambda spr: glow(spr, reach=2.2)) if CYBER["glow"] == "on" else (lambda spr: spr)
+
+    def glowing(make):
+        def made():
+            spr = make()
+            out = gl(spr)
+            for attr in ("anchor", "smoke"):
+                if hasattr(spr, attr):
+                    setattr(out, attr, getattr(spr, attr))
+            return out
+        return made
+    iso_market.MARKET.update({k: glowing(v) for k, v in m.items()})
+    iso_market.PLAIN.update({k: glowing(v) for k, v in plain.items()})
     import landmarks                                                  # the landmarks' city twins
     g = (lambda spr: glow(spr, reach=2.2)) if CYBER["glow"] == "on" else (lambda spr: spr)
     landmarks.OVERRIDE = {"tank": lambda: g(tank("tank", 1.0, ("b1", "b2", "b3"))), "pylon": lambda: g(pylon("pylon", 1.2)),
