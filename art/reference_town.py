@@ -147,6 +147,8 @@ def sprites():
     out.update(nature())
     out.update({name: iso_props.house(**kw)[0] for name, kw in iso_props.HOUSES.items()})
     out.update({name: make() for name, make in iso_market.MARKET.items()})
+    from landmarks import landmarks
+    out.update(landmarks())
     return out
 
 

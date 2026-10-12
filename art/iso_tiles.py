@@ -81,6 +81,9 @@ def build_iso_props():
     for name, kw in HOUSES.items():
         spr, (ax, ay), foot = house(**kw)
         items[name] = (spr, False, {"ax": ax, "ay": ay, "foot": list(foot), **({"smoke": list(spr.smoke)} if spr.smoke else {})})
+    from landmarks import landmarks
+    for name, spr in landmarks().items():                       # placed one at a time; a twin in every theme
+        items[name] = (spr, True, {})
     from iso_ground import uprights
     for name, spr in uprights().items():
         items[name] = (spr, False, {"ax": spr.anchor[0], "ay": spr.anchor[1]})

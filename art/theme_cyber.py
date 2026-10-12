@@ -929,6 +929,11 @@ def apply():
         import iso_trees
         for k in ("green", "olive", "deep", "autumn", "rust", "blossom", "birch"):
             iso_trees.LEAVES[k] = list(ramp_)
+    import landmarks                                                  # the landmarks' city twins
+    g = (lambda spr: glow(spr, reach=2.2)) if CYBER["glow"] == "on" else (lambda spr: spr)
+    landmarks.OVERRIDE = {"tank": lambda: g(tank("tank", 1.0, ("b1", "b2", "b3"))), "pylon": lambda: g(pylon("pylon", 1.2)),
+                          "station": lambda: g(station("station")), "street-pole": lambda: g(street_pole("pole", "neon_b", 32)),
+                          "monument": lambda: g(ring("ring")), "mast": lambda: g(mast("mast"))}
     for name in iso_props.HOUSES:
         iso_props.HOUSES[name] = {**iso_props.HOUSES[name], "name": name}
     iso_props.house = chip if CYBER["buildings"] == "chips" else block

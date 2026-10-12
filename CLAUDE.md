@@ -94,6 +94,9 @@ Code MIT (`LICENSE`), art CC BY 4.0 (`LICENSE-art`). Read `README.md` for the us
 * `art/themes.py` lists them and switches them in Python; each is built into `tiles/themes/<theme>/` (cottage
   stays in `tiles/`). The editor's settings dialog switches theme (`THEMES` in `js/editor.js`, kept in localStorage,
   not in the map file). Rebuild a theme after art changes that touch it.
+* Landmarks (`art/landmarks.py`: tank, pylon, station, street-pole, monument, mast) are objects placed one at a
+  time, with a twin in every theme (cottage `TWINS`, Neon city via `landmarks.OVERRIDE`). Trees stay trees in every
+  theme so dense woods work; landmarks never stand in for trees.
 * Cyberpunk ("Neon city") is a city at night; the circuit board is a flavour, not the subject. Picks: palette
   `neon`, `CYBER` in `art/theme_cyber.py` (fibre trees from `art/tech_trees.py`: trees stay trees in a city, as tech objects, so dense woods
   still work; varied signs, neon glow, busy roofs).

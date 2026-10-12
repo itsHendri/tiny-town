@@ -9,6 +9,7 @@ plus a picker page with a pick and a note per option: out/lab/<round>/index.html
     python art/lab.py city-builder     # neon city polish: before / after for each change
     python art/lab.py tree-builder     # cyber trees, in a dense wood
     python art/lab.py tech-builder     # tech trees (tech objects that read as trees), in a dense wood
+    python art/lab.py twin-builder     # the landmarks' cottage twins, on a village lane
 
 Serve the repo (python3 -m http.server 8000) and open http://localhost:8000/out/lab/<round>/.
 """
@@ -526,7 +527,11 @@ TECH_GROUPS = [   # tech trees: tech objects that read as trees (after Hendri's 
                              ("tech-fibre", "Fibre tree", "Straight fibres fanning up, glowing tips.")]),
     ("glow", "Glow", [("on", "On", "Neon pixels get a soft halo."), ("off", "Off", "No halo.")]),
 ]
-BUILDERS = {"cyber-builder": ("Cyber builder", CYBER_GROUPS), "chip-builder": ("Circuit builder", CHIP_GROUPS),
+TWIN_GROUPS = [(n, n.replace("-", " ").capitalize(), [(c, c.replace("-", " ").capitalize(), "") for c in cands])
+               for n, cands in (("tank", ["water-tower", "grain-silo"]), ("pylon", ["windmill", "windpump"]),
+                                ("station", ["shed", "woodshed"]), ("street-pole", ["lantern-post", "hanging-lantern"]),
+                                ("monument", ["standing-stone", "market-cross"]), ("mast", ["bell-tower", "maypole"]))]
+BUILDERS = {"twin-builder": ("Cottage twins", TWIN_GROUPS, "twins"), "cyber-builder": ("Cyber builder", CYBER_GROUPS), "chip-builder": ("Circuit builder", CHIP_GROUPS),
             "city-builder": ("Neon city polish", CITY_GROUPS), "tree-builder": ("Cyber trees", TREE_GROUPS, "park"),
             "tech-builder": ("Tech trees", TECH_GROUPS, "park")}
 
@@ -577,7 +582,38 @@ def cyber_builder_part(name, k, n):
         subprocess.run([sys.executable, __file__, "builder-one", name, "-".join(map(str, combo))], check=True)
 
 
+def twins_street():
+    """A village lane with all six landmarks along it, two cottages and a few trees."""
+    import preview
+    m = preview.Map(20, 10)
+    m.fill("terrain", 5, 0, 7, 20, "path")
+    spots = [("cottage-red", 4, 3), ("thatch-house", 12, 3), ("tree-1", 8, 2), ("pine-3", 17, 1), ("oak-3", 1, 8),
+             ("tank", 1, 3), ("pylon", 7, 3), ("station", 15, 4), ("street-pole", 9, 4), ("monument", 6, 8),
+             ("mast", 14, 8), ("street-pole", 18, 7)]
+    return m, spots
+
+
+def twins_one(name, key):
+    import landmarks
+    combo = list(map(int, key.split("-")))
+    for (gk, _, opts), i in zip(BUILDERS[name][1], combo):
+        landmarks.TWINS[gk] = opts[i][0]
+    palettes.use(palettes.DEFAULT)
+    import iso
+    import iso_props
+    from render_map import props
+    P = props()
+    m, spots = twins_street()
+    for nm, c, r in spots:
+        spr = iso_props.house(**iso_props.HOUSES[nm])[0] if nm in iso_props.HOUSES else P[nm]
+        m.objects.append((spr, c * 16 + 8, (r + 1) * 16))
+    im = iso.render(m, 0, margin=1, woods=False)
+    im.crop(im.getbbox()).save(OUT / name / f"{key}.png")
+
+
 def cyber_builder_one(name, key):
+    if BUILDERS[name][2:] == ("twins",):
+        return twins_one(name, key)
     import theme_cyber
     combo = list(map(int, key.split("-")))
     for (gk, _, opts), i in zip(BUILDERS[name][1], combo):
