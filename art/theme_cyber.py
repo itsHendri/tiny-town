@@ -73,9 +73,10 @@ CYBER = {"plaza": "panels", "canal": "coolant", "walkway": "tiles", "windows": "
          # picked 2026-10-12: all neon
          "stalls": "neon", "lamps": "neon", "bench": "neon", "barrel": "neon", "crates": "neon",
          "board": "neon", "cart": "neon", "well": "neon",
-         # ground pieces (cyber_props.ground): fences recolour / rail / glass, the rest recolour / neon (beds: led, shrooms)
-         "fences": "recolour", "rails": "recolour", "stairs": "recolour", "deck": "recolour", "beds": "recolour",
-         "crops": "recolour"}
+         # ground pieces (cyber_props.ground): fences recolour / rail / glass, the rest recolour / neon (beds: led, shrooms);
+         # picked 2026-10-12: glass fences, LED stairs, hydroponics, the rest recoloured
+         "fences": "glass", "rails": "recolour", "stairs": "neon", "deck": "recolour", "beds": "recolour",
+         "crops": "neon"}
 # Trees stay trees in the city (a dense wood reads as a glowing park): CYBER["trees"] for broadleaf kinds and
 # CYBER["pines"] for conifers: neon, holo, biolum (dark crowns, glowing specks), outline (dark, a neon rim),
 # cable (crowns of wire bundles, broadleaf only); "planter": trees standing in lit planter boxes. "tech-<concept>":
