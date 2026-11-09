@@ -14,6 +14,12 @@ Everything general (tone, no em dashes, asking first) comes from `~/.claude/CLAU
   home server. Before every push: `grep -rnE "curiouscat\.local|192\.168|tail[b]a68|100\.75\." --exclude-dir=.git .` must return nothing.
 * Commit when a piece of work is done and checked; push when I say so (pushing publishes the site).
 
+## Review comments
+
+`index.html` loads `https://review.hendri.design/review.js`, the review widget from Hendri's workspace. It does nothing
+unless the page is opened with a review link (`?review=...`); then reviewers can pin comments on the page. Leave the
+tag in; it adds no cookies and no requests for normal visitors beyond loading that small script.
+
 ## Running and building
 
 * Serve the folder (the page fetches its tiles): `python3 -m http.server 8000`, then http://localhost:8000.
