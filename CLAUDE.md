@@ -8,12 +8,8 @@ Code MIT (`LICENSE`), art CC BY 4.0 (`LICENSE-art`). Read `README.md` for the us
 
 ## How to work with me
 
-* I'm Hendri, a design engineer. Explain briefly, one step at a time. Keep answers short: key points only.
-* When I'm exploring or deciding: push back, question assumptions, mention alternatives. When I ask you to build: just
-  do it well.
-* For visual choices, show me many drawn options and let me pick in rounds (a picker page with a pick and a note per
-  option works well). I prefer art drawn in code over downloaded assets.
-* Never use em dashes in anything you write for me (code comments, docs, commit messages included).
+Everything general (tone, no em dashes, asking first) comes from `~/.claude/CLAUDE.md`, which every session loads. Only what's specific to this repo is here.
+
 * This repo is **public**. Nothing private goes in: no secrets, no LAN addresses, hostnames or Tailscale names from my
   home server. Before every push: `grep -rnE "curiouscat\.local|192\.168|tail[b]a68|100\.75\." --exclude-dir=.git .` must return nothing.
 * Commit when a piece of work is done and checked; push when I say so (pushing publishes the site).
