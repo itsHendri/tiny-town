@@ -176,7 +176,7 @@ existing values. If the format must change, bump `tinyTownVersion` in `js/format
 
 ## CuriousCat uses this
 
-My home server project (`~/Development/curiouscat`, private) shows its "town" page with a copy of this renderer. It
+My home server project (`~/Studio/brands/hendri/projects/home-server`, private) shows its "town" page with a copy of this renderer. It
 is synced by hand from that repo (`look/sync-tiny-town.sh look/town5`), never from here. Last synced at commit
 `577080c`, so `git log 577080c..` lists what's new for the next sync.
 
